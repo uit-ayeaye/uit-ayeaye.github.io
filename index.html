@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thomas D. Lynn — Software Engineer & Tech Blogger</title>
+    <meta name="description" content="Personal portfolio and tech blog of Thomas D. Lynn — Software Engineer, Full-Stack Developer, and AI Enthusiast.">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
+</head>
+<body>
+    <!-- Cursor glow effect -->
+    <div class="cursor-glow" id="cursorGlow"></div>
+
+    <!-- Floating particles background -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="#" class="nav-logo">
+                <span class="logo-bracket">&lt;</span>
+                <span class="logo-text">TDL</span>
+                <span class="logo-bracket">/&gt;</span>
+            </a>
+            <div class="nav-links" id="navLinks">
+                <a href="#home" class="nav-link active">Home</a>
+                <a href="#about" class="nav-link">About</a>
+                <a href="#skills" class="nav-link">Skills</a>
+                <a href="#blog" class="nav-link">Blog</a>
+                <a href="#contact" class="nav-link">Contact</a>
+            </div>
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="hero-bg-grid"></div>
+        <div class="hero-content">
+            <div class="hero-badge animate-fade-up">
+                <span class="badge-dot"></span>
+                Available for projects
+            </div>
+            <h1 class="hero-title animate-fade-up delay-1">
+                Hi, I'm <span class="gradient-text">Thomas D. Lynn</span>
+            </h1>
+            <div class="hero-typewriter animate-fade-up delay-2">
+                <span class="typewriter-prefix">I</span>
+                <span class="typewriter-text" id="typewriter"></span>
+                <span class="typewriter-cursor">|</span>
+            </div>
+            <p class="hero-description animate-fade-up delay-3">
+                Software Engineer crafting scalable solutions — from full-stack web apps to mobile platforms. 
+                Passionate about leveraging AI to build products faster and smarter.
+            </p>
+            <div class="hero-cta animate-fade-up delay-4">
+                <a href="#blog" class="btn btn-primary">
+                    <span>Read My Blog</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </a>
+                <a href="#contact" class="btn btn-secondary">
+                    <span>Get in Touch</span>
+                </a>
+            </div>
+            <div class="hero-stats animate-fade-up delay-5">
+                <div class="stat">
+                    <span class="stat-number" data-count="5">0</span><span class="stat-plus">+</span>
+                    <span class="stat-label">Years Experience</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat">
+                    <span class="stat-number" data-count="30">0</span><span class="stat-plus">+</span>
+                    <span class="stat-label">Projects Delivered</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat">
+                    <span class="stat-number" data-count="6">0</span><span class="stat-plus">+</span>
+                    <span class="stat-label">Tech Stacks</span>
+                </div>
+            </div>
+        </div>
+        <div class="hero-scroll-indicator">
+            <div class="scroll-mouse">
+                <div class="scroll-wheel"></div>
+            </div>
+            <span>Scroll down</span>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="section about" id="about">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">&lt;about&gt;</span>
+                <h2 class="section-title">About <span class="gradient-text">Me</span></h2>
+                <p class="section-subtitle">Turning complex problems into elegant solutions</p>
+            </div>
+            <div class="about-grid">
+                <div class="about-card glass-card">
+                    <div class="about-icon">🎯</div>
+                    <h3>Mission</h3>
+                    <p>Building scalable, secure, and user-centric products. I believe that with the right tools and mindset, one engineer can achieve what once required a whole team.</p>
+                </div>
+                <div class="about-card glass-card">
+                    <div class="about-icon">⚡</div>
+                    <h3>Philosophy</h3>
+                    <p>AI is the ultimate force multiplier. Combining deep engineering knowledge with modern AI tools like Claude Opus, I deliver production-ready solutions at unprecedented speed.</p>
+                </div>
+                <div class="about-card glass-card">
+                    <div class="about-icon">🚀</div>
+                    <h3>Approach</h3>
+                    <p>From PHP to Node.js migrations, Java to Swift conversions, and Laravel version upgrades — I tackle real-world engineering challenges with pragmatic, result-driven solutions.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Skills Section -->
+    <section class="section skills" id="skills">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">&lt;skills&gt;</span>
+                <h2 class="section-title">Tech <span class="gradient-text">Stack</span></h2>
+                <p class="section-subtitle">Technologies I work with daily</p>
+            </div>
+            <div class="skills-orbit">
+                <div class="skills-categories">
+                    <div class="skill-category">
+                        <h3 class="category-title">
+                            <span class="category-icon">🖥️</span> Backend
+                        </h3>
+                        <div class="skill-tags">
+                            <span class="skill-tag">Node.js</span>
+                            <span class="skill-tag">PHP</span>
+                            <span class="skill-tag">Laravel</span>
+                            <span class="skill-tag">Express.js</span>
+                            <span class="skill-tag">Java</span>
+                            <span class="skill-tag">REST APIs</span>
+                        </div>
+                    </div>
+                    <div class="skill-category">
+                        <h3 class="category-title">
+                            <span class="category-icon">🎨</span> Frontend
+                        </h3>
+                        <div class="skill-tags">
+                            <span class="skill-tag">JavaScript</span>
+                            <span class="skill-tag">HTML/CSS</span>
+                            <span class="skill-tag">React</span>
+                            <span class="skill-tag">Responsive Design</span>
+                            <span class="skill-tag">UI/UX</span>
+                        </div>
+                    </div>
+                    <div class="skill-category">
+                        <h3 class="category-title">
+                            <span class="category-icon">📱</span> Mobile
+                        </h3>
+                        <div class="skill-tags">
+                            <span class="skill-tag">Android (Java)</span>
+                            <span class="skill-tag">iOS (Swift)</span>
+                            <span class="skill-tag">Native Development</span>
+                            <span class="skill-tag">Cross-Platform</span>
+                        </div>
+                    </div>
+                    <div class="skill-category">
+                        <h3 class="category-title">
+                            <span class="category-icon">🤖</span> AI & Tools
+                        </h3>
+                        <div class="skill-tags">
+                            <span class="skill-tag">Claude Opus</span>
+                            <span class="skill-tag">GPT / Custom GPTs</span>
+                            <span class="skill-tag">AI-Powered Dev</span>
+                            <span class="skill-tag">Prompt Engineering</span>
+                        </div>
+                    </div>
+                    <div class="skill-category">
+                        <h3 class="category-title">
+                            <span class="category-icon">🔒</span> DevOps & Security
+                        </h3>
+                        <div class="skill-tags">
+                            <span class="skill-tag">Git</span>
+                            <span class="skill-tag">Linux</span>
+                            <span class="skill-tag">Server Admin</span>
+                            <span class="skill-tag">Cybersecurity</span>
+                            <span class="skill-tag">IoT</span>
+                            <span class="skill-tag">Database Design</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Blog Section -->
+    <section class="section blog" id="blog">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">&lt;blog&gt;</span>
+                <h2 class="section-title">Latest <span class="gradient-text">Posts</span></h2>
+                <p class="section-subtitle">Thoughts, tutorials, and real-world engineering stories</p>
+            </div>
+            <div class="blog-grid">
+                <a href="blog/opus-4-6-ai-engineering.html" class="blog-card glass-card featured">
+                    <div class="blog-card-badge">Featured</div>
+                    <div class="blog-card-image">
+                        <div class="blog-card-image-placeholder">
+                            <span>🤖</span>
+                        </div>
+                    </div>
+                    <div class="blog-card-content">
+                        <div class="blog-card-meta">
+                            <span class="blog-date">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                Feb 7, 2026
+                            </span>
+                            <span class="blog-read-time">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                8 min read
+                            </span>
+                        </div>
+                        <h3 class="blog-card-title">Opus 4.6 & The Age of AI-Powered Engineering: Real-World Conversions That Changed Everything</h3>
+                        <p class="blog-card-excerpt">How I leveraged Claude Opus to convert PHP backends to Node.js, upgrade Laravel 8 → 12, and build native iOS apps from Android codebases — all in record time.</p>
+                        <div class="blog-card-tags">
+                            <span class="tag">AI</span>
+                            <span class="tag">Engineering</span>
+                            <span class="tag">Claude Opus</span>
+                        </div>
+                        <span class="blog-card-read-more">
+                            Read article
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                        </span>
+                    </div>
+                </a>
+
+                <div class="blog-card glass-card coming-soon">
+                    <div class="blog-card-image">
+                        <div class="blog-card-image-placeholder">
+                            <span>⚡</span>
+                        </div>
+                    </div>
+                    <div class="blog-card-content">
+                        <div class="blog-card-meta">
+                            <span class="blog-date">Coming Soon</span>
+                        </div>
+                        <h3 class="blog-card-title">Building Scalable Game Backends: From PHP to Node.js</h3>
+                        <p class="blog-card-excerpt">A deep dive into migrating concurrent-heavy game servers and handling real-time user scores with async architecture.</p>
+                        <div class="blog-card-tags">
+                            <span class="tag">Node.js</span>
+                            <span class="tag">Backend</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="blog-card glass-card coming-soon">
+                    <div class="blog-card-image">
+                        <div class="blog-card-image-placeholder">
+                            <span>🔒</span>
+                        </div>
+                    </div>
+                    <div class="blog-card-content">
+                        <div class="blog-card-meta">
+                            <span class="blog-date">Coming Soon</span>
+                        </div>
+                        <h3 class="blog-card-title">Cybersecurity Meets AI: Offensive Testing with Language Models</h3>
+                        <p class="blog-card-excerpt">Exploring the ethical boundaries and capabilities of AI-assisted penetration testing and security auditing.</p>
+                        <div class="blog-card-tags">
+                            <span class="tag">Security</span>
+                            <span class="tag">AI</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="section contact" id="contact">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">&lt;contact&gt;</span>
+                <h2 class="section-title">Let's <span class="gradient-text">Connect</span></h2>
+                <p class="section-subtitle">Have a project in mind? Let's build something amazing together.</p>
+            </div>
+            <div class="contact-grid">
+                <div class="contact-card glass-card">
+                    <div class="contact-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+                    </div>
+                    <h3>GitHub</h3>
+                    <a href="https://github.com/uit-ayeaye" target="_blank" class="contact-link">@uit-ayeaye</a>
+                </div>
+                <div class="contact-card glass-card">
+                    <div class="contact-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    </div>
+                    <h3>Email</h3>
+                    <a href="mailto:hello@thomasdlynn.dev" class="contact-link">hello@thomasdlynn.dev</a>
+                </div>
+                <div class="contact-card glass-card">
+                    <div class="contact-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    </div>
+                    <h3>Location</h3>
+                    <span class="contact-link">Remote / Worldwide</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <span class="logo-bracket">&lt;</span>
+                    <span class="logo-text">TDL</span>
+                    <span class="logo-bracket">/&gt;</span>
+                </div>
+                <p class="footer-text">Crafted with ☕ and AI by Thomas D. Lynn © 2026</p>
+                <div class="footer-links">
+                    <a href="https://github.com/uit-ayeaye" target="_blank">GitHub</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
