@@ -197,8 +197,8 @@ img { max-width: 100%; display: block; }
 
 /* ---------- Ocean BG + Waves ---------- */
 .ocean-bg {
-    position: fixed; bottom: 0; left: 0; width: 100%; height: 250px;
-    z-index: 0; pointer-events: none; overflow: hidden;
+    position: fixed; bottom: 0; left: 0; width: 100%; height: 280px;
+    z-index: 2; pointer-events: none; overflow: hidden;
 }
 
 .wave {
@@ -383,30 +383,7 @@ body::before {
     text-shadow: 0 2px 20px rgba(0,0,0,0.3);
 }
 
-/* Bounty Poster */
-.bounty-poster {
-    display: inline-block;
-    background: linear-gradient(145deg, #f4e4c1, #d4c4a1);
-    padding: 14px 32px; border-radius: 4px; text-align: center;
-    margin-bottom: 20px;
-    box-shadow: 4px 4px 20px rgba(0,0,0,0.5), 0 0 30px rgba(245,200,66,0.15);
-    border: 3px solid var(--treasure-brown);
-    position: relative; transform: rotate(-1.5deg);
-    animation: posterFloat 4s ease-in-out infinite;
-}
-
-.bounty-poster::before {
-    content: '— MARINES —'; position: absolute; bottom: -8px; left: 50%;
-    transform: translateX(-50%); font-family: var(--font-pirate);
-    font-size: 0.5rem; color: var(--treasure-brown);
-    letter-spacing: 0.2em; white-space: nowrap;
-}
-
-@keyframes posterFloat { 0%, 100% { transform: rotate(-1.5deg); } 50% { transform: rotate(0.5deg); } }
-
-.bounty-top { font-family: var(--font-pirate); font-size: 1.6rem; color: var(--crimson); letter-spacing: 0.2em; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
-.bounty-mid { font-family: var(--font-display); font-size: 0.9rem; font-weight: 700; color: #2c1810; margin: 6px 0; letter-spacing: 0.05em; }
-.bounty-bottom { font-family: var(--font-pirate); font-size: 0.85rem; color: #5a3a1a; letter-spacing: 0.12em; }
+/* Bounty Poster — uses image now, old text styles removed */
 
 .hero-typewriter {
     font-family: var(--font-mono);
@@ -587,61 +564,95 @@ a.contact-link:hover { color: var(--gold); }
 
 /* ---------- Floating Pirate Ship & Jolly Flags ---------- */
 .floating-ship {
-    position: absolute;
-    bottom: 60px;
-    right: -20px;
-    z-index: 2;
+    position: fixed;
+    bottom: 20px;
+    right: 10px;
+    z-index: 3;
     pointer-events: none;
-    animation: shipSail 8s ease-in-out infinite;
-    filter: drop-shadow(0 10px 30px rgba(0,0,0,0.4));
+    animation: shipSail 6s ease-in-out infinite;
+    filter: drop-shadow(0 8px 20px rgba(0,0,0,0.5));
 }
 
 .ship-img {
-    width: clamp(120px, 18vw, 220px);
+    width: clamp(80px, 14vw, 180px);
     height: auto;
     transform: scaleX(-1);
 }
 
 @keyframes shipSail {
-    0%, 100% { transform: translateY(0) rotate(-2deg); }
-    25% { transform: translateY(-12px) rotate(0deg); }
-    50% { transform: translateY(-6px) rotate(2deg); }
-    75% { transform: translateY(-16px) rotate(-1deg); }
+    0% { transform: translateY(0) rotate(-1.5deg); }
+    20% { transform: translateY(-10px) rotate(0.5deg); }
+    40% { transform: translateY(-4px) rotate(1.5deg); }
+    60% { transform: translateY(-14px) rotate(-0.5deg); }
+    80% { transform: translateY(-6px) rotate(1deg); }
+    100% { transform: translateY(0) rotate(-1.5deg); }
 }
 
 .jolly-flag {
-    position: absolute;
-    z-index: 2;
+    position: fixed;
+    z-index: 3;
     pointer-events: none;
-    filter: drop-shadow(0 5px 20px rgba(0,0,0,0.3));
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
 }
 
 .jolly-flag-left {
-    top: 120px;
-    left: 30px;
-    animation: flagFloat 6s ease-in-out infinite;
+    bottom: 140px;
+    left: 12px;
+    animation: flagFloatL 7s ease-in-out infinite;
 }
 
 .jolly-flag-right {
-    top: 80px;
-    right: 60px;
-    animation: flagFloat 7s ease-in-out infinite reverse;
+    bottom: 180px;
+    right: 12px;
+    animation: flagFloatR 8s ease-in-out infinite;
 }
 
 .flag-img {
-    width: clamp(50px, 8vw, 90px);
+    width: clamp(40px, 6vw, 70px);
     height: auto;
     animation: flagWave 4s ease-in-out infinite;
-    opacity: 0.85;
-    border-radius: 12px;
+    opacity: 0.8;
+    border-radius: 10px;
 }
 
-/* In dark mode show dark-bg flag, in light mode show white-bg flag */
+@keyframes flagFloatL {
+    0%, 100% { transform: translateY(0) rotate(-4deg); }
+    33% { transform: translateY(-14px) rotate(2deg); }
+    66% { transform: translateY(-6px) rotate(-2deg); }
+}
 
-@keyframes flagFloat {
-    0%, 100% { transform: translateY(0) rotate(-3deg); }
-    33% { transform: translateY(-18px) rotate(2deg); }
-    66% { transform: translateY(-8px) rotate(-1deg); }
+@keyframes flagFloatR {
+    0%, 100% { transform: translateY(0) rotate(3deg); }
+    33% { transform: translateY(-10px) rotate(-2deg); }
+    66% { transform: translateY(-16px) rotate(1deg); }
+}
+
+/* ---------- Bounty Poster Image ---------- */
+.bounty-poster-frame {
+    display: inline-block;
+    max-width: 240px;
+    margin-bottom: 20px;
+    animation: posterFloat 4s ease-in-out infinite;
+    filter: drop-shadow(4px 4px 20px rgba(0,0,0,0.5)) drop-shadow(0 0 30px rgba(245,200,66,0.15));
+    transform: rotate(-2deg);
+    transition: transform var(--transition-base), filter var(--transition-base);
+    cursor: default;
+}
+
+.bounty-poster-frame:hover {
+    transform: rotate(0deg) scale(1.05);
+    filter: drop-shadow(4px 4px 30px rgba(0,0,0,0.6)) drop-shadow(0 0 50px rgba(245,200,66,0.3));
+}
+
+.bounty-poster-img {
+    width: 100%;
+    height: auto;
+    border-radius: 6px;
+}
+
+@keyframes posterFloat {
+    0%, 100% { transform: rotate(-2deg) translateY(0); }
+    50% { transform: rotate(0.5deg) translateY(-6px); }
 }
 
 /* ---------- Responsive ---------- */
@@ -669,10 +680,11 @@ a.contact-link:hover { color: var(--gold); }
     .nav-link { width: 100%; padding: 14px 16px; font-size: 1rem; }
     .about-grid { grid-template-columns: 1fr; }
     .floating-ship { bottom: 15px; right: 5px; }
-    .ship-img { width: 90px; }
-    .jolly-flag-left { top: auto; bottom: 120px; left: 10px; }
-    .jolly-flag-right { top: auto; bottom: 160px; right: 10px; }
-    .flag-img { width: 40px; }
+    .ship-img { width: 100px; }
+    .jolly-flag-left { bottom: 100px; left: 8px; }
+    .jolly-flag-right { bottom: 130px; right: 8px; }
+    .flag-img { width: 38px; }
+    .bounty-poster-frame { max-width: 180px; }
     .blog-card.featured { grid-template-columns: 1fr; }
     .blog-card.featured .blog-card-image { border-radius: var(--radius-lg) var(--radius-lg) 0 0; min-height: 200px; }
     .blog-grid { grid-template-columns: 1fr; }
@@ -689,11 +701,10 @@ a.contact-link:hover { color: var(--gold); }
     .hero-cta { flex-direction: column; }
     .btn { width: 100%; justify-content: center; }
     .skills-categories { grid-template-columns: 1fr; }
-    .bounty-poster { padding: 10px 20px; }
-    .bounty-top { font-size: 1.1rem; }
-    .floating-ship { bottom: 8px; right: 0; }
-    .ship-img { width: 75px; }
-    .jolly-flag-left { bottom: 100px; left: 5px; }
-    .jolly-flag-right { bottom: 135px; right: 5px; }
-    .flag-img { width: 32px; }
+    .bounty-poster-frame { max-width: 150px; }
+    .floating-ship { bottom: 10px; right: 2px; }
+    .ship-img { width: 70px; }
+    .jolly-flag-left { bottom: 75px; left: 4px; }
+    .jolly-flag-right { bottom: 95px; right: 4px; }
+    .flag-img { width: 28px; }
 }

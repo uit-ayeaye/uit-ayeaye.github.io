@@ -273,8 +273,17 @@
     .post-hero { padding-top: 100px; }
     .post-meta { flex-direction: column; align-items: flex-start; }
     .comparison-block { grid-template-columns: 1fr; text-align: center; }
+    .comparison-vs { padding: 4px 0; }
     .post-author-card { flex-direction: column; text-align: center; }
     .author-card-links { justify-content: center; }
     .version-flow { gap: 4px; }
     .version-node { padding: 4px 10px; font-size: 0.78rem; }
+    .post-footer-actions { flex-direction: column; gap: 10px; }
+    .post-footer-actions .btn { width: 100%; justify-content: center; }
+    .principle-cards { grid-template-columns: 1fr; }
+    .post-body h2 { font-size: 1.4rem; }
+    .callout { flex-direction: column; gap: 8px; padding: 16px; }
+    .callout-icon { font-size: 1.2rem; }
+    .highlight-box { padding: 20px; }
+    .code-block pre { padding: 14px; font-size: 0.8rem; }
 }
