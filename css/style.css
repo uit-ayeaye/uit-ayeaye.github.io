@@ -3,34 +3,35 @@
    =================================== */
 
 :root {
-    --bg-ocean: #0a0e1a;
-    --bg-deep: #060a14;
-    --bg-card: rgba(12, 18, 35, 0.85);
-    --bg-card-hover: rgba(20, 28, 50, 0.9);
+    /* ☠️ Bright One Piece Pirate Theme — Parchment & Ocean */
+    --bg-ocean: #fdf6e3;
+    --bg-deep: #f5ead0;
+    --bg-card: rgba(255, 255, 255, 0.85);
+    --bg-card-hover: rgba(255, 252, 240, 0.95);
 
-    --text-primary: #e8dcc8;
-    --text-secondary: #a09882;
-    --text-muted: #6a6252;
+    --text-primary: #2c1810;
+    --text-secondary: #4a3728;
+    --text-muted: #8a7560;
 
     --gold: #d4a846;
     --gold-light: #f0d070;
     --gold-dark: #a07820;
     --crimson: #c0392b;
     --crimson-light: #e74c3c;
-    --ocean-blue: #1a5276;
-    --ocean-light: #2e86c1;
-    --ocean-deep: #0d2840;
+    --ocean-blue: #1a6da8;
+    --ocean-light: #4da6e0;
+    --ocean-deep: #1a5276;
     --treasure-brown: #8b6914;
     --parchment: #f4e4c1;
     --parchment-dark: #d4c4a1;
 
     --accent-gradient: linear-gradient(135deg, var(--gold), var(--crimson));
-    --ocean-gradient: linear-gradient(135deg, var(--ocean-deep), var(--ocean-blue));
+    --ocean-gradient: linear-gradient(135deg, var(--ocean-light), var(--ocean-blue));
     --treasure-gradient: linear-gradient(135deg, var(--gold-dark), var(--gold), var(--gold-light));
 
-    --border-color: rgba(212, 168, 70, 0.15);
-    --border-hover: rgba(212, 168, 70, 0.4);
-    --glow-gold: rgba(212, 168, 70, 0.3);
+    --border-color: rgba(139, 105, 20, 0.2);
+    --border-hover: rgba(212, 168, 70, 0.5);
+    --glow-gold: rgba(212, 168, 70, 0.15);
 
     --font-pirate: 'Pirata One', cursive;
     --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -101,20 +102,21 @@ img { max-width: 100%; display: block; }
     background: var(--ocean-light);
     animation: waveMove 8s ease-in-out infinite;
     bottom: 0;
+    opacity: 0.18;
 }
 
 .wave-2 {
     background: var(--ocean-blue);
     animation: waveMove 10s ease-in-out infinite reverse;
     bottom: 10px;
-    opacity: 0.04;
+    opacity: 0.12;
 }
 
 .wave-3 {
     background: var(--gold);
     animation: waveMove 12s ease-in-out infinite;
     bottom: 20px;
-    opacity: 0.02;
+    opacity: 0.08;
 }
 
 @keyframes waveMove {
@@ -167,7 +169,7 @@ img { max-width: 100%; display: block; }
     background: var(--bg-card-hover);
     border-color: var(--border-hover);
     transform: translateY(-6px);
-    box-shadow: 0 20px 60px rgba(212, 168, 70, 0.08), 0 0 30px rgba(212, 168, 70, 0.04);
+    box-shadow: 0 20px 60px rgba(139, 105, 20, 0.1), 0 0 30px rgba(212, 168, 70, 0.08);
 }
 
 .treasure-card:hover::before { opacity: 1; }
@@ -185,9 +187,10 @@ img { max-width: 100%; display: block; }
 
 .navbar.scrolled {
     padding: 10px 0;
-    background: rgba(6, 10, 20, 0.9);
+    background: rgba(253, 246, 227, 0.95);
     backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 2px 20px rgba(139, 105, 20, 0.08);
 }
 
 .nav-container {
@@ -536,7 +539,7 @@ img { max-width: 100%; display: block; }
 .section-subtitle { font-size: 1rem; color: var(--text-secondary); }
 
 /* About */
-.about { background: rgba(6, 10, 20, 0.5); }
+.about { background: rgba(244, 228, 193, 0.35); }
 .about-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
 
 .about-card { padding: 36px 28px; text-align: center; }
@@ -545,7 +548,7 @@ img { max-width: 100%; display: block; }
 .about-card p { color: var(--text-secondary); font-size: 0.95rem; line-height: 1.7; }
 
 /* Skills */
-.skills { background: var(--bg-deep); }
+.skills { background: rgba(245, 234, 208, 0.6); }
 .skills-categories { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
 .skill-category { padding: 28px; }
 
@@ -683,7 +686,7 @@ img { max-width: 100%; display: block; }
 .blog-card.coming-soon:hover { transform: none; opacity: 0.6; }
 
 /* Contact */
-.contact { background: var(--bg-deep); }
+.contact { background: rgba(244, 228, 193, 0.35); }
 .contact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 800px; margin: 0 auto; }
 .contact-card { padding: 36px 24px; text-align: center; }
 
@@ -742,7 +745,7 @@ a.contact-link:hover { color: var(--gold); }
         right: -100%;
         width: 280px;
         height: 100vh;
-        background: var(--bg-deep);
+        background: var(--parchment);
         border-left: 1px solid var(--border-color);
         flex-direction: column;
         padding: 100px 32px 32px;
