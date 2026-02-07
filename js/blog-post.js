@@ -1,6 +1,6 @@
-/* Blog Post JS — One Piece Theme */
+/* Blog Post JS — One Piece Pirate Theme */
 document.addEventListener('DOMContentLoaded', () => {
-    // Reading progress
+    // Reading progress bar with gold-red glow
     const bar = document.createElement('div');
     bar.classList.add('reading-progress');
     document.body.prepend(bar);
@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Scroll reveal for post elements
-    const els = document.querySelectorAll('.callout, .code-block, .version-flow, .highlight-box, .principle-card, .comparison-block, .post-closing, .post-author-card, .styled-list');
+    const els = document.querySelectorAll('.callout, .code-block, .version-flow, .highlight-box, .principle-card, .comparison-block, .post-closing, .post-author-card, .styled-list, .pirate-quote');
     const obs = new IntersectionObserver(entries => {
         entries.forEach((e, i) => {
             if (e.isIntersecting) {
@@ -24,4 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
     els.forEach(el => { el.classList.add('reveal'); obs.observe(el); });
+
+    // Add pirate-themed heading decorations
+    document.querySelectorAll('.post-body h2').forEach(h2 => {
+        h2.style.position = 'relative';
+    });
 });

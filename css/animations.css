@@ -1,5 +1,5 @@
 /* ===================================
-   Animations — One Piece Theme
+   Animations — One Piece Grand Line Theme
    =================================== */
 
 .reveal { opacity: 0; transform: translateY(40px); transition: opacity 0.8s cubic-bezier(0.16,1,0.3,1), transform 0.8s cubic-bezier(0.16,1,0.3,1); }
@@ -21,54 +21,67 @@
 }
 
 .sparkle-effect::after {
-    content: '✦';
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    color: var(--gold-light);
-    font-size: 0.8rem;
+    content: '✦'; position: absolute; top: -5px; right: -5px;
+    color: var(--gold-light); font-size: 0.8rem;
     animation: sparkle 2s ease-in-out infinite;
+}
+
+/* Gear 5th lightning flash */
+@keyframes lightningFlash {
+    0%, 95%, 100% { opacity: 0; }
+    96% { opacity: 0.3; }
+    97% { opacity: 0; }
+    98% { opacity: 0.15; }
+}
+
+.lightning-overlay {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 30%, rgba(245,200,66,0.1), transparent 70%);
+    animation: lightningFlash 15s ease-in-out infinite;
 }
 
 /* Blog card bottom line */
 .blog-card::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 0;
-    height: 3px;
+    content: ''; position: absolute; bottom: 0; left: 0; width: 0; height: 3px;
     background: var(--treasure-gradient);
     transition: width 0.5s cubic-bezier(0.16,1,0.3,1);
 }
-
 .blog-card:hover::after { width: 100%; }
 
 /* Nav link underline */
 .nav-link::after {
-    content: '';
-    position: absolute;
-    bottom: 2px;
-    left: 50%;
-    width: 0;
-    height: 2px;
-    background: var(--treasure-gradient);
-    border-radius: 2px;
+    content: ''; position: absolute; bottom: 2px; left: 50%; width: 0; height: 2px;
+    background: var(--treasure-gradient); border-radius: 2px;
     transition: width 0.3s, left 0.3s;
 }
-
 .nav-link:hover::after, .nav-link.active::after { width: 60%; left: 20%; }
 
 /* Reading progress bar */
 .reading-progress {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 3px;
-    background: var(--treasure-gradient);
-    z-index: 1001;
-    transition: width 0.1s linear;
+    position: fixed; top: 0; left: 0; height: 3px;
+    background: var(--accent-gradient);
+    z-index: 1001; transition: width 0.1s linear;
     border-radius: 0 2px 2px 0;
+    box-shadow: 0 0 10px rgba(245,200,66,0.4), 0 0 20px rgba(220,53,69,0.2);
+}
+
+/* Pirate flag wave */
+@keyframes flagWave {
+    0%, 100% { transform: skewX(0deg) rotate(0deg); }
+    25% { transform: skewX(2deg) rotate(0.5deg); }
+    75% { transform: skewX(-2deg) rotate(-0.5deg); }
+}
+
+/* Treasure chest glow */
+@keyframes treasureGlow {
+    0%, 100% { box-shadow: 0 0 20px rgba(245,200,66,0.1); }
+    50% { box-shadow: 0 0 40px rgba(245,200,66,0.25), 0 0 60px rgba(245,200,66,0.1); }
+}
+
+/* Compass spin for loading */
+@keyframes compassSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 /* Reduced motion */

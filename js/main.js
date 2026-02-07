@@ -1,11 +1,12 @@
 /* ===================================
-   Main JS — One Piece Theme
+   Main JS — One Piece Grand Line Theme
    =================================== */
 document.addEventListener('DOMContentLoaded', () => {
-    // Particles (ocean bubbles)
+    // Particles (golden fireflies + ocean stars)
     const particlesContainer = document.getElementById('particles');
     if (particlesContainer && window.innerWidth > 768) {
-        for (let i = 0; i < 25; i++) {
+        // Floating particles
+        for (let i = 0; i < 30; i++) {
             const p = document.createElement('div');
             p.classList.add('particle');
             p.style.left = Math.random() * 100 + '%';
@@ -14,11 +15,40 @@ document.addEventListener('DOMContentLoaded', () => {
             const s = 2 + Math.random() * 4;
             p.style.width = s + 'px';
             p.style.height = s + 'px';
-            const colors = ['#d4a846','#f0d070','#2e86c1','#c0392b','#a07820'];
+            const colors = ['#f5c842','#ffe066','#42a5f5','#dc3545','#c9991a','#64b5f6'];
             p.style.background = colors[Math.floor(Math.random() * colors.length)];
             particlesContainer.appendChild(p);
         }
+
+        // Twinkling stars
+        for (let i = 0; i < 50; i++) {
+            const star = document.createElement('div');
+            star.style.position = 'absolute';
+            star.style.width = (1 + Math.random() * 2) + 'px';
+            star.style.height = star.style.width;
+            star.style.background = Math.random() > 0.7 ? '#f5c842' : '#e8dcc8';
+            star.style.borderRadius = '50%';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 60 + '%';
+            star.style.opacity = (0.1 + Math.random() * 0.5).toString();
+            star.style.animation = `twinkle ${2 + Math.random() * 4}s ease-in-out infinite`;
+            star.style.animationDelay = Math.random() * 5 + 's';
+            particlesContainer.appendChild(star);
+        }
+
+        // Add twinkle keyframe dynamically
+        if (!document.getElementById('twinkle-style')) {
+            const style = document.createElement('style');
+            style.id = 'twinkle-style';
+            style.textContent = '@keyframes twinkle{0%,100%{opacity:0.2;transform:scale(1)}50%{opacity:1;transform:scale(1.5)}}';
+            document.head.appendChild(style);
+        }
     }
+
+    // Lightning overlay
+    const lightning = document.createElement('div');
+    lightning.classList.add('lightning-overlay');
+    document.body.appendChild(lightning);
 
     // Navbar scroll
     const navbar = document.getElementById('navbar');
@@ -56,16 +86,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Typewriter
+    // Typewriter — One Piece themed
     const tw = document.getElementById('typewriter');
     if (tw) {
         const phrases = [
             ' navigating the Grand Line of code...',
             ' converting PHP → Node.js at Gear 5th speed!',
-            ' upgrading Laravel like a true pirate!',
-            ' building iOS apps without knowing Swift!',
-            ' AI is my Devil Fruit power! 😈',
-            ' one engineer + AI = unlimited potential!',
+            ' upgrading Laravel like finding One Piece!',
+            ' building iOS apps — Devil Fruit powers! 😈',
+            ' AI is my Hito Hito no Mi, Model: Nika! ⚡',
+            ' one pirate + AI = the whole fleet! 🏴‍☠️',
+            ' Gear 5th Engineering activated! 🔥',
         ];
         let pi = 0, ci = 0, deleting = false, speed = 60;
         function type() {
@@ -133,4 +164,24 @@ document.addEventListener('DOMContentLoaded', () => {
             card.addEventListener('mouseleave', () => { card.style.transform = ''; });
         });
     }
+
+    // Cursor trail effect (golden sparkles on click)
+    document.addEventListener('click', e => {
+        for (let i = 0; i < 5; i++) {
+            const spark = document.createElement('div');
+            spark.style.cssText = `
+                position:fixed; width:4px; height:4px; border-radius:50%;
+                background:${['#f5c842','#ffe066','#dc3545'][Math.floor(Math.random()*3)]};
+                left:${e.clientX}px; top:${e.clientY}px;
+                pointer-events:none; z-index:9999;
+                transition: all 0.6s ease-out;
+            `;
+            document.body.appendChild(spark);
+            requestAnimationFrame(() => {
+                spark.style.transform = `translate(${(Math.random()-0.5)*60}px, ${(Math.random()-0.5)*60}px) scale(0)`;
+                spark.style.opacity = '0';
+            });
+            setTimeout(() => spark.remove(), 700);
+        }
+    });
 });
