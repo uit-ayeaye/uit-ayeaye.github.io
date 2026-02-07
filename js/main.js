@@ -1,218 +1,136 @@
 /* ===================================
-   Thomas D. Lynn — Portfolio & Blog
-   Main JavaScript
+   Main JS — One Piece Theme
    =================================== */
-
 document.addEventListener('DOMContentLoaded', () => {
-    // ---------- Cursor Glow ----------
-    const cursorGlow = document.getElementById('cursorGlow');
-    if (cursorGlow && window.innerWidth > 768) {
-        document.addEventListener('mousemove', (e) => {
-            requestAnimationFrame(() => {
-                cursorGlow.style.left = e.clientX + 'px';
-                cursorGlow.style.top = e.clientY + 'px';
-            });
-        });
-    }
-
-    // ---------- Particles ----------
+    // Particles (ocean bubbles)
     const particlesContainer = document.getElementById('particles');
     if (particlesContainer && window.innerWidth > 768) {
-        for (let i = 0; i < 30; i++) {
-            const particle = document.createElement('div');
-            particle.classList.add('particle');
-            particle.style.left = Math.random() * 100 + '%';
-            particle.style.animationDelay = Math.random() * 8 + 's';
-            particle.style.animationDuration = (6 + Math.random() * 6) + 's';
-            const size = 1 + Math.random() * 3;
-            particle.style.width = size + 'px';
-            particle.style.height = size + 'px';
-            const colors = ['#6c5ce7', '#00cec9', '#fd79a8', '#a29bfe'];
-            particle.style.background = colors[Math.floor(Math.random() * colors.length)];
-            particlesContainer.appendChild(particle);
+        for (let i = 0; i < 25; i++) {
+            const p = document.createElement('div');
+            p.classList.add('particle');
+            p.style.left = Math.random() * 100 + '%';
+            p.style.animationDelay = Math.random() * 10 + 's';
+            p.style.animationDuration = (8 + Math.random() * 8) + 's';
+            const s = 2 + Math.random() * 4;
+            p.style.width = s + 'px';
+            p.style.height = s + 'px';
+            const colors = ['#d4a846','#f0d070','#2e86c1','#c0392b','#a07820'];
+            p.style.background = colors[Math.floor(Math.random() * colors.length)];
+            particlesContainer.appendChild(p);
         }
     }
 
-    // ---------- Navbar Scroll ----------
+    // Navbar scroll
     const navbar = document.getElementById('navbar');
     const navLinks = document.querySelectorAll('.nav-link');
     const sections = document.querySelectorAll('section[id]');
 
     window.addEventListener('scroll', () => {
-        // Navbar background
-        if (window.scrollY > 50) {
-            navbar.classList.add('scrolled');
-        } else {
-            navbar.classList.remove('scrolled');
-        }
-
-        // Active nav link
+        navbar.classList.toggle('scrolled', window.scrollY > 50);
         const scrollPos = window.scrollY + 200;
-        sections.forEach(section => {
-            const top = section.offsetTop;
-            const height = section.offsetHeight;
-            const id = section.getAttribute('id');
-            if (scrollPos >= top && scrollPos < top + height) {
-                navLinks.forEach(link => {
-                    link.classList.remove('active');
-                    if (link.getAttribute('href') === '#' + id) {
-                        link.classList.add('active');
-                    }
+        sections.forEach(sec => {
+            const top = sec.offsetTop;
+            const id = sec.getAttribute('id');
+            if (scrollPos >= top && scrollPos < top + sec.offsetHeight) {
+                navLinks.forEach(l => {
+                    l.classList.remove('active');
+                    if (l.getAttribute('href') === '#' + id) l.classList.add('active');
                 });
             }
         });
     });
 
-    // ---------- Mobile Nav Toggle ----------
+    // Mobile nav
     const navToggle = document.getElementById('navToggle');
     const navLinksContainer = document.getElementById('navLinks');
-
     if (navToggle) {
         navToggle.addEventListener('click', () => {
             navToggle.classList.toggle('active');
             navLinksContainer.classList.toggle('active');
         });
-
-        // Close menu on link click
-        navLinksContainer.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', () => {
+        navLinksContainer.querySelectorAll('.nav-link').forEach(l => {
+            l.addEventListener('click', () => {
                 navToggle.classList.remove('active');
                 navLinksContainer.classList.remove('active');
             });
         });
     }
 
-    // ---------- Typewriter Effect ----------
-    const typewriterEl = document.getElementById('typewriter');
-    if (typewriterEl) {
+    // Typewriter
+    const tw = document.getElementById('typewriter');
+    if (tw) {
         const phrases = [
-            ' build scalable backends.',
-            ' craft mobile apps.',
-            ' leverage AI for engineering.',
-            ' convert codebases at lightning speed.',
-            ' turn ideas into products.',
+            ' navigating the Grand Line of code...',
+            ' converting PHP → Node.js at Gear 5th speed!',
+            ' upgrading Laravel like a true pirate!',
+            ' building iOS apps without knowing Swift!',
+            ' AI is my Devil Fruit power! 😈',
+            ' one engineer + AI = unlimited potential!',
         ];
-        let phraseIndex = 0;
-        let charIndex = 0;
-        let isDeleting = false;
-        let typingSpeed = 60;
-
-        function typewrite() {
-            const currentPhrase = phrases[phraseIndex];
-
-            if (isDeleting) {
-                typewriterEl.textContent = currentPhrase.substring(0, charIndex - 1);
-                charIndex--;
-                typingSpeed = 30;
-            } else {
-                typewriterEl.textContent = currentPhrase.substring(0, charIndex + 1);
-                charIndex++;
-                typingSpeed = 60;
-            }
-
-            if (!isDeleting && charIndex === currentPhrase.length) {
-                typingSpeed = 2000; // pause at end
-                isDeleting = true;
-            } else if (isDeleting && charIndex === 0) {
-                isDeleting = false;
-                phraseIndex = (phraseIndex + 1) % phrases.length;
-                typingSpeed = 400;
-            }
-
-            setTimeout(typewrite, typingSpeed);
+        let pi = 0, ci = 0, deleting = false, speed = 60;
+        function type() {
+            const cur = phrases[pi];
+            if (deleting) { tw.textContent = cur.substring(0, ci - 1); ci--; speed = 25; }
+            else { tw.textContent = cur.substring(0, ci + 1); ci++; speed = 55; }
+            if (!deleting && ci === cur.length) { speed = 2200; deleting = true; }
+            else if (deleting && ci === 0) { deleting = false; pi = (pi + 1) % phrases.length; speed = 400; }
+            setTimeout(type, speed);
         }
-
-        setTimeout(typewrite, 800);
+        setTimeout(type, 800);
     }
 
-    // ---------- Number Counter Animation ----------
-    const statNumbers = document.querySelectorAll('.stat-number');
-    const counterObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const el = entry.target;
-                const target = parseInt(el.getAttribute('data-count'));
-                animateCounter(el, 0, target, 1500);
-                counterObserver.unobserve(el);
+    // Counter
+    const statNums = document.querySelectorAll('.stat-number');
+    const counterObs = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+            if (e.isIntersecting) {
+                const el = e.target;
+                const target = parseInt(el.dataset.count);
+                let start = null;
+                function step(ts) {
+                    if (!start) start = ts;
+                    const p = Math.min((ts - start) / 1500, 1);
+                    el.textContent = Math.floor((1 - Math.pow(1 - p, 3)) * target);
+                    if (p < 1) requestAnimationFrame(step);
+                }
+                requestAnimationFrame(step);
+                counterObs.unobserve(el);
             }
         });
     }, { threshold: 0.5 });
+    statNums.forEach(n => counterObs.observe(n));
 
-    statNumbers.forEach(num => counterObserver.observe(num));
-
-    function animateCounter(el, start, end, duration) {
-        let startTime = null;
-        function step(timestamp) {
-            if (!startTime) startTime = timestamp;
-            const progress = Math.min((timestamp - startTime) / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
-            el.textContent = Math.floor(eased * (end - start) + start);
-            if (progress < 1) {
-                requestAnimationFrame(step);
-            }
-        }
-        requestAnimationFrame(step);
-    }
-
-    // ---------- Scroll Reveal (IntersectionObserver) ----------
-    const revealElements = document.querySelectorAll(
-        '.about-card, .skill-category, .blog-card, .contact-card, .section-header'
-    );
-
-    const revealObserver = new IntersectionObserver((entries) => {
-        entries.forEach((entry, index) => {
-            if (entry.isIntersecting) {
-                setTimeout(() => {
-                    entry.target.classList.add('reveal', 'visible');
-                }, index * 80);
-                revealObserver.unobserve(entry.target);
+    // Scroll reveal
+    const revealEls = document.querySelectorAll('.about-card, .skill-category, .blog-card, .contact-card, .section-header');
+    const revealObs = new IntersectionObserver(entries => {
+        entries.forEach((e, i) => {
+            if (e.isIntersecting) {
+                setTimeout(() => e.target.classList.add('reveal', 'visible'), i * 80);
+                revealObs.unobserve(e.target);
             }
         });
-    }, {
-        threshold: 0.1,
-        rootMargin: '0px 0px -60px 0px'
-    });
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+    revealEls.forEach(el => { el.classList.add('reveal'); revealObs.observe(el); });
 
-    revealElements.forEach(el => {
-        el.classList.add('reveal');
-        revealObserver.observe(el);
-    });
-
-    // ---------- Smooth scroll for anchor links ----------
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', (e) => {
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+        a.addEventListener('click', e => {
             e.preventDefault();
-            const target = document.querySelector(anchor.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-            }
+            const t = document.querySelector(a.getAttribute('href'));
+            if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
     });
 
-    // ---------- Blog card tilt effect (desktop only) ----------
+    // Card tilt (desktop)
     if (window.innerWidth > 768) {
         document.querySelectorAll('.blog-card:not(.coming-soon), .about-card').forEach(card => {
-            card.addEventListener('mousemove', (e) => {
-                const rect = card.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                const centerX = rect.width / 2;
-                const centerY = rect.height / 2;
-                const rotateX = (y - centerY) / 20;
-                const rotateY = (centerX - x) / 20;
-
-                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
+            card.addEventListener('mousemove', e => {
+                const r = card.getBoundingClientRect();
+                const rx = (e.clientY - r.top - r.height / 2) / 25;
+                const ry = (r.width / 2 - (e.clientX - r.left)) / 25;
+                card.style.transform = `perspective(1000px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-6px)`;
             });
-
-            card.addEventListener('mouseleave', () => {
-                card.style.transform = '';
-            });
+            card.addEventListener('mouseleave', () => { card.style.transform = ''; });
         });
     }
-
-    // ---------- Page loaded class ----------
-    document.body.classList.add('loaded');
 });

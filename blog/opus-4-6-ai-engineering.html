@@ -3,165 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Opus 4.6 & The Age of AI-Powered Engineering — Thomas D. Lynn</title>
-    <meta name="description" content="How I leveraged Claude Opus to convert PHP backends to Node.js, upgrade Laravel 8 to 12, and build native iOS apps from Android codebases.">
+    <title>Opus 4.6 & AI-Powered Engineering — Thomas D. Lynn</title>
+    <meta name="description" content="How I leveraged Claude Opus to convert PHP to Node.js, upgrade Laravel 8→12, and build native iOS apps — Gear 5th engineering.">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://thomasdlynn.dev/blog/opus-4-6-ai-engineering.html">
+    <meta property="og:title" content="Opus 4.6 & The Age of AI-Powered Engineering ☠️">
+    <meta property="og:description" content="Real-world code conversions with Claude Opus — PHP→Node.js, Laravel 8→12, Android→iOS at Gear 5th speed!">
+    <meta property="og:image" content="https://thomasdlynn.dev/images/hero-luffy.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="https://thomasdlynn.dev/images/hero-luffy.png">
+    <meta property="og:site_name" content="Thomas D. Lynn">
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/animations.css">
     <link rel="stylesheet" href="../css/blog-post.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☠️</text></svg>">
 </head>
 <body>
-    <div class="cursor-glow" id="cursorGlow"></div>
+    <div class="ocean-bg"><div class="wave wave-1"></div><div class="wave wave-2"></div><div class="wave wave-3"></div></div>
+    <div class="particles" id="particles"></div>
 
-    <!-- Navigation -->
     <nav class="navbar scrolled" id="navbar">
         <div class="nav-container">
-            <a href="../index.html" class="nav-logo">
-                <span class="logo-bracket">&lt;</span>
-                <span class="logo-text">TDL</span>
-                <span class="logo-bracket">/&gt;</span>
-            </a>
+            <a href="../index.html" class="nav-logo"><span class="jolly-roger">☠️</span><span class="logo-text">TDL</span></a>
             <div class="nav-links" id="navLinks">
                 <a href="../index.html" class="nav-link">Home</a>
                 <a href="../index.html#about" class="nav-link">About</a>
-                <a href="../index.html#skills" class="nav-link">Skills</a>
-                <a href="../index.html#blog" class="nav-link active">Blog</a>
+                <a href="../index.html#skills" class="nav-link">Arsenal</a>
+                <a href="../index.html#blog" class="nav-link active">Log Book</a>
                 <a href="../index.html#contact" class="nav-link">Contact</a>
             </div>
-            <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle menu"><span></span><span></span><span></span></button>
         </div>
     </nav>
 
-    <!-- Blog Post Hero -->
     <header class="post-hero">
         <div class="post-hero-bg"></div>
         <div class="container">
             <div class="post-hero-content animate-fade-up">
-                <a href="../index.html#blog" class="post-back-link">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                    Back to Blog
-                </a>
+                <a href="../index.html#blog" class="post-back-link">← Back to Log Book</a>
+                <div class="post-cover animate-fade-up delay-1">
+                    <img src="../images/hero-luffy.png" alt="Gear 5th AI Engineering">
+                </div>
                 <div class="post-tags animate-fade-up delay-1">
-                    <span class="tag">AI</span>
-                    <span class="tag">Engineering</span>
-                    <span class="tag">Claude Opus</span>
-                    <span class="tag">Code Conversion</span>
+                    <span class="tag">AI</span><span class="tag">Engineering</span><span class="tag">Claude Opus</span><span class="tag">Code Conversion</span>
                 </div>
                 <h1 class="post-title animate-fade-up delay-2">
-                    Opus 4.6 & The Age of AI-Powered Engineering: Real-World Conversions That Changed Everything
+                    Opus 4.6 & The Age of AI-Powered Engineering: Real-World Conversions That Changed Everything ⚡
                 </h1>
                 <div class="post-meta animate-fade-up delay-3">
                     <div class="post-author">
                         <div class="post-author-avatar">TL</div>
                         <div class="post-author-info">
                             <span class="post-author-name">Thomas D. Lynn</span>
-                            <span class="post-author-role">Software Engineer</span>
+                            <span class="post-author-role">Captain / Software Engineer</span>
                         </div>
                     </div>
                     <div class="post-meta-details">
-                        <span class="post-date">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                            February 7, 2026
-                        </span>
-                        <span class="post-read-time">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                            8 min read
-                        </span>
+                        <span class="post-date">📅 February 7, 2026</span>
+                        <span class="post-read-time">⏱️ 8 min read</span>
+                        <span>🇬🇧 English</span>
                     </div>
                 </div>
             </div>
         </div>
     </header>
 
-    <!-- Blog Post Content -->
     <article class="post-content">
         <div class="container">
             <div class="post-body">
-
-                <!-- Opening -->
                 <div class="post-intro">
                     <p class="post-lead">
-                        When Opus 4.6 dropped this morning, it made me reflect on something I've been wanting to try for the past two years. The results? 
-                        They changed how I think about software engineering forever.
+                        When Opus 4.6 dropped this morning, it made me reflect on something I've been wanting to try for the past two years. The results? They changed how I think about software engineering forever — like unlocking a new Gear.
                     </p>
                 </div>
 
-                <!-- Section 1 -->
-                <h2 id="the-challenge">
-                    <span class="heading-hash">#</span>
-                    The Challenge: A PHP Game Backend Under Pressure
-                </h2>
-
-                <p>
-                    Here's the situation: I had a PHP backend handling user scores CRUD and authentication for a game. 
-                    When concurrent users spiked, PHP performance became painfully bad. Instead of throwing money at 
-                    server specs, I wanted to leverage Node.js's async architecture to make the server lighter and faster.
-                </p>
+                <h2>⚓ The Challenge: A PHP Game Backend Under Storm</h2>
+                <p>Here's the situation: I had a PHP backend handling user scores CRUD and authentication for a game. When concurrent users spiked, PHP performance became painfully bad. Instead of throwing money at server specs, I wanted to leverage Node.js's async architecture to make the server lighter and faster.</p>
 
                 <div class="callout callout-idea">
                     <div class="callout-icon">💡</div>
                     <div class="callout-content">
-                        <strong>The Core Idea:</strong> Same business logic, same encryption methods — just a tech stack conversion. 
-                        Feed the entire PHP codebase to an AI, get a Node.js boilerplate out, and finish the rest manually.
+                        <strong>The Core Idea:</strong> Same business logic, same encryption methods — just a tech stack conversion. Feed the entire PHP codebase to an AI, get a Node.js boilerplate out, and finish the rest manually.
                     </div>
                 </div>
 
-                <p>
-                    Back then (2 years ago), I tried creating a Custom GPT, feeding it all my PHP files, and asking 
-                    it to convert. It didn't quite work out — the models weren't there yet. But fast forward to 
-                    December 2025 with Opus 4.5, and everything changed.
-                </p>
+                <p>Back then (2 years ago), I tried creating a Custom GPT, feeding it all my PHP files. It didn't quite work out — the models weren't there yet. But fast forward to December 2025 with Opus 4.5, and everything changed.</p>
 
-                <!-- Section 2 -->
-                <h2 id="php-to-node">
-                    <span class="heading-hash">#</span>
-                    PHP → Node.js: One Afternoon's Work
-                </h2>
-
-                <p>
-                    With Claude Opus 4.5 alone, I converted the entire game backend from <strong>PHP to Node.js 
-                    in a single afternoon</strong>. Not just surface-level conversion — we're talking:
-                </p>
+                <h2>⚔️ PHP → Node.js: One Afternoon's Voyage</h2>
+                <p>With Claude Opus 4.5 alone, I converted the entire game backend from <strong>PHP to Node.js in a single afternoon</strong>:</p>
 
                 <ul class="styled-list">
-                    <li>
-                        <span class="list-icon">✅</span>
-                        Matching the existing database's password encryption (so ongoing users seamlessly transition)
-                    </li>
-                    <li>
-                        <span class="list-icon">✅</span>
-                        Preserving all business logic and CRUD operations
-                    </li>
-                    <li>
-                        <span class="list-icon">✅</span>
-                        Auth flow working identically to the original
-                    </li>
-                    <li>
-                        <span class="list-icon">✅</span>
-                        Async architecture ready for high concurrency
-                    </li>
+                    <li><span class="list-icon">✅</span> Matching the existing database's password encryption (seamless user transition)</li>
+                    <li><span class="list-icon">✅</span> Preserving all business logic and CRUD operations</li>
+                    <li><span class="list-icon">✅</span> Auth flow working identically to the original</li>
+                    <li><span class="list-icon">✅</span> Async architecture ready for high concurrency</li>
                 </ul>
 
                 <div class="code-block">
                     <div class="code-header">
-                        <div class="code-dots">
-                            <span></span><span></span><span></span>
-                        </div>
+                        <div class="code-dots"><span></span><span></span><span></span></div>
                         <span class="code-filename">The Prompt Strategy</span>
                     </div>
                     <pre><code>// The key prompt pattern:
-// 1. Feed the ENTIRE existing codebase as context
-// 2. Specify the target tech stack  
-// 3. Demand matching business logic + encryption
-// 4. Request matching DB schema compatibility
-
 "Convert this PHP backend to Node.js/Express.
  Keep all business logic identical.
  Match the password encryption method exactly
@@ -170,226 +118,117 @@
  API endpoints."</code></pre>
                 </div>
 
-                <!-- Section 3 -->
-                <h2 id="laravel-upgrade">
-                    <span class="heading-hash">#</span>
-                    Laravel 8 → Laravel 12: The 20-Hour Sprint
-                </h2>
-
-                <p>
-                    Next challenge: upgrading a <strong>PHP 7.4 / Laravel 8</strong> project all the way to 
-                    <strong>PHP 8.4 / Laravel 12</strong>. Normally, you'd go step by step:
-                </p>
+                <h2>🏴‍☠️ Laravel 8 → Laravel 12: The 20-Hour Sprint</h2>
+                <p>Next challenge: upgrading a <strong>PHP 7.4 / Laravel 8</strong> project all the way to <strong>PHP 8.4 / Laravel 12</strong>. Normally, you'd go step by step:</p>
 
                 <div class="version-flow">
-                    <div class="version-node">Laravel 7</div>
-                    <div class="version-arrow">→</div>
-                    <div class="version-node">8</div>
-                    <div class="version-arrow">→</div>
-                    <div class="version-node">9</div>
-                    <div class="version-arrow">→</div>
-                    <div class="version-node">10</div>
-                    <div class="version-arrow">→</div>
-                    <div class="version-node">11</div>
-                    <div class="version-arrow">→</div>
-                    <div class="version-node highlight">12</div>
+                    <div class="version-node">Laravel 7</div><div class="version-arrow">→</div>
+                    <div class="version-node">8</div><div class="version-arrow">→</div>
+                    <div class="version-node">9</div><div class="version-arrow">→</div>
+                    <div class="version-node">10</div><div class="version-arrow">→</div>
+                    <div class="version-node">11</div><div class="version-arrow">→</div>
+                    <div class="version-node highlight">12 🏴‍☠️</div>
                 </div>
 
-                <p>
-                    The estimated timeline? <strong>About 3 weeks</strong> of careful, incremental migration. 
-                    Same functionality, same business logic — just updating the structure, syntax, and patterns 
-                    for each version jump.
-                </p>
+                <p>Estimated timeline? <strong>About 3 weeks</strong>. Same functionality, same business logic — just updating structure and syntax for each version jump.</p>
 
                 <div class="callout callout-success">
                     <div class="callout-icon">⚡</div>
                     <div class="callout-content">
-                        <strong>The Result:</strong> Working as a duo with AI, I completed the full upgrade in roughly 
-                        <strong>20 consecutive hours</strong>. From 3 weeks down to less than a day. Done.
+                        <strong>Gear 5th Result:</strong> Working as a duo with AI, I completed the full upgrade in roughly <strong>20 consecutive hours</strong>. From 3 weeks down to less than a day. Done. 💥
                     </div>
                 </div>
 
-                <!-- Section 4 -->
-                <h2 id="android-to-ios">
-                    <span class="heading-hash">#</span>
-                    Java Android → Swift iOS: Zero Swift Knowledge Required
-                </h2>
-
-                <p>
-                    This one still blows my mind. I took an entire <strong>Java Native Android project</strong>, 
-                    fed it to the model for structure & code analysis, and then asked it to generate an equivalent 
-                    <strong>Swift iOS Native project</strong>. Out came:
-                </p>
+                <h2>📱 Java Android → Swift iOS: Zero Swift Knowledge</h2>
+                <p>This one still blows my mind. I took an entire <strong>Java Native Android project</strong>, fed it for structure & code analysis, and asked it to generate an equivalent <strong>Swift iOS Native project</strong>:</p>
 
                 <ul class="styled-list">
-                    <li>
-                        <span class="list-icon">📱</span>
-                        Complete Swift project with proper iOS architecture
-                    </li>
-                    <li>
-                        <span class="list-icon">🔗</span>
-                        Backend API integration already wired up
-                    </li>
-                    <li>
-                        <span class="list-icon">🧪</span>
-                        Full unit testing for API and auth features
-                    </li>
-                    <li>
-                        <span class="list-icon">🎨</span>
-                        UI needed some polish (naturally), but functionally complete
-                    </li>
+                    <li><span class="list-icon">📱</span> Complete Swift project with proper iOS architecture</li>
+                    <li><span class="list-icon">🔗</span> Backend API integration already wired up</li>
+                    <li><span class="list-icon">🧪</span> Full unit testing for API and auth features</li>
+                    <li><span class="list-icon">🎨</span> UI needed polish, but functionally complete</li>
                 </ul>
 
                 <div class="highlight-box">
-                    <div class="highlight-box-glow"></div>
                     <p class="highlight-text">
-                        <strong>Here's the kicker:</strong> I don't know a single line of Swift. 
-                        Yet I now have access to iOS's native power. Before AI, this kind of cross-platform 
-                        leap was a distant dream for a single developer.
+                        <strong>Here's the kicker:</strong> I don't know a single line of Swift. Yet I now have access to iOS's native power. Before AI, this kind of cross-platform leap was like trying to cross the Calm Belt without a coating! 🚢
                     </p>
                 </div>
 
-                <!-- Section 5 -->
-                <h2 id="why-it-works">
-                    <span class="heading-hash">#</span>
-                    Why Conversion Projects Are Perfect for AI
-                </h2>
-
-                <p>
-                    The pattern that makes these conversions work so well is that they provide both 
-                    <strong>content</strong> and <strong>context</strong> in abundance:
-                </p>
+                <h2>🗺️ Why Conversion Projects Are Perfect for AI</h2>
+                <p>Conversion projects provide both <strong>content</strong> and <strong>context</strong> in abundance — like having a perfect Eternal Pose:</p>
 
                 <div class="principle-cards">
-                    <div class="principle-card glass-card">
+                    <div class="principle-card treasure-card">
                         <div class="principle-number">01</div>
                         <h3>Clear Source of Truth</h3>
                         <p>"Don't know what logic to write? Go look at the original codebase."</p>
                     </div>
-                    <div class="principle-card glass-card">
+                    <div class="principle-card treasure-card">
                         <div class="principle-number">02</div>
                         <h3>Defined Target Tech</h3>
                         <p>"What technology to use? Whatever I tell you to use."</p>
                     </div>
-                    <div class="principle-card glass-card">
+                    <div class="principle-card treasure-card">
                         <div class="principle-number">03</div>
                         <h3>Measurable Completeness</h3>
-                        <p>"How far to go? Until the new codebase matches every function and logic of the original."</p>
+                        <p>"How far to go? Until every function matches the original."</p>
                     </div>
                 </div>
 
-                <p>
-                    This gives AI a clear ongoing reference <em>and</em> a precise destination. For models 
-                    with large token limits and memory context — like Opus — they can handle everything at once. 
-                    And even if a single pass isn't enough, you can break it down: 
-                    <em>"Take feature X from the Java project and add it to the Swift project now."</em>
-                </p>
+                <p>For models with large token limits and memory — like Opus — they can handle everything at once. Even if a single pass isn't enough, break it down: <em>"Take feature X from the Java project and add it to the Swift project now."</em></p>
 
-                <!-- Section 6 -->
-                <h2 id="beyond-conversion">
-                    <span class="heading-hash">#</span>
-                    Beyond Code Conversion: Security, IoT, and More
-                </h2>
-
-                <p>
-                    The applications extend far beyond code conversion. Cybersecurity, IoT — if you 
-                    have the right modules and components, the only limit is your own engineering intuition. 
-                    AI becomes the ultimate force multiplier.
-                </p>
-
-                <div class="callout callout-warning">
-                    <div class="callout-icon">🔒</div>
-                    <div class="callout-content">
-                        <strong>A note on security:</strong> While AI can assist with security testing and offensive research, 
-                        always operate within ethical and legal boundaries. Use dedicated security-focused tools 
-                        and proper authorization for any penetration testing activities.
-                    </div>
-                </div>
-
-                <!-- Section 7 -->
-                <h2 id="the-future">
-                    <span class="heading-hash">#</span>
-                    The Future: One Engineer + AI = Unlimited Potential
-                </h2>
-
-                <p>
-                    In an industry where teams are getting leaner, AI's power should be embraced as 
-                    a force multiplier. Think about it:
-                </p>
+                <h2>🌊 The Future: One Pirate + AI = Unlimited Potential</h2>
 
                 <div class="comparison-block">
                     <div class="comparison-before">
-                        <h4>Before AI</h4>
-                        <p>~18 people coordinating, explaining contexts back and forth, managing dependencies between team members</p>
+                        <h4>Before AI (Old Era)</h4>
+                        <p>~18 people coordinating, context-switching overhead, weeks of delays</p>
                     </div>
                     <div class="comparison-vs">VS</div>
                     <div class="comparison-after">
-                        <h4>With AI</h4>
-                        <p>One scalable engineer + the best model + token budget = faster delivery, better security, no context-switching overhead</p>
+                        <h4>With AI (New World)</h4>
+                        <p>One engineer + best model + token budget = faster delivery, better security, zero overhead</p>
                     </div>
                 </div>
 
-                <p>
-                    When a product is usable, its features are functional, and its security is solid — 
-                    that's all you need to go live. I know many of you are already quietly grinding on 
-                    your own products. The era of the <strong>solo product owner</strong> is here.
-                </p>
+                <p>When a product is usable, functional, and secure — that's all you need to go live. The era of the <strong>solo product owner</strong> is here.</p>
 
                 <div class="post-closing">
-                    <div class="closing-emoji">🚀</div>
-                    <p>
-                        From beginners to senior engineers — I hope everyone becomes a product owner in their own right. 
-                        The tools are here. The leverage is real. The only question is: <strong>what will you build?</strong>
-                    </p>
+                    <div class="closing-emoji">🏴‍☠️</div>
+                    <p>From beginners to senior engineers — I hope everyone becomes a <strong>Product Owner</strong> in their own right. The tools are here. The leverage is real. <strong>What will YOU build?</strong></p>
                 </div>
 
-                <!-- Divider -->
                 <hr class="post-divider">
 
-                <!-- Author Card -->
-                <div class="post-author-card glass-card">
-                    <div class="author-card-avatar">TL</div>
+                <div class="post-author-card treasure-card">
+                    <div class="author-card-avatar">☠️</div>
                     <div class="author-card-info">
                         <h3>Thomas D. Lynn</h3>
-                        <p>Software Engineer specializing in full-stack development, mobile apps, and AI-powered engineering workflows. Building scalable products with modern tools.</p>
+                        <p>Software Engineer / Captain of the Code Sea. Specializing in full-stack development, mobile apps, and AI-powered engineering. Building products at Gear 5th speed.</p>
                         <div class="author-card-links">
-                            <a href="https://github.com/uit-ayeaye" target="_blank">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-                                GitHub
-                            </a>
+                            <a href="https://github.com/uit-ayeaye" target="_blank">🏴‍☠️ GitHub</a>
                         </div>
                     </div>
                 </div>
 
-                <!-- Share / Back -->
                 <div class="post-footer-actions">
-                    <a href="../index.html#blog" class="btn btn-secondary">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                        <span>All Posts</span>
-                    </a>
+                    <a href="../index.html#blog" class="btn btn-secondary">← All Logs</a>
+                    <a href="opus-4-6-ai-engineering-mm.html" class="btn btn-primary">🇲🇲 မြန်မာလို ဖတ်ရန်</a>
                 </div>
-
             </div>
         </div>
     </article>
 
-    <!-- Footer -->
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
-                <div class="footer-logo">
-                    <span class="logo-bracket">&lt;</span>
-                    <span class="logo-text">TDL</span>
-                    <span class="logo-bracket">/&gt;</span>
-                </div>
-                <p class="footer-text">Crafted with ☕ and AI by Thomas D. Lynn © 2026</p>
-                <div class="footer-links">
-                    <a href="https://github.com/uit-ayeaye" target="_blank">GitHub</a>
-                </div>
+                <div class="footer-logo"><span class="jolly-roger">☠️</span> <span class="logo-text">TDL Pirates</span></div>
+                <p class="footer-text">Crafted with ☕ & Devil Fruit Powers by Thomas D. Lynn © 2026</p>
+                <div class="footer-links"><a href="https://github.com/uit-ayeaye" target="_blank">GitHub</a></div>
             </div>
         </div>
     </footer>
-
     <script src="../js/main.js"></script>
     <script src="../js/blog-post.js"></script>
 </body>

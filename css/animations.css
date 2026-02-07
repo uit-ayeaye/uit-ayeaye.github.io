@@ -1,201 +1,36 @@
 /* ===================================
-   Animations & Transitions
+   Animations — One Piece Theme
    =================================== */
 
-/* ---------- Fade-in on scroll (IntersectionObserver) ---------- */
-.reveal {
-    opacity: 0;
-    transform: translateY(40px);
-    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-                transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
+.reveal { opacity: 0; transform: translateY(40px); transition: opacity 0.8s cubic-bezier(0.16,1,0.3,1), transform 0.8s cubic-bezier(0.16,1,0.3,1); }
+.reveal.visible { opacity: 1; transform: translateY(0); }
 
-.reveal.visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.reveal-left {
-    opacity: 0;
-    transform: translateX(-40px);
-    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-                transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.reveal-left.visible {
-    opacity: 1;
-    transform: translateX(0);
-}
-
-.reveal-right {
-    opacity: 0;
-    transform: translateX(40px);
-    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-                transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.reveal-right.visible {
-    opacity: 1;
-    transform: translateX(0);
-}
-
-.reveal-scale {
-    opacity: 0;
-    transform: scale(0.9);
-    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-                transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.reveal-scale.visible {
-    opacity: 1;
-    transform: scale(1);
-}
-
-/* Stagger children */
-.stagger-children > *:nth-child(1) { transition-delay: 0s; }
-.stagger-children > *:nth-child(2) { transition-delay: 0.1s; }
-.stagger-children > *:nth-child(3) { transition-delay: 0.2s; }
-.stagger-children > *:nth-child(4) { transition-delay: 0.3s; }
-.stagger-children > *:nth-child(5) { transition-delay: 0.4s; }
-.stagger-children > *:nth-child(6) { transition-delay: 0.5s; }
-
-/* ---------- Hero entry animations ---------- */
-.animate-fade-up {
-    opacity: 0;
-    transform: translateY(30px);
-    animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
+.animate-fade-up { opacity: 0; transform: translateY(30px); animation: fadeUp 0.8s cubic-bezier(0.16,1,0.3,1) forwards; }
 .delay-1 { animation-delay: 0.15s; }
 .delay-2 { animation-delay: 0.3s; }
 .delay-3 { animation-delay: 0.45s; }
 .delay-4 { animation-delay: 0.6s; }
 .delay-5 { animation-delay: 0.75s; }
 
-@keyframes fadeUp {
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+@keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+
+/* Treasure sparkle */
+@keyframes sparkle {
+    0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+    50% { opacity: 1; transform: scale(1) rotate(180deg); }
 }
 
-/* ---------- Glow pulse for cards ---------- */
-@keyframes glowPulse {
-    0%, 100% {
-        box-shadow: 0 0 20px rgba(108, 92, 231, 0.05);
-    }
-    50% {
-        box-shadow: 0 0 40px rgba(108, 92, 231, 0.15),
-                    0 0 80px rgba(108, 92, 231, 0.05);
-    }
-}
-
-.glow-pulse {
-    animation: glowPulse 4s ease-in-out infinite;
-}
-
-/* ---------- Gradient border animation ---------- */
-@keyframes gradientRotate {
-    0% { --angle: 0deg; }
-    100% { --angle: 360deg; }
-}
-
-@property --angle {
-    syntax: "<angle>";
-    initial-value: 0deg;
-    inherits: false;
-}
-
-.gradient-border {
-    position: relative;
-}
-
-.gradient-border::before {
-    content: '';
+.sparkle-effect::after {
+    content: '✦';
     position: absolute;
-    inset: -2px;
-    border-radius: inherit;
-    background: conic-gradient(from var(--angle), var(--accent-1), var(--accent-2), var(--accent-3), var(--accent-1));
-    z-index: -1;
-    animation: gradientRotate 4s linear infinite;
-    opacity: 0;
-    transition: opacity 0.4s;
+    top: -5px;
+    right: -5px;
+    color: var(--gold-light);
+    font-size: 0.8rem;
+    animation: sparkle 2s ease-in-out infinite;
 }
 
-.gradient-border:hover::before {
-    opacity: 1;
-}
-
-/* ---------- Floating animation ---------- */
-@keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-12px); }
-}
-
-.float-animation {
-    animation: float 6s ease-in-out infinite;
-}
-
-/* ---------- Shimmer / loading effect ---------- */
-@keyframes shimmer {
-    0% {
-        background-position: -200% 0;
-    }
-    100% {
-        background-position: 200% 0;
-    }
-}
-
-.shimmer {
-    background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(108, 92, 231, 0.08) 50%,
-        transparent 100%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 3s ease-in-out infinite;
-}
-
-/* ---------- Text reveal ---------- */
-@keyframes textReveal {
-    0% {
-        clip-path: inset(0 100% 0 0);
-    }
-    100% {
-        clip-path: inset(0 0 0 0);
-    }
-}
-
-.text-reveal {
-    animation: textReveal 1s cubic-bezier(0.77, 0, 0.175, 1) forwards;
-}
-
-/* ---------- Skill tag hover ripple ---------- */
-.skill-tag {
-    position: relative;
-    overflow: hidden;
-}
-
-.skill-tag::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    border-radius: 50%;
-    background: rgba(108, 92, 231, 0.2);
-    transform: translate(-50%, -50%);
-    transition: width 0.5s, height 0.5s;
-}
-
-.skill-tag:hover::after {
-    width: 200px;
-    height: 200px;
-}
-
-/* ---------- Blog card hover line ---------- */
+/* Blog card bottom line */
 .blog-card::after {
     content: '';
     position: absolute;
@@ -203,22 +38,13 @@
     left: 0;
     width: 0;
     height: 3px;
-    background: var(--accent-gradient);
-    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-    transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    background: var(--treasure-gradient);
+    transition: width 0.5s cubic-bezier(0.16,1,0.3,1);
 }
 
-.blog-card:hover::after {
-    width: 100%;
-}
+.blog-card:hover::after { width: 100%; }
 
-/* ---------- Magnetic button effect (via JS) ---------- */
-.btn {
-    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-                box-shadow 0.3s ease;
-}
-
-/* ---------- Navbar link underline ---------- */
+/* Nav link underline */
 .nav-link::after {
     content: '';
     position: absolute;
@@ -226,59 +52,31 @@
     left: 50%;
     width: 0;
     height: 2px;
-    background: var(--accent-gradient);
+    background: var(--treasure-gradient);
     border-radius: 2px;
     transition: width 0.3s, left 0.3s;
 }
 
-.nav-link:hover::after,
-.nav-link.active::after {
-    width: 60%;
-    left: 20%;
-}
+.nav-link:hover::after, .nav-link.active::after { width: 60%; left: 20%; }
 
-/* ---------- Page transitions ---------- */
-.page-transition-overlay {
+/* Reading progress bar */
+.reading-progress {
     position: fixed;
-    inset: 0;
-    background: var(--bg-primary);
-    z-index: 10000;
-    transform: scaleY(0);
-    transform-origin: bottom;
-    transition: transform 0.6s cubic-bezier(0.77, 0, 0.175, 1);
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: var(--treasure-gradient);
+    z-index: 1001;
+    transition: width 0.1s linear;
+    border-radius: 0 2px 2px 0;
 }
 
-.page-transition-overlay.active {
-    transform: scaleY(1);
-    transform-origin: top;
-}
-
-/* ---------- Smooth image loading ---------- */
-.lazy-image {
-    opacity: 0;
-    transition: opacity 0.6s ease;
-}
-
-.lazy-image.loaded {
-    opacity: 1;
-}
-
-/* ---------- Reduced motion preference ---------- */
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
+    *, *::before, *::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
-
-    .reveal,
-    .reveal-left,
-    .reveal-right,
-    .reveal-scale,
-    .animate-fade-up {
-        opacity: 1;
-        transform: none;
-    }
+    .reveal, .animate-fade-up { opacity: 1; transform: none; }
 }
