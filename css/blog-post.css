@@ -2,7 +2,7 @@
    Blog Post Styles — One Piece Pirate Theme
    =================================== */
 
-.post-hero { padding: 130px 0 50px; position: relative; overflow: hidden; }
+.post-hero { padding: 130px 0 50px; position: relative; overflow: hidden; z-index: 1; }
 
 .post-hero-bg {
     position: absolute; inset: 0;
