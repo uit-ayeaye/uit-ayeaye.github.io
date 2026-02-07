@@ -303,8 +303,9 @@ body::before {
 
 .nav-logo {
     display: flex; align-items: center; gap: 8px;
-    font-family: var(--font-pirate); font-size: 1.6rem;
+    font-family: var(--font-pirate); font-size: clamp(1rem, 2.5vw, 1.5rem);
     transition: transform var(--transition-fast);
+    white-space: nowrap;
 }
 .nav-logo:hover { transform: scale(1.05); filter: drop-shadow(0 0 8px rgba(245, 200, 66, 0.4)); }
 
@@ -579,10 +580,69 @@ a.contact-link:hover { color: var(--gold); }
 /* Footer */
 .footer { padding: 36px 0; border-top: 1px solid var(--border-color); z-index: 1; position: relative; background: var(--footer-bg); }
 .footer-content { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
-.footer-logo { font-family: var(--font-pirate); font-size: 1.2rem; display: flex; align-items: center; gap: 8px; }
+.footer-logo { font-family: var(--font-pirate); font-size: clamp(1rem, 2.5vw, 1.2rem); display: flex; align-items: center; gap: 8px; }
 .footer-text { color: var(--text-muted); font-size: 0.85rem; }
 .footer-links a { color: var(--text-secondary); font-size: 0.85rem; transition: color var(--transition-fast); }
 .footer-links a:hover { color: var(--gold); }
+
+/* ---------- Floating Pirate Ship & Jolly Flags ---------- */
+.floating-ship {
+    position: absolute;
+    bottom: 60px;
+    right: -20px;
+    z-index: 2;
+    pointer-events: none;
+    animation: shipSail 8s ease-in-out infinite;
+    filter: drop-shadow(0 10px 30px rgba(0,0,0,0.4));
+}
+
+.ship-img {
+    width: clamp(120px, 18vw, 220px);
+    height: auto;
+    transform: scaleX(-1);
+}
+
+@keyframes shipSail {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    25% { transform: translateY(-12px) rotate(0deg); }
+    50% { transform: translateY(-6px) rotate(2deg); }
+    75% { transform: translateY(-16px) rotate(-1deg); }
+}
+
+.jolly-flag {
+    position: absolute;
+    z-index: 2;
+    pointer-events: none;
+    filter: drop-shadow(0 5px 20px rgba(0,0,0,0.3));
+}
+
+.jolly-flag-left {
+    top: 120px;
+    left: 30px;
+    animation: flagFloat 6s ease-in-out infinite;
+}
+
+.jolly-flag-right {
+    top: 80px;
+    right: 60px;
+    animation: flagFloat 7s ease-in-out infinite reverse;
+}
+
+.flag-img {
+    width: clamp(50px, 8vw, 90px);
+    height: auto;
+    animation: flagWave 4s ease-in-out infinite;
+    opacity: 0.85;
+    border-radius: 12px;
+}
+
+/* In dark mode show dark-bg flag, in light mode show white-bg flag */
+
+@keyframes flagFloat {
+    0%, 100% { transform: translateY(0) rotate(-3deg); }
+    33% { transform: translateY(-18px) rotate(2deg); }
+    66% { transform: translateY(-8px) rotate(-1deg); }
+}
 
 /* ---------- Responsive ---------- */
 @media (max-width: 1024px) {
@@ -608,6 +668,11 @@ a.contact-link:hover { color: var(--gold); }
     .nav-links.active { right: 0; }
     .nav-link { width: 100%; padding: 14px 16px; font-size: 1rem; }
     .about-grid { grid-template-columns: 1fr; }
+    .floating-ship { bottom: 20px; right: -30px; }
+    .ship-img { width: 100px; }
+    .jolly-flag-left { top: 90px; left: 10px; }
+    .jolly-flag-right { top: 60px; right: 10px; }
+    .flag-img { width: 45px; }
     .blog-card.featured { grid-template-columns: 1fr; }
     .blog-card.featured .blog-card-image { border-radius: var(--radius-lg) var(--radius-lg) 0 0; min-height: 200px; }
     .blog-grid { grid-template-columns: 1fr; }
@@ -626,4 +691,6 @@ a.contact-link:hover { color: var(--gold); }
     .skills-categories { grid-template-columns: 1fr; }
     .bounty-poster { padding: 10px 20px; }
     .bounty-top { font-size: 1.1rem; }
+    .floating-ship { display: none; }
+    .jolly-flag { display: none; }
 }
