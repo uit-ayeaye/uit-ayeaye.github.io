@@ -1,10 +1,10 @@
 /* ===================================
    Thomas D. Lynn — ONE PIECE PIRATE THEME
-   Full Immersive Grand Line Experience
+   Dark/Light Theme with Toggle
    =================================== */
 
+/* ===== DARK THEME (Default) ===== */
 :root {
-    /* 🏴‍☠️ One Piece Color Palette */
     --bg-ocean: #0a0e1a;
     --bg-deep: #0d1220;
     --bg-card: rgba(15, 22, 42, 0.85);
@@ -14,7 +14,6 @@
     --text-secondary: #b8a88a;
     --text-muted: #7a6b55;
 
-    /* Straw Hat Gold & Red */
     --gold: #f5c842;
     --gold-light: #ffe066;
     --gold-dark: #c9991a;
@@ -22,25 +21,21 @@
     --crimson-light: #ff4757;
     --crimson-dark: #a71d2a;
 
-    /* Ocean & Sky */
     --ocean-blue: #1565c0;
     --ocean-light: #42a5f5;
     --ocean-deep: #0d47a1;
     --sky-blue: #64b5f6;
 
-    /* Treasure & Parchment */
     --treasure-brown: #8b6914;
     --parchment: #f4e4c1;
     --parchment-dark: #d4c4a1;
     --wood-brown: #3e2723;
     --wood-light: #5d4037;
 
-    /* Luffy's Red */
     --luffy-red: #d32f2f;
     --gear5-white: #f5f5f5;
     --gear5-glow: rgba(255, 255, 255, 0.6);
 
-    /* Gradients */
     --accent-gradient: linear-gradient(135deg, var(--crimson), var(--gold));
     --ocean-gradient: linear-gradient(135deg, var(--ocean-deep), var(--ocean-light));
     --treasure-gradient: linear-gradient(135deg, var(--gold-dark), var(--gold), var(--gold-light));
@@ -52,6 +47,24 @@
     --border-hover: rgba(245, 200, 66, 0.4);
     --glow-gold: rgba(245, 200, 66, 0.2);
     --glow-red: rgba(220, 53, 69, 0.15);
+
+    --code-bg: #0d1117;
+    --card-gradient-from: rgba(15, 22, 42, 0.9);
+    --card-gradient-to: rgba(20, 30, 55, 0.85);
+    --card-hover-from: rgba(20, 30, 55, 0.95);
+    --card-hover-to: rgba(30, 40, 70, 0.9);
+    --nav-bg: rgba(10, 14, 26, 0.95);
+    --section-bg-a: rgba(13,26,45,0.5);
+    --section-bg-b: rgba(15,39,68,0.3);
+    --section-bg-c: rgba(10,14,26,0.5);
+    --footer-bg: rgba(10,14,26,0.8);
+    --wave1-from: rgba(21, 101, 192, 0.3);
+    --wave1-to: rgba(13, 71, 161, 0.15);
+    --wave2-from: rgba(66, 165, 245, 0.18);
+    --wave2-to: rgba(21, 101, 192, 0.1);
+    --wave3-from: rgba(245, 200, 66, 0.08);
+    --wave3-to: rgba(100, 181, 246, 0.1);
+    --watermark-opacity: 0.015;
 
     --font-pirate: 'Pirata One', cursive;
     --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -66,6 +79,63 @@
     --radius-sm: 8px;
     --radius-md: 12px;
     --radius-lg: 20px;
+
+    color-scheme: dark;
+}
+
+/* ===== LIGHT THEME ===== */
+[data-theme="light"] {
+    --bg-ocean: #f8f4ec;
+    --bg-deep: #f0e8d8;
+    --bg-card: rgba(255, 252, 245, 0.92);
+    --bg-card-hover: rgba(255, 250, 240, 0.98);
+
+    --text-primary: #2c1810;
+    --text-secondary: #5a4030;
+    --text-muted: #8b7355;
+
+    --gold: #c9991a;
+    --gold-light: #e6b422;
+    --gold-dark: #a07818;
+    --crimson: #c0392b;
+    --crimson-light: #e74c3c;
+    --crimson-dark: #922b21;
+
+    --ocean-blue: #1565c0;
+    --ocean-light: #1e88e5;
+    --ocean-deep: #0d47a1;
+    --sky-blue: #42a5f5;
+
+    --border-color: rgba(139, 105, 20, 0.2);
+    --border-hover: rgba(139, 105, 20, 0.5);
+    --glow-gold: rgba(201, 153, 26, 0.15);
+    --glow-red: rgba(192, 57, 43, 0.1);
+
+    --code-bg: #2d1f12;
+    --card-gradient-from: rgba(255, 252, 245, 0.95);
+    --card-gradient-to: rgba(245, 238, 220, 0.9);
+    --card-hover-from: rgba(255, 250, 240, 0.98);
+    --card-hover-to: rgba(248, 242, 228, 0.95);
+    --nav-bg: rgba(248, 244, 236, 0.97);
+    --section-bg-a: rgba(244, 228, 193, 0.3);
+    --section-bg-b: rgba(230, 210, 170, 0.2);
+    --section-bg-c: rgba(248, 244, 236, 0.3);
+    --footer-bg: rgba(240, 232, 216, 0.9);
+    --night-ocean: linear-gradient(180deg, #f8f4ec 0%, #f0e8d8 40%, #e8dcc8 100%);
+    --wave1-from: rgba(21, 101, 192, 0.12);
+    --wave1-to: rgba(13, 71, 161, 0.06);
+    --wave2-from: rgba(66, 165, 245, 0.08);
+    --wave2-to: rgba(21, 101, 192, 0.04);
+    --wave3-from: rgba(201, 153, 26, 0.06);
+    --wave3-to: rgba(100, 181, 246, 0.05);
+    --watermark-opacity: 0.03;
+
+    --accent-gradient: linear-gradient(135deg, var(--crimson), var(--gold));
+    --treasure-gradient: linear-gradient(135deg, var(--gold-dark), var(--gold), var(--gold-light));
+    --fire-gradient: linear-gradient(135deg, var(--crimson-dark), var(--crimson), #e67e22);
+    --ocean-gradient: linear-gradient(135deg, var(--ocean-deep), var(--ocean-light));
+
+    color-scheme: light;
 }
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -77,6 +147,7 @@ body {
     color: var(--text-primary);
     line-height: 1.7;
     overflow-x: hidden;
+    transition: background 0.4s ease, color 0.4s ease;
 }
 
 ::selection { background: var(--crimson); color: #fff; }
@@ -94,6 +165,36 @@ img { max-width: 100%; display: block; }
     filter: drop-shadow(0 0 12px rgba(245, 200, 66, 0.5));
 }
 
+/* ---------- Theme Toggle ---------- */
+.theme-toggle {
+    position: fixed; bottom: 28px; right: 28px; z-index: 1002;
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--accent-gradient);
+    border: 2px solid var(--border-hover);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; color: #fff;
+    box-shadow: 0 4px 20px rgba(220,53,69,0.3), 0 0 20px rgba(245,200,66,0.15);
+    transition: all var(--transition-base);
+    backdrop-filter: blur(10px);
+}
+.theme-toggle:hover {
+    transform: scale(1.1) rotate(15deg);
+    box-shadow: 0 6px 35px rgba(220,53,69,0.5), 0 0 40px rgba(245,200,66,0.25);
+}
+.theme-toggle .icon-sun,
+.theme-toggle .icon-moon { position: absolute; transition: all 0.3s ease; }
+.theme-toggle .icon-sun { opacity: 0; transform: rotate(-90deg) scale(0.5); }
+.theme-toggle .icon-moon { opacity: 1; transform: rotate(0deg) scale(1); }
+
+[data-theme="light"] .theme-toggle .icon-sun { opacity: 1; transform: rotate(0deg) scale(1); }
+[data-theme="light"] .theme-toggle .icon-moon { opacity: 0; transform: rotate(90deg) scale(0.5); }
+
+[data-theme="light"] .theme-toggle {
+    background: linear-gradient(135deg, #f5c842, #e6b422);
+    border-color: rgba(139, 105, 20, 0.4);
+    box-shadow: 0 4px 20px rgba(201,153,26,0.3);
+}
+
 /* ---------- Ocean BG + Waves ---------- */
 .ocean-bg {
     position: fixed; bottom: 0; left: 0; width: 100%; height: 250px;
@@ -106,15 +207,15 @@ img { max-width: 100%; display: block; }
 }
 
 .wave-1 {
-    background: linear-gradient(180deg, rgba(21, 101, 192, 0.3), rgba(13, 71, 161, 0.15));
+    background: linear-gradient(180deg, var(--wave1-from), var(--wave1-to));
     animation: waveMove 8s ease-in-out infinite; bottom: 0;
 }
 .wave-2 {
-    background: linear-gradient(180deg, rgba(66, 165, 245, 0.18), rgba(21, 101, 192, 0.1));
+    background: linear-gradient(180deg, var(--wave2-from), var(--wave2-to));
     animation: waveMove 10s ease-in-out infinite reverse; bottom: 15px;
 }
 .wave-3 {
-    background: linear-gradient(180deg, rgba(245, 200, 66, 0.08), rgba(100, 181, 246, 0.1));
+    background: linear-gradient(180deg, var(--wave3-from), var(--wave3-to));
     animation: waveMove 12s ease-in-out infinite; bottom: 30px;
 }
 
@@ -141,13 +242,13 @@ img { max-width: 100%; display: block; }
 /* Jolly Roger Watermark */
 body::before {
     content: '☠️'; position: fixed; top: 50%; left: 50%;
-    transform: translate(-50%, -50%); font-size: 40vw; opacity: 0.015;
+    transform: translate(-50%, -50%); font-size: 40vw; opacity: var(--watermark-opacity);
     z-index: 0; pointer-events: none;
 }
 
 /* ---------- Treasure Cards ---------- */
 .treasure-card {
-    background: linear-gradient(135deg, rgba(15, 22, 42, 0.9), rgba(20, 30, 55, 0.85));
+    background: linear-gradient(135deg, var(--card-gradient-from), var(--card-gradient-to));
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     backdrop-filter: blur(16px);
@@ -163,13 +264,19 @@ body::before {
 }
 
 .treasure-card:hover {
-    background: linear-gradient(135deg, rgba(20, 30, 55, 0.95), rgba(30, 40, 70, 0.9));
+    background: linear-gradient(135deg, var(--card-hover-from), var(--card-hover-to));
     border-color: var(--border-hover);
     transform: translateY(-6px);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 40px rgba(245, 200, 66, 0.08),
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 40px var(--glow-gold),
         inset 0 1px 0 rgba(245, 200, 66, 0.1);
 }
 .treasure-card:hover::before { opacity: 1; }
+
+/* Light theme card shadows */
+[data-theme="light"] .treasure-card:hover {
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08), 0 0 40px rgba(201,153,26,0.1),
+        inset 0 1px 0 rgba(201,153,26,0.15);
+}
 
 /* ---------- Navbar ---------- */
 .navbar {
@@ -179,10 +286,14 @@ body::before {
 
 .navbar.scrolled {
     padding: 10px 0;
-    background: rgba(10, 14, 26, 0.95);
+    background: var(--nav-bg);
     backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border-color);
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(245, 200, 66, 0.05);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4), 0 0 20px var(--glow-gold);
+}
+
+[data-theme="light"] .navbar.scrolled {
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.06), 0 2px 10px rgba(201,153,26,0.08);
 }
 
 .nav-container {
@@ -397,7 +508,7 @@ body::before {
 .section-subtitle { font-size: 1rem; color: var(--text-secondary); }
 
 /* About */
-.about { background: linear-gradient(180deg, rgba(13,26,45,0.5), rgba(15,39,68,0.3), rgba(10,14,26,0.5)); position: relative; }
+.about { background: linear-gradient(180deg, var(--section-bg-a), var(--section-bg-b), var(--section-bg-c)); position: relative; }
 .about::before { content: ''; position: absolute; inset: 0; background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23f5c842' fill-opacity='0.015'%3E%3Cpath d='M20 0L0 20h8l12-12 12 12h8z'/%3E%3C/g%3E%3C/svg%3E"); pointer-events: none; }
 
 .about-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
@@ -407,7 +518,7 @@ body::before {
 .about-card p { color: var(--text-secondary); font-size: 0.95rem; line-height: 1.7; }
 
 /* Skills */
-.skills { background: linear-gradient(180deg, rgba(10,14,26,0.3), rgba(13,26,45,0.5), rgba(10,14,26,0.3)); }
+.skills { background: linear-gradient(180deg, var(--section-bg-c), var(--section-bg-a), var(--section-bg-c)); }
 .skills-categories { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
 .skill-category { padding: 28px; }
 
@@ -456,7 +567,7 @@ body::before {
 .blog-card.coming-soon:hover { transform: none; opacity: 0.5; }
 
 /* Contact */
-.contact { background: linear-gradient(180deg, rgba(13,26,45,0.5), rgba(15,39,68,0.3), rgba(10,14,26,0.5)); }
+.contact { background: linear-gradient(180deg, var(--section-bg-a), var(--section-bg-b), var(--section-bg-c)); }
 .contact-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 800px; margin: 0 auto; }
 .contact-card { padding: 36px 24px; text-align: center; }
 
@@ -466,7 +577,7 @@ body::before {
 a.contact-link:hover { color: var(--gold); }
 
 /* Footer */
-.footer { padding: 36px 0; border-top: 1px solid var(--border-color); z-index: 1; position: relative; background: rgba(10,14,26,0.8); }
+.footer { padding: 36px 0; border-top: 1px solid var(--border-color); z-index: 1; position: relative; background: var(--footer-bg); }
 .footer-content { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
 .footer-logo { font-family: var(--font-pirate); font-size: 1.2rem; display: flex; align-items: center; gap: 8px; }
 .footer-text { color: var(--text-muted); font-size: 0.85rem; }
@@ -505,6 +616,7 @@ a.contact-link:hover { color: var(--gold); }
     .stat-divider { display: none; }
     .footer-content { flex-direction: column; text-align: center; }
     .hero-scroll-indicator { display: none; }
+    .theme-toggle { bottom: 20px; right: 20px; width: 46px; height: 46px; font-size: 1.2rem; }
 }
 
 @media (max-width: 480px) {

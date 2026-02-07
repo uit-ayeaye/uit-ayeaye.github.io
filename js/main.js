@@ -1,11 +1,29 @@
 /* ===================================
    Main JS — One Piece Grand Line Theme
+   Dark/Light Theme Toggle + Effects
    =================================== */
 document.addEventListener('DOMContentLoaded', () => {
-    // Particles (golden fireflies + ocean stars)
+    // ===== THEME TOGGLE =====
+    const savedTheme = localStorage.getItem('pirate-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
+    // Create toggle button
+    const themeToggle = document.createElement('button');
+    themeToggle.classList.add('theme-toggle');
+    themeToggle.setAttribute('aria-label', 'Toggle dark/light theme');
+    themeToggle.innerHTML = '<span class="icon-sun">☀️</span><span class="icon-moon">🌙</span>';
+    document.body.appendChild(themeToggle);
+
+    themeToggle.addEventListener('click', () => {
+        const current = document.documentElement.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('pirate-theme', next);
+    });
+
+    // ===== PARTICLES =====
     const particlesContainer = document.getElementById('particles');
     if (particlesContainer && window.innerWidth > 768) {
-        // Floating particles
         for (let i = 0; i < 30; i++) {
             const p = document.createElement('div');
             p.classList.add('particle');
@@ -20,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
             particlesContainer.appendChild(p);
         }
 
-        // Twinkling stars
         for (let i = 0; i < 50; i++) {
             const star = document.createElement('div');
             star.style.position = 'absolute';
@@ -36,7 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
             particlesContainer.appendChild(star);
         }
 
-        // Add twinkle keyframe dynamically
         if (!document.getElementById('twinkle-style')) {
             const style = document.createElement('style');
             style.id = 'twinkle-style';
@@ -50,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
     lightning.classList.add('lightning-overlay');
     document.body.appendChild(lightning);
 
-    // Navbar scroll
+    // ===== NAVBAR =====
     const navbar = document.getElementById('navbar');
     const navLinks = document.querySelectorAll('.nav-link');
     const sections = document.querySelectorAll('section[id]');
@@ -86,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Typewriter — One Piece themed
+    // ===== TYPEWRITER =====
     const tw = document.getElementById('typewriter');
     if (tw) {
         const phrases = [
@@ -110,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(type, 800);
     }
 
-    // Counter
+    // ===== COUNTER =====
     const statNums = document.querySelectorAll('.stat-number');
     const counterObs = new IntersectionObserver(entries => {
         entries.forEach(e => {
@@ -131,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, { threshold: 0.5 });
     statNums.forEach(n => counterObs.observe(n));
 
-    // Scroll reveal
+    // ===== SCROLL REVEAL =====
     const revealEls = document.querySelectorAll('.about-card, .skill-category, .blog-card, .contact-card, .section-header');
     const revealObs = new IntersectionObserver(entries => {
         entries.forEach((e, i) => {
@@ -152,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Card tilt (desktop)
+    // Card tilt
     if (window.innerWidth > 768) {
         document.querySelectorAll('.blog-card:not(.coming-soon), .about-card').forEach(card => {
             card.addEventListener('mousemove', e => {
@@ -165,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Cursor trail effect (golden sparkles on click)
+    // Click sparkles
     document.addEventListener('click', e => {
         for (let i = 0; i < 5; i++) {
             const spark = document.createElement('div');
