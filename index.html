@@ -4,38 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Thomas D. Lynn — Software Engineer & Captain of Backbenchers Studio</title>
-    <meta name="description" content="Personal portfolio and tech blog of Thomas D. Lynn — Software Engineer, Full-Stack Developer, and Captain of Backbenchers Studio.">
+    <meta name="description" content="Personal portfolio and tech blog of Thomas D. Lynn (aka Thiha Lynn) — Software Engineer & Captain of Backbenchers Studio. Gear 5th engineering: freedom, joy, and breaking every limit. 👒">
+    <meta name="author" content="Thomas D. Lynn">
+    <meta name="theme-color" content="#0a0e1a">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://thomasdlynn.dev/">
     <meta property="og:title" content="Thomas D. Lynn — Software Engineer & Full-Stack Developer">
-    <meta property="og:description" content="Full-Stack Developer specializing in AI-Powered Engineering. Blog, portfolio, and adventure logs.">
-    <meta property="og:image" content="https://thomasdlynn.dev/images/og-bounty-poster.png">
-    <meta property="og:image:type" content="image/png">
+    <meta property="og:description" content="Gear 5th engineering — freedom, joy, and breaking every limit. Wielding AI as the Liberation of code. 👒">
+    <meta property="og:image" content="https://thomasdlynn.dev/images/og-thomas.jpg">
+    <meta property="og:image:type" content="image/jpeg">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:image:secure_url" content="https://thomasdlynn.dev/images/og-bounty-poster.png">
+    <meta property="og:image:secure_url" content="https://thomasdlynn.dev/images/og-thomas.jpg">
     <meta property="og:image:alt" content="WANTED — Thomas D. Lynn — Software Engineer & Full-Stack Developer">
-    <link rel="image_src" href="https://thomasdlynn.dev/images/og-bounty-poster.png">
+    <link rel="image_src" href="https://thomasdlynn.dev/images/og-thomas.jpg">
     <link rel="canonical" href="https://thomasdlynn.dev/">
     <meta name="robots" content="index,follow">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Thomas D. Lynn — Software Engineer & Full-Stack Developer">
-    <meta name="twitter:description" content="Full-Stack Developer specializing in AI-Powered Engineering.">
-    <meta name="twitter:image" content="https://thomasdlynn.dev/images/og-bounty-poster.png">
-    <meta name="twitter:image:alt" content="WANTED — Thomas D. Lynn — Software Engineer & Full-Stack Developer">
-    <meta name="twitter:site" content="@thomasdlynn">
-    <meta name="twitter:creator" content="@thomasdlynn">
+    <meta name="twitter:description" content="Gear 5th engineering — freedom, joy, and breaking every limit. 👒">
+    <meta name="twitter:image" content="https://thomasdlynn.dev/images/og-thomas.jpg">
+    <meta name="twitter:image:alt" content="WANTED — Thomas D. Lynn">
     <meta property="og:site_name" content="Thomas D. Lynn">
     <meta property="og:locale" content="en_US">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/animations.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☠️</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Cinzel:wght@500;700;900&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="images/jolly-roger-cyber-nobg.png">
+    <link rel="apple-touch-icon" href="images/jolly-roger-cyber-nobg.png">
     <script>document.documentElement.setAttribute('data-theme',localStorage.getItem('pirate-theme')||'dark')</script>
 </head>
 <body>
+    <!-- Preloader — Drums of Liberation -->
+    <div class="preloader" id="preloader">
+        <div class="preloader-inner">
+            <div class="preloader-logo-wrap">
+                <img src="images/jolly-roger-cyber-nobg.png" alt="" class="preloader-logo">
+                <div class="preloader-ring"></div>
+            </div>
+            <div class="preloader-title">BACKBENCHERS PIRATES</div>
+            <div class="preloader-bar"><span id="preloaderBar"></span></div>
+            <div class="preloader-text" id="preloaderText">Beating the drums of liberation...</div>
+        </div>
+    </div>
+
+    <!-- Cinematic overlays -->
+    <div class="grain-overlay" aria-hidden="true"></div>
+    <div class="vignette-overlay" aria-hidden="true"></div>
+
     <!-- Ocean waves background -->
     <div class="ocean-bg">
         <div class="wave wave-1"></div>
@@ -48,7 +66,7 @@
     <nav class="navbar" id="navbar">
         <div class="nav-container">
             <a href="#" class="nav-logo">
-                <span class="jolly-roger">☠️</span>
+                <img src="images/jolly-roger-cyber-nobg.png" alt="Backbenchers Jolly Roger" class="nav-logo-img">
                 <span class="logo-text">Backbenchers Pirates</span>
             </a>
             <div class="nav-links" id="navLinks">
@@ -70,14 +88,16 @@
             <div class="hero-text-side">
                 <div class="hero-badge animate-fade-up">
                     <span class="badge-dot"></span>
-                    Setting Sail on New Adventures
+                    Gear 5th — Warrior of Liberation 🥁
                 </div>
                 <h1 class="hero-title animate-fade-up delay-1">
                     I'm <span class="pirate-text">Thomas D. Lynn</span>
+                    <span class="hero-alias">a.k.a. Thiha Lynn — Captain, Backbenchers Pirates 👒</span>
                 </h1>
                 <div class="hero-bounty animate-fade-up delay-2">
-                    <div class="bounty-poster-frame">
-                        <img src="images/bounty-poster.png" alt="WANTED — Thomas D. Lynn — ₿1,500,000,000" class="bounty-poster-img">
+                    <div class="bounty-poster-frame" id="bountyPoster">
+                        <img src="images/bounty-poster.png" alt="WANTED — Thomas D. Lynn" class="bounty-poster-img">
+                        <div class="bounty-shine"></div>
                     </div>
                 </div>
                 <div class="hero-typewriter animate-fade-up delay-3">
@@ -86,15 +106,16 @@
                     <span class="typewriter-cursor">▌</span>
                 </div>
                 <p class="hero-description animate-fade-up delay-4">
-                    Navigating the Grand Line of software engineering — from full-stack web apps to mobile platforms. 
-                    Wielding AI as my Devil Fruit power to build products faster than Gear 5th! ⚡
+                    Freedom is the real treasure. I build software the way Luffy fights — fearless, inventive,
+                    and laughing at "impossible." AI is my Gear 5th: the <strong>Liberation</strong> that snaps
+                    every limit and turns hard problems into play. ⚡
                 </p>
                 <div class="hero-cta animate-fade-up delay-5">
                     <a href="#blog" class="btn btn-primary">
                         <span>📜 Captain's Log Book</span>
                     </a>
                     <a href="#contact" class="btn btn-secondary">
-                        <span>🏴‍☠️ Join My Crew</span>
+                        <span>👒 Join My Crew</span>
                     </a>
                 </div>
                 <div class="hero-stats animate-fade-up delay-5">
@@ -116,14 +137,14 @@
             </div>
             <div class="hero-image-side animate-fade-up delay-2">
                 <div class="hero-image-frame">
-                    <img src="images/my-profile.png" alt="Thomas D. Lynn — Captain" class="hero-image">
+                    <img src="images/my-profile.png" alt="Thomas D. Lynn — Captain of Backbenchers Studio" class="hero-image">
                     <div class="hero-image-glow"></div>
                 </div>
             </div>
         </div>
         <div class="hero-scroll-indicator">
             <div class="scroll-compass">⚓</div>
-            <span>Dive Deeper</span>
+            <span>Set Sail</span>
         </div>
     </section>
 
@@ -135,21 +156,28 @@
                 <h2 class="section-title">About <span class="pirate-text">The Captain</span></h2>
                 <p class="section-subtitle">Every pirate has their story. Here's mine.</p>
             </div>
+            <p class="about-intro">
+                I'm <strong>Thomas D. Lynn</strong> — <em>Thiha Lynn</em> — captain of the
+                <strong>Backbenchers Pirates</strong> and a full-stack engineer chasing one treasure above all:
+                <strong>freedom</strong>. From PHP → Node migrations to Laravel upgrades and native mobile apps,
+                I sail the Grand Line of code with a grin, an AI Devil Fruit, and zero respect for the word
+                "impossible." This is my flag. 👒
+            </p>
             <div class="about-grid">
                 <div class="about-card treasure-card">
-                    <div class="about-icon">🎯</div>
+                    <div class="about-icon">👒</div>
                     <h3>My Dream</h3>
-                    <p>Like Luffy wants to be Pirate King, I'm on a quest to build scalable, secure, and world-class products. One engineer armed with AI can achieve what once required a whole fleet!</p>
+                    <p>Like Luffy wants to be Pirate King, I'm out to build scalable, secure, world-class products — and to stay free while doing it. One engineer with AI can move like a whole fleet.</p>
                 </div>
                 <div class="about-card treasure-card">
-                    <div class="about-icon">⚡</div>
-                    <h3>Devil Fruit Power</h3>
-                    <p>AI is my Devil Fruit — Claude Opus is my Gear 5th. Combining deep engineering with modern AI to deliver at the speed of Gomu Gomu no Jet Pistol!</p>
+                    <div class="about-icon">☀️</div>
+                    <h3>Gear 5th — Liberation</h3>
+                    <p>AI is my Devil Fruit awakened: Gear 5th, the Warrior of Liberation. Like Nika, I make the impossible look like play — breaking limits with a laugh and shipping at the speed of joy.</p>
                 </div>
                 <div class="about-card treasure-card">
                     <div class="about-icon">🗺️</div>
                     <h3>The Grand Line</h3>
-                    <p>PHP → Node.js migrations, Java → Swift conversions, Laravel upgrades — every island on the Grand Line is a new challenge conquered!</p>
+                    <p>PHP → Node.js migrations, Java → Swift conversions, Laravel upgrades — every island on the Grand Line is a new challenge conquered, then left laughing in my wake.</p>
                 </div>
             </div>
         </div>
@@ -186,7 +214,7 @@
                     </div>
                 </div>
                 <div class="skill-category treasure-card">
-                    <h3 class="category-title"><span class="category-icon">😈</span> AI (Devil Fruits)</h3>
+                    <h3 class="category-title"><span class="category-icon">☀️</span> AI (Devil Fruits)</h3>
                     <div class="skill-tags">
                         <span class="skill-tag">Claude Opus</span><span class="skill-tag">GPT / Custom GPTs</span>
                         <span class="skill-tag">AI-Powered Dev</span><span class="skill-tag">Prompt Engineering</span>
@@ -278,7 +306,7 @@
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
                     </div>
                     <h3>GitHub</h3>
-                    <a href="https://github.com/uit-ayeaye" target="_blank" class="contact-link">@uit-ayeaye</a>
+                    <a href="https://github.com/uit-ayeaye" target="_blank" rel="noopener" class="contact-link">@uit-ayeaye</a>
                 </div>
                 <div class="contact-card treasure-card">
                     <div class="contact-icon">📧</div>
@@ -299,18 +327,18 @@
         <img src="images/thousand-sunny.png" alt="Thousand Sunny" class="ship-img">
     </div>
     <div class="jolly-flag jolly-flag-left">
-        <img src="images/jolly-roger-dark.png" alt="Jolly Roger" class="flag-img">
+        <img src="images/jolly-roger-cyber-nobg.png" alt="Jolly Roger" class="flag-img">
     </div>
     <div class="jolly-flag jolly-flag-right">
-        <img src="images/jolly-roger-white.png" alt="Jolly Roger" class="flag-img">
+        <img src="images/jolly-roger-cyber-nobg.png" alt="Jolly Roger" class="flag-img">
     </div>
 
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
-                <div class="footer-logo"><span class="jolly-roger">☠️</span> <span class="logo-text">Backbenchers Pirates</span></div>
-                <p class="footer-text">Crafted with ☕ & Devil Fruit Powers by Thomas D. Lynn © 2026</p>
-                <div class="footer-links"><a href="https://github.com/uit-ayeaye" target="_blank">GitHub</a></div>
+                <div class="footer-logo"><img src="images/jolly-roger-cyber-nobg.png" alt="" class="footer-logo-img"> <span class="logo-text">Backbenchers Pirates</span></div>
+                <p class="footer-text">Crafted with ☕ & the Drums of Liberation by Thomas D. Lynn © 2026</p>
+                <div class="footer-links"><a href="https://github.com/uit-ayeaye" target="_blank" rel="noopener">GitHub</a></div>
             </div>
         </div>
     </footer>

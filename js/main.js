@@ -21,6 +21,59 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('pirate-theme', next);
     });
 
+    // ===== PRELOADER — "Hoist the Colors" =====
+    const preloader = document.getElementById('preloader');
+    const preloaderBar = document.getElementById('preloaderBar');
+    const preloaderText = document.getElementById('preloaderText');
+    if (preloader) {
+        const msgs = ['Beating the drums of liberation...', 'Inflating Gear 5th...', 'Hoisting the colors...', 'Set sail! 👒'];
+        let prog = 0, mi = 0;
+        const tick = setInterval(() => {
+            prog = Math.min(prog + Math.random() * 17 + 7, 100);
+            if (preloaderBar) preloaderBar.style.width = prog + '%';
+            const nextMsg = Math.min(msgs.length - 1, Math.floor(prog / 26));
+            if (nextMsg !== mi && preloaderText) { mi = nextMsg; preloaderText.textContent = msgs[mi]; }
+            if (prog >= 100) clearInterval(tick);
+        }, 220);
+        let dismissed = false;
+        const dismiss = () => {
+            if (dismissed) return; dismissed = true;
+            clearInterval(tick);
+            if (preloaderBar) preloaderBar.style.width = '100%';
+            setTimeout(() => {
+                preloader.classList.add('done');
+                document.body.classList.add('loaded');
+            }, 350);
+        };
+        window.addEventListener('load', () => setTimeout(dismiss, 550));
+        // Failsafe — never trap the visitor behind the gate
+        setTimeout(dismiss, 4500);
+    }
+
+    // ===== HERO VIDEO — autoplay with graceful fallback =====
+    const heroVideo = document.querySelector('.hero-video');
+    if (heroVideo) {
+        const p = heroVideo.play();
+        if (p && p.catch) p.catch(() => {});
+        heroVideo.addEventListener('error', () => {
+            const wrap = heroVideo.closest('.hero-video-wrap');
+            if (wrap) wrap.style.display = 'none';
+        });
+    }
+
+    // ===== BOUNTY POSTER — parallax tilt =====
+    const bounty = document.getElementById('bountyPoster');
+    const heroEl = document.getElementById('home');
+    if (bounty && heroEl && window.matchMedia('(min-width: 769px)').matches) {
+        heroEl.addEventListener('mousemove', e => {
+            const r = heroEl.getBoundingClientRect();
+            const x = (e.clientX - r.left) / r.width - 0.5;
+            const y = (e.clientY - r.top) / r.height - 0.5;
+            bounty.style.transform = `rotate(-2deg) perspective(800px) rotateY(${x * 9}deg) rotateX(${-y * 9}deg)`;
+        });
+        heroEl.addEventListener('mouseleave', () => { bounty.style.transform = ''; });
+    }
+
     // ===== PARTICLES =====
     const particlesContainer = document.getElementById('particles');
     if (particlesContainer && window.innerWidth > 768) {
@@ -33,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const s = 2 + Math.random() * 4;
             p.style.width = s + 'px';
             p.style.height = s + 'px';
-            const colors = ['#f5c842','#ffe066','#42a5f5','#dc3545','#c9991a','#64b5f6'];
+            const colors = ['#f5c842','#ffe066','#e6b422','#dc3545','#c9991a','#ffd54f'];
             p.style.background = colors[Math.floor(Math.random() * colors.length)];
             particlesContainer.appendChild(p);
         }
@@ -106,13 +159,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const tw = document.getElementById('typewriter');
     if (tw) {
         const phrases = [
-            ' navigating the Grand Line of code...',
-            ' converting PHP → Node.js at Gear 5th speed!',
-            ' upgrading Laravel like finding One Piece!',
-            ' building iOS apps — Devil Fruit powers! 😈',
-            ' AI is my Hito Hito no Mi, Model: Nika! ⚡',
-            ' one pirate + AI = the whole fleet! 🏴‍☠️',
-            ' Gear 5th Engineering activated! 🔥',
+            ' chasing freedom across the Grand Line...',
+            ' AI is my Gear 5th — Liberation! ☀️',
+            ' converting PHP → Node at Nika speed',
+            ' Laravel upgrades like finding One Piece!',
+            ' building iOS apps — Devil Fruit powers 😈',
+            ' one pirate + AI = the whole fleet 🏴‍☠️',
+            ' breaking every limit with a laugh 👒',
         ];
         let pi = 0, ci = 0, deleting = false, speed = 60;
         function type() {
@@ -148,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
     statNums.forEach(n => counterObs.observe(n));
 
     // ===== SCROLL REVEAL =====
-    const revealEls = document.querySelectorAll('.about-card, .skill-category, .blog-card, .contact-card, .section-header');
+    const revealEls = document.querySelectorAll('.about-card, .skill-category, .blog-card, .contact-card, .section-header, .timeline-item, .about-intro');
     const revealObs = new IntersectionObserver(entries => {
         entries.forEach((e, i) => {
             if (e.isIntersecting) {

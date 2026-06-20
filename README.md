@@ -1,6 +1,6 @@
 # uit-ayeaye.github.io
 
-Personal portfolio and tech blog for **Thomas D. Lynn** — Software Engineer, Full-Stack Developer, and AI Enthusiast.
+Personal portfolio and tech blog for **Thomas D. Lynn** (aka *Thiha Lynn*) — Software Engineer & Captain of **Backbenchers Studio**. A fully immersive One Piece **Luffy / Gear 5th "Liberation"** themed web experience — straw-hat gold & red, drums of liberation, and breaking every limit with a grin. 👒🏴‍☠️
 
 ## 🚀 Live Site
 
