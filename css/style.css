@@ -5,66 +5,66 @@
 
 /* ===== DARK THEME (Default) ===== */
 :root {
-    --bg-ocean: #0a0e1a;
-    --bg-deep: #0d1220;
-    --bg-card: rgba(15, 22, 42, 0.85);
-    --bg-card-hover: rgba(20, 30, 55, 0.95);
+    --bg-ocean: #120a0d;
+    --bg-deep: #1a0c11;
+    --bg-card: rgba(32, 14, 18, 0.85);
+    --bg-card-hover: rgba(44, 18, 24, 0.95);
 
-    --text-primary: #e8dcc8;
-    --text-secondary: #b8a88a;
-    --text-muted: #7a6b55;
+    --text-primary: #f3e7d2;
+    --text-secondary: #d8b9a4;
+    --text-muted: #9c7a68;
 
     --gold: #f5c842;
     --gold-light: #ffe066;
     --gold-dark: #c9991a;
-    --crimson: #dc3545;
-    --crimson-light: #ff4757;
+    --crimson: #e23744;
+    --crimson-light: #ff5a67;
     --crimson-dark: #a71d2a;
 
-    --ocean-blue: #c9991a;
-    --ocean-light: #e6b422;
-    --ocean-deep: #0d47a1;
-    --sky-blue: #ffd54f;
+    --ocean-blue: #b91c1c;
+    --ocean-light: #e63946;
+    --ocean-deep: #6a040f;
+    --sky-blue: #ff6b6b;
 
-    --treasure-brown: #495057;
+    --treasure-brown: #5c2a1e;
     --parchment: #e6efe9;
     --parchment-dark: #c7d3cb;
-    --wood-brown: #1b1b1b;
-    --wood-light: #343a40;
+    --wood-brown: #1b1010;
+    --wood-light: #3a2024;
 
-    --luffy-red: #d32f2f;
-    --gear5-white: #f5f5f5;
-    --gear5-glow: rgba(255, 255, 255, 0.6);
+    --luffy-red: #e0241f;
+    --gear5-white: #fff6e6;
+    --gear5-glow: rgba(255, 240, 200, 0.6);
 
     --accent-gradient: linear-gradient(135deg, var(--crimson), var(--gold));
     --ocean-gradient: linear-gradient(135deg, var(--ocean-deep), var(--ocean-light));
     --treasure-gradient: linear-gradient(135deg, var(--gold-dark), var(--gold), var(--gold-light));
-    --fire-gradient: linear-gradient(135deg, var(--crimson-dark), var(--crimson), #d00000);
-    --night-ocean: linear-gradient(180deg, #0a0e1a 0%, #0d1220 40%, #0f2744 100%);
+    --fire-gradient: linear-gradient(135deg, var(--crimson-dark), var(--crimson), #ff3b30);
+    --night-ocean: linear-gradient(180deg, #120a0d 0%, #1c0d11 38%, #2e0f16 100%);
     --straw-hat-gradient: linear-gradient(135deg, var(--gold), var(--crimson), var(--gold));
 
-    --border-color: rgba(245, 200, 66, 0.15);
-    --border-hover: rgba(245, 200, 66, 0.4);
-    --glow-gold: rgba(245, 200, 66, 0.2);
-    --glow-red: rgba(220, 53, 69, 0.15);
+    --border-color: rgba(226, 55, 68, 0.20);
+    --border-hover: rgba(226, 55, 68, 0.5);
+    --glow-gold: rgba(245, 200, 66, 0.22);
+    --glow-red: rgba(226, 55, 68, 0.28);
 
-    --code-bg: #0d1117;
-    --card-gradient-from: rgba(15, 22, 42, 0.9);
-    --card-gradient-to: rgba(20, 30, 55, 0.85);
-    --card-hover-from: rgba(20, 30, 55, 0.95);
-    --card-hover-to: rgba(30, 40, 70, 0.9);
-    --nav-bg: rgba(10, 14, 26, 0.95);
-    --section-bg-a: rgba(15, 22, 42,0.5);
-    --section-bg-b: rgba(15, 39, 68,0.3);
-    --section-bg-c: rgba(10, 14, 26,0.5);
-    --footer-bg: rgba(10, 14, 26,0.8);
-    --wave1-from: rgba(21, 101, 192, 0.3);
-    --wave1-to: rgba(13, 71, 161, 0.15);
-    --wave2-from: rgba(245, 200, 66, 0.18);
-    --wave2-to: rgba(21, 101, 192, 0.1);
-    --wave3-from: rgba(245, 200, 66, 0.08);
-    --wave3-to: rgba(100, 181, 246, 0.1);
-    --watermark-opacity: 0.015;
+    --code-bg: #1a0d10;
+    --card-gradient-from: rgba(32, 14, 18, 0.9);
+    --card-gradient-to: rgba(46, 18, 24, 0.85);
+    --card-hover-from: rgba(46, 18, 24, 0.95);
+    --card-hover-to: rgba(62, 24, 30, 0.9);
+    --nav-bg: rgba(18, 10, 13, 0.95);
+    --section-bg-a: rgba(42, 16, 20, 0.5);
+    --section-bg-b: rgba(62, 18, 24, 0.32);
+    --section-bg-c: rgba(18, 10, 13, 0.5);
+    --footer-bg: rgba(18, 10, 13, 0.8);
+    --wave1-from: rgba(226, 55, 68, 0.28);
+    --wave1-to: rgba(122, 29, 38, 0.15);
+    --wave2-from: rgba(245, 200, 66, 0.16);
+    --wave2-to: rgba(226, 55, 68, 0.12);
+    --wave3-from: rgba(255, 90, 103, 0.10);
+    --wave3-to: rgba(245, 200, 66, 0.10);
+    --watermark-opacity: 0.022;
 
     --font-pirate: 'Pirata One', cursive;
     --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -83,56 +83,56 @@
     color-scheme: dark;
 }
 
-/* ===== LIGHT THEME — Aged One Piece map / parchment (warm, vintage) ===== */
+/* ===== LIGHT THEME — Aged One Piece map / parchment + Luffy red (warm, vintage) ===== */
 [data-theme="light"] {
-    --bg-ocean: #e7d9b6;
-    --bg-deep: #d8c49a;
-    --bg-card: rgba(244, 234, 206, 0.94);
-    --bg-card-hover: rgba(250, 242, 220, 0.98);
+    --bg-ocean: #ecd7b3;
+    --bg-deep: #ddc498;
+    --bg-card: rgba(248, 236, 208, 0.94);
+    --bg-card-hover: rgba(252, 244, 222, 0.98);
 
-    --text-primary: #2b2012;
-    --text-secondary: #50402a;
-    --text-muted: #7d6b4c;
+    --text-primary: #3a1f12;
+    --text-secondary: #5e3a26;
+    --text-muted: #876a4c;
 
     --gold: #b8860b;
     --gold-light: #c9991a;
     --gold-dark: #a07818;
-    --crimson: #9e2b25;
-    --crimson-light: #c0392b;
+    --crimson: #c0271f;
+    --crimson-light: #e63946;
     --crimson-dark: #7a1f1a;
 
-    --ocean-blue: #c9991a;
-    --ocean-light: #f5c842;
-    --ocean-deep: #a07818;
-    --sky-blue: #e6b422;
+    --ocean-blue: #b8312a;
+    --ocean-light: #d94b3f;
+    --ocean-deep: #7a1f1a;
+    --sky-blue: #e07a5f;
 
-    --border-color: rgba(92, 70, 36, 0.30);
-    --border-hover: rgba(92, 70, 36, 0.55);
+    --border-color: rgba(140, 50, 35, 0.30);
+    --border-hover: rgba(140, 50, 35, 0.55);
     --glow-gold: rgba(201, 153, 26, 0.18);
-    --glow-red: rgba(158, 43, 37, 0.12);
+    --glow-red: rgba(192, 39, 31, 0.18);
 
-    --code-bg: #2b2316;
-    --card-gradient-from: rgba(245, 236, 209, 0.95);
-    --card-gradient-to: rgba(231, 217, 184, 0.92);
-    --card-hover-from: rgba(250, 243, 222, 0.98);
-    --card-hover-to: rgba(238, 226, 196, 0.95);
-    --nav-bg: rgba(231, 217, 182, 0.96);
+    --code-bg: #2b1816;
+    --card-gradient-from: rgba(248, 236, 208, 0.95);
+    --card-gradient-to: rgba(236, 216, 184, 0.92);
+    --card-hover-from: rgba(252, 244, 222, 0.98);
+    --card-hover-to: rgba(242, 224, 196, 0.95);
+    --nav-bg: rgba(236, 220, 186, 0.96);
     --section-bg-a: rgba(219, 199, 156, 0.42);
-    --section-bg-b: rgba(204, 181, 134, 0.32);
-    --section-bg-c: rgba(231, 217, 182, 0.36);
-    --footer-bg: rgba(222, 206, 170, 0.93);
-    --night-ocean: linear-gradient(180deg, #efe2c2 0%, #e6d4ac 45%, #d9c599 100%);
-    --wave1-from: rgba(21, 101, 192, 0.16);
-    --wave1-to: rgba(13, 71, 161, 0.08);
+    --section-bg-b: rgba(192, 39, 31, 0.12);
+    --section-bg-c: rgba(236, 220, 186, 0.36);
+    --footer-bg: rgba(226, 208, 172, 0.93);
+    --night-ocean: linear-gradient(180deg, #f1e3c2 0%, #e9d3a6 45%, #e0c193 100%);
+    --wave1-from: rgba(192, 39, 31, 0.15);
+    --wave1-to: rgba(122, 31, 26, 0.08);
     --wave2-from: rgba(201, 153, 26, 0.11);
-    --wave2-to: rgba(21, 101, 192, 0.06);
-    --wave3-from: rgba(158, 43, 37, 0.08);
+    --wave2-to: rgba(192, 39, 31, 0.06);
+    --wave3-from: rgba(224, 80, 60, 0.09);
     --wave3-to: rgba(120, 90, 40, 0.08);
     --watermark-opacity: 0.05;
 
     --accent-gradient: linear-gradient(135deg, var(--crimson), var(--gold));
     --treasure-gradient: linear-gradient(135deg, var(--gold-dark), var(--gold), var(--gold-light));
-    --fire-gradient: linear-gradient(135deg, var(--crimson-dark), var(--crimson), #c0392b);
+    --fire-gradient: linear-gradient(135deg, var(--crimson-dark), var(--crimson), #e63946);
     --ocean-gradient: linear-gradient(135deg, var(--ocean-deep), var(--ocean-light));
 
     color-scheme: light;
@@ -158,11 +158,11 @@ img { max-width: 100%; display: block; }
 /* ---------- Pirate Text ---------- */
 .pirate-text {
     font-family: var(--font-pirate);
-    background: var(--treasure-gradient);
+    background: var(--straw-hat-gradient);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    filter: drop-shadow(0 0 12px rgba(245, 200, 66, 0.5));
+    filter: drop-shadow(0 0 12px rgba(226, 55, 68, 0.45)) drop-shadow(0 0 6px rgba(245, 200, 66, 0.4));
 }
 
 /* ---------- Theme Toggle ---------- */
@@ -890,8 +890,8 @@ body.loaded { overflow: visible; }
 /* ===================================================================
    ⚔️  ZORO finishing — jade buttons + Three-Sword skill accents
    =================================================================== */
-:root { --accent-gradient: linear-gradient(135deg, #a07818, #f5c842); }
-[data-theme="light"] { --accent-gradient: linear-gradient(135deg, #a07818, #c9991a); }
+:root { --accent-gradient: linear-gradient(135deg, var(--crimson), var(--gold)); }
+[data-theme="light"] { --accent-gradient: linear-gradient(135deg, var(--crimson), var(--gold)); }
 
 .skill-category.sword-wado { box-shadow: inset 4px 0 0 #e9ecef; }
 .skill-category.sword-kitetsu { box-shadow: inset 4px 0 0 #c1121f; }
