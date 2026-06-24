@@ -679,8 +679,8 @@ a.contact-link:hover { color: var(--gold); }
     .nav-links.active { right: 0; }
     .nav-link { width: 100%; padding: 14px 16px; font-size: 1rem; }
     .about-grid { grid-template-columns: 1fr; }
-    .floating-ship { bottom: 10px; right: 5px; opacity: 0.3; }
-    .ship-img { width: 80px; }
+    .floating-ship { bottom: 12px; right: 6px; opacity: 0.6; }
+    .ship-img { width: 132px; }
     .jolly-flag { opacity: 0.2; }
     .jolly-flag-left { bottom: 80px; left: 6px; }
     .jolly-flag-right { bottom: 100px; right: 6px; }
@@ -703,8 +703,8 @@ a.contact-link:hover { color: var(--gold); }
     .btn { width: 100%; justify-content: center; }
     .skills-categories { grid-template-columns: 1fr; }
     .bounty-poster-frame { max-width: 150px; }
-    .floating-ship { bottom: 5px; right: 2px; opacity: 0.25; }
-    .ship-img { width: 60px; }
+    .floating-ship { bottom: 8px; right: 4px; opacity: 0.55; }
+    .ship-img { width: 108px; }
     .jolly-flag-left { bottom: 60px; left: 4px; }
     .jolly-flag-right { bottom: 75px; right: 4px; }
     .flag-img { width: 22px; }
