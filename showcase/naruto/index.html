@@ -790,5 +790,8 @@
 </script>
 {MOB}
 <style>/* mobile robustness */html{-webkit-text-size-adjust:100%;text-size-adjust:100%}body{overflow-x:hidden;-webkit-tap-highlight-color:transparent}a,button,.rtp-back,#cta{touch-action:manipulation}@media (hover:none){.rtp-back:active{transform:scale(.95)}}</style>
+<style>#pageFade{position:fixed;inset:0;z-index:2147483600;background:#06060a;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .42s ease}#pageFade.show{opacity:1;visibility:visible}</style>
+<div id="pageFade" aria-hidden="true"></div>
+<script>(function(){var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;var f=document.getElementById('pageFade');var back=document.querySelector('.rtp-back');if(back&&f&&!reduce){back.addEventListener('click',function(e){if(e.metaKey||e.ctrlKey||e.shiftKey)return;var href=back.getAttribute('href');if(!href)return;e.preventDefault();f.classList.add('show');var go=function(){window.location.href=href;};f.addEventListener('transitionend',go,{once:true});setTimeout(go,520);});}})();</script>
 </body>
 </html>
