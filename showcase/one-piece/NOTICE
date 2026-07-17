@@ -1,0 +1,27 @@
+Grand Line Fizz — One Piece 3D landing page
+============================================
+
+Original work Copyright (c) Meghamittal0920
+Source: https://github.com/Meghamittal0920/One-Piece-3D-Website
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+See the accompanying LICENSE file for the full text.
+
+--------------------------------------------------------------------
+This copy is presented as a portfolio showcase on thomasdlynn.dev.
+Modifications by the showcase author are limited to:
+  - static-export / base-path configuration for subpath hosting,
+  - animation, entrance and interaction polish,
+  - a shared "Return to Port" navigation + attribution chrome.
+Original authorship and this Apache-2.0 license are preserved.
+--------------------------------------------------------------------
+
+One Piece and all related characters are trademarks of their
+respective rights holders (Eiichiro Oda / Shueisha / Toei). This is
+a non-commercial fan/demo showcase and is not affiliated with or
+endorsed by them.

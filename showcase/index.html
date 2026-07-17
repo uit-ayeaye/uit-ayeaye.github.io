@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voyages — Grand Line Showcase | Thomas D. Lynn</title>
+    <meta name="description" content="Voyages — a showcase of immersive anime web experiences: Naruto Sage Mode, Jujutsu Kaisen Domain Expansion, and the One Piece Grand Line Fizz 3D landing. Built with GSAP, Canvas & React Three Fiber. 👒">
+    <meta name="author" content="Thomas D. Lynn">
+    <meta name="theme-color" content="#0a0e1a">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://thomasdlynn.dev/showcase/">
+    <meta property="og:title" content="Voyages — Grand Line Showcase">
+    <meta property="og:description" content="Three immersive anime web experiences — set sail into each world. 👒">
+    <meta property="og:image" content="https://thomasdlynn.dev/images/og-thomas.jpg">
+    <link rel="canonical" href="https://thomasdlynn.dev/showcase/">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/animations.css">
+    <link rel="stylesheet" href="showcase.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Cinzel:wght@500;700;900&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Zen+Old+Mincho:wght@700;900&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="../images/jolly-roger-cyber-nobg.png">
+    <link rel="apple-touch-icon" href="../images/jolly-roger-cyber-nobg.png">
+    <script>document.documentElement.setAttribute('data-theme',localStorage.getItem('pirate-theme')||'dark')</script>
+</head>
+<body>
+    <!-- Preloader -->
+    <div class="preloader" id="preloader">
+        <div class="preloader-inner">
+            <div class="preloader-logo-wrap">
+                <img src="../images/jolly-roger-cyber-nobg.png" alt="" class="preloader-logo">
+                <div class="preloader-ring"></div>
+            </div>
+            <div class="preloader-title">CHARTING THE VOYAGES</div>
+            <div class="preloader-bar"><span id="preloaderBar"></span></div>
+            <div class="preloader-text" id="preloaderText">Unfurling the map...</div>
+        </div>
+    </div>
+
+    <div class="grain-overlay" aria-hidden="true"></div>
+    <div class="vignette-overlay" aria-hidden="true"></div>
+
+    <div class="ocean-bg">
+        <div class="wave wave-1"></div>
+        <div class="wave wave-2"></div>
+        <div class="wave wave-3"></div>
+    </div>
+    <div class="particles" id="particles"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <img src="../images/jolly-roger-cyber-nobg.png" alt="Backbenchers Jolly Roger" class="nav-logo-img">
+                <span class="logo-text">Backbenchers Pirates</span>
+            </a>
+            <div class="nav-links" id="navLinks">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/#about" class="nav-link">About</a>
+                <a href="/#skills" class="nav-link">Arsenal</a>
+                <a href="/#blog" class="nav-link">Log Book</a>
+                <a href="/showcase/" class="nav-link active">Voyages</a>
+                <a href="/#contact" class="nav-link">Contact</a>
+            </div>
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Showcase hero header -->
+    <header class="showcase-hero">
+        <div class="container">
+            <div class="hero-badge animate-fade-up">
+                <span class="badge-dot"></span>
+                〜 Grand Line Showcase 〜
+            </div>
+            <h1 class="hero-title animate-fade-up delay-1" style="justify-content:center">
+                Set Sail Into <span class="pirate-text">Other Worlds</span>
+            </h1>
+            <p class="showcase-lead animate-fade-up delay-2">
+                Three immersive anime web experiences — cinematic scroll journeys and real-time 3D.
+                Pick a poster and set sail. Each world is its own full-screen voyage. ⚓
+            </p>
+        </div>
+    </header>
+
+    <!-- Showcase grid -->
+    <section class="section" style="padding-top:20px">
+        <div class="container">
+            <div class="showcase-grid">
+
+                <!-- Naruto -->
+                <a class="showcase-card naruto" href="naruto/" aria-label="Open the Naruto Sage Mode Awakening experience">
+                    <span class="showcase-card__glow" aria-hidden="true"></span>
+                    <div class="showcase-card__cover">
+                        <span class="showcase-card__tag">GSAP · SCROLL</span>
+                        <span class="showcase-card__kanji" aria-hidden="true">仙人</span>
+                        <span class="showcase-card__romaji">Sennin Mōdo</span>
+                    </div>
+                    <div class="showcase-card__body">
+                        <h2 class="showcase-card__title">Sage Mode Awakening</h2>
+                        <p class="showcase-card__by">original by <span class="cred">Meghamittal0920</span></p>
+                        <p class="showcase-card__desc">A pinned, scroll-driven transformation — Base → Hand Seal → Sage Mode — with jagged thunder cracks, camera shake and rising chakra motes.</p>
+                        <div class="palette-row" aria-hidden="true">
+                            <span style="background:#ff7a2f"></span>
+                            <span style="background:#9fe8ff"></span>
+                            <span style="background:#c8372d"></span>
+                        </div>
+                        <div class="showcase-card__meta">
+                            <span class="showcase-card__chip">GSAP ScrollTrigger</span>
+                            <span class="showcase-card__chip">Canvas Lightning</span>
+                            <span class="showcase-card__chip">Vanilla JS</span>
+                        </div>
+                        <span class="showcase-card__cta">Set Sail ⛵</span>
+                    </div>
+                </a>
+
+                <!-- JJK -->
+                <a class="showcase-card jjk" href="jjk/" aria-label="Open the Jujutsu Kaisen Domain Expansion experience">
+                    <span class="showcase-card__glow" aria-hidden="true"></span>
+                    <div class="showcase-card__cover">
+                        <span class="showcase-card__tag">CANVAS · GSAP</span>
+                        <span class="showcase-card__kanji" aria-hidden="true">領域展開</span>
+                        <span class="showcase-card__romaji">Ryōiki Tenkai</span>
+                    </div>
+                    <div class="showcase-card__body">
+                        <h2 class="showcase-card__title">Domain Expansion</h2>
+                        <p class="showcase-card__by">original by <span class="cred">Meghamittal0920</span></p>
+                        <p class="showcase-card__desc">Hands meet, the sign forms, the whole sky answers — a hand-coded fractal-lightning storm, then Sukuna rises over the domain.</p>
+                        <div class="palette-row" aria-hidden="true">
+                            <span style="background:#8b5cf6"></span>
+                            <span style="background:#06030c"></span>
+                            <span style="background:#c4b5fd"></span>
+                        </div>
+                        <div class="showcase-card__meta">
+                            <span class="showcase-card__chip">Canvas Storm Engine</span>
+                            <span class="showcase-card__chip">GSAP ScrollTrigger</span>
+                            <span class="showcase-card__chip">Parallax</span>
+                        </div>
+                        <span class="showcase-card__cta">Set Sail ⛵</span>
+                    </div>
+                </a>
+
+                <!-- One Piece -->
+                <a class="showcase-card onepiece" href="one-piece/" aria-label="Open the One Piece Grand Line Fizz 3D experience">
+                    <span class="showcase-card__glow" aria-hidden="true"></span>
+                    <div class="showcase-card__cover">
+                        <span class="showcase-card__tag">3D · WEBGL</span>
+                        <span class="showcase-card__kanji" aria-hidden="true">航海</span>
+                        <span class="showcase-card__romaji">Grand Line Fizz</span>
+                    </div>
+                    <div class="showcase-card__body">
+                        <h2 class="showcase-card__title">Grand Line Fizz</h2>
+                        <p class="showcase-card__by">original by <span class="cred">Meghamittal0920</span> · Apache-2.0</p>
+                        <p class="showcase-card__desc">A real-time 3D soda-brand landing — a GLTF can with wrapping character labels, HDR lighting and GSAP-scrubbed camera moves across the crew.</p>
+                        <div class="palette-row" aria-hidden="true">
+                            <span style="background:#c9a227"></span>
+                            <span style="background:#b3111c"></span>
+                            <span style="background:#1e90b8"></span>
+                        </div>
+                        <div class="showcase-card__meta">
+                            <span class="showcase-card__chip">React Three Fiber</span>
+                            <span class="showcase-card__chip">Next.js (static)</span>
+                            <span class="showcase-card__chip">WebGL</span>
+                        </div>
+                        <span class="showcase-card__cta">Set Sail ⛵</span>
+                    </div>
+                </a>
+
+            </div>
+
+            <p style="text-align:center;margin-top:40px;color:var(--text-muted);font-size:.9rem;line-height:1.7">
+                All three original experiences were created by
+                <a href="https://github.com/Meghamittal0920" target="_blank" rel="noopener" style="color:var(--gold)">Meghamittal0920</a>.
+                Adapted, polished and showcased here with animation &amp; layout enhancements — original authorship and licenses preserved.
+            </p>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo"><img src="../images/jolly-roger-cyber-nobg.png" alt="" class="footer-logo-img"> <span class="logo-text">Backbenchers Pirates</span></div>
+                <p class="footer-text">Crafted with ☕ &amp; the Drums of Liberation by Thomas D. Lynn © 2026</p>
+                <div class="footer-links"><a href="/">Home</a> · <a href="https://github.com/uit-ayeaye" target="_blank" rel="noopener">GitHub</a></div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/main.js"></script>
+    <script src="showcase.js"></script>
+</body>
+</html>
