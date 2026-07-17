@@ -788,5 +788,7 @@
 <script>
 (function(){var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;var fine=matchMedia('(hover:hover) and (pointer:fine)').matches;var b=document.querySelector('.rtp-back[data-magnetic]');if(b&&fine&&!reduce){b.addEventListener('pointermove',function(e){var r=b.getBoundingClientRect();b.style.transform='translate('+((e.clientX-(r.left+r.width/2))*0.28)+'px,'+((e.clientY-(r.top+r.height/2))*0.4)+'px) scale(1.05)';});b.addEventListener('pointerleave',function(){b.style.transform='';});}})();
 </script>
+{MOB}
+<style>/* mobile robustness */html{-webkit-text-size-adjust:100%;text-size-adjust:100%}body{overflow-x:hidden;-webkit-tap-highlight-color:transparent}a,button,.rtp-back,#cta{touch-action:manipulation}@media (hover:none){.rtp-back:active{transform:scale(.95)}}</style>
 </body>
 </html>

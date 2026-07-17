@@ -4,10 +4,24 @@
    pirate-gold frame but previews its own anime palette via --show-* vars.
    =================================================================== */
 
+/* ---- Global mobile robustness ---- */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; scroll-behavior: smooth; }
+body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+.showcase-card, .nav-link, .theme-toggle, .nav-toggle { touch-action: manipulation; }
+/* satisfying press feedback on touch devices (which have no hover) */
+@media (hover: none) {
+    .showcase-card:active { transform: scale(0.975); transition: transform .16s ease; }
+    .showcase-card:active .showcase-card__art { opacity: .8; transform: scale(1.06); }
+}
+
 .showcase-hero {
     padding-top: 160px;
     padding-bottom: 40px;
     text-align: center;
+}
+@media (max-width: 680px) {
+    .showcase-hero { padding-top: 120px; padding-bottom: 24px; }
+    .showcase-lead { font-size: .98rem; padding: 0 4px; }
 }
 .showcase-hero .hero-badge { margin: 0 auto 22px; }
 .showcase-lead {
