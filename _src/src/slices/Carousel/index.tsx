@@ -1,7 +1,7 @@
 "use client";
 
-import { Center, Environment, View } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
+import { Center, Environment } from "@react-three/drei";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { ReactNode, useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import clsx from "clsx";
@@ -10,6 +10,7 @@ import gsap from "gsap";
 
 import FloatingCan from "@/components/FloatingCan";
 import CanFullView from "@/components/CanFullView";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { DRINKS } from "@/data/drinks";
 import { ArrowIcon } from "./ArrowIcon";
 import { ThunderBolts, ThunderBoltsHandle } from "./ThunderBolts";
@@ -35,6 +36,9 @@ const CAN_FRONT_ROTATION_Y = -(Math.PI * 1 * 1.62); // 10% turn left
 const Carousel = (): JSX.Element => {
   const [currentFlavorIndex, setCurrentFlavorIndex] = useState(0);
   const [fullView, setFullView] = useState(false);
+  // Touch devices get the featured can on its OWN in-flow canvas (below), so
+  // it composites with native momentum scroll instead of swimming.
+  const isTouch = useMediaQuery("(hover: none)", false);
   const sodaCanRef = useRef<Group>(null);
   const thunderRef = useRef<ThunderBoltsHandle>(null);
   const chipRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -223,11 +227,23 @@ const Carousel = (): JSX.Element => {
           onPointerUp={onCanPointerUp}
           onPointerCancel={onCanPointerUp}
         >
-          {/* Unmounted while Full View is open — the site-wide canvas kept
-              drawing this can behind the modal's own can, so the two models
-              visually overlapped through the dimmed backdrop. */}
+          {/* The featured can lives on its OWN in-flow <Canvas>, NOT the
+              shared position:fixed canvas. A fixed canvas has to re-track its
+              scissor to this scrolling div every frame, and native mobile
+              momentum scroll is composited off-main-thread — so the can lagged
+              the page and "swam" during scroll. An in-flow canvas is just a
+              composited layer that moves WITH the page, so the bounce stays
+              rock-steady on every device. Unmounted while Full View is open so
+              two 3D cans never draw at once. */}
           {!fullView && (
-          <View className="pointer-events-none mx-auto h-[48vmin] max-h-[30rem] min-h-[15rem] w-full max-w-[560px] md:h-[54vmin] md:max-h-[34rem]">
+          <Canvas
+            className="mx-auto h-[48vmin] max-h-[30rem] min-h-[15rem] w-full max-w-[560px] md:h-[54vmin] md:max-h-[34rem]"
+            style={{ pointerEvents: "none" }}
+            dpr={isTouch ? [1, 1.5] : [1, 2]}
+            performance={{ min: 0.5 }}
+            gl={{ antialias: true, powerPreference: "high-performance" }}
+            camera={{ fov: 30, position: [0, 0, 5] }}
+          >
             {/* Height-capped stage + can sized to fill it: no dead space
                 above/below on big screens, and the FULL can — top rim
                 included — still stays inside through every bounce. */}
@@ -262,7 +278,7 @@ const Carousel = (): JSX.Element => {
               environmentIntensity={1.5}
             />
             <ambientLight intensity={2} color="#9DDEFA" />
-          </View>
+          </Canvas>
           )}
           {/* Same-size placeholder keeps the layout rock-steady while the
               stage view is unmounted behind the modal. */}

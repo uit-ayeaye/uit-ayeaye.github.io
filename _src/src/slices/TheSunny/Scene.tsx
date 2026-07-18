@@ -248,9 +248,12 @@ export default function Scene() {
 
   return (
     <>
-      {/* Golden haze that melts the far sea into the sky — pushed further out
-          (and slightly less orange) so the vivid anime blue stays dominant. */}
-      <fog attach="fog" args={["#c3926b", 11, 48]} />
+      {/* Golden haze at the horizon. The color is tuned to the golden-hour
+          tone of newworld-sky.jpg where the 3D water's horizon meets it, so
+          the far water fades INTO the sky instead of leaving a muddy tan seam.
+          near=12 keeps the foreground water/ship/cans vivid blue; far=46
+          compresses the gold band so most of the sea reads anime-blue. */}
+      <fog attach="fog" args={["#e0b174", 14, 38]} />
 
       <Ocean />
       <SkyWeather />

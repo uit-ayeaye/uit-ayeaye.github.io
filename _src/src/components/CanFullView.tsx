@@ -108,19 +108,23 @@ export default function CanFullView({
 
       <div
         className={clsx(
-          "flex max-h-full w-full max-w-3xl flex-col items-center justify-center",
+          "flex max-h-full min-h-0 w-full max-w-3xl flex-col items-center justify-center gap-2 overflow-hidden md:gap-3",
           closing ? "op-zoom-out" : "op-zoom-pop",
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative h-[52vh] w-full md:h-[60vh]">
+        {/* svh (small viewport height) sizes the stage against the VISIBLE
+            area even with the mobile URL bar expanded, so canvas + text never
+            overflow and items-center/justify-center truly centers it. Desktop
+            keeps 60vh unchanged. */}
+        <div className="relative h-[46svh] w-full md:h-[60vh]">
           {/* Character-tinted stage glow — fills the dark void around the
               can so the viewer reads as a lit studio, not empty space. */}
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0"
             style={{
-              background: `radial-gradient(circle at 50% 45%, ${drink.color}59, transparent 62%)`,
+              background: `radial-gradient(circle at 50% 48%, ${drink.color}59, transparent 62%)`,
             }}
           />
           {loading && (
@@ -169,7 +173,7 @@ export default function CanFullView({
           </Canvas>
         </div>
 
-        <div className="-mt-3 text-center md:-mt-4">
+        <div className="text-center">
           <p className="font-pirate text-sm tracking-[0.22em] text-[#C9A227]">
             {drink.character}
           </p>
