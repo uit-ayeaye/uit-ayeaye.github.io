@@ -241,7 +241,7 @@ const Carousel = (): JSX.Element => {
             box is kept portrait (max-w) so it hugs the can instead of leaving
             wide empty bands left and right. */}
         <div
-          className="relative mx-auto h-[64vmin] max-h-[34rem] min-h-[21rem] w-full max-w-[400px] cursor-grab select-none active:cursor-grabbing md:h-[68vmin] md:max-h-[40rem] md:max-w-[440px]"
+          className="relative mx-auto h-[66vmin] max-h-[36rem] min-h-[21rem] w-full max-w-[460px] cursor-grab select-none active:cursor-grabbing md:h-[70vmin] md:max-h-[42rem] md:max-w-[520px]"
           style={{ touchAction: "pan-y" }}
           onPointerDown={onCanPointerDown}
           onPointerMove={onCanPointerMove}
@@ -264,18 +264,19 @@ const Carousel = (): JSX.Element => {
             dpr={isTouch ? [1, 1.5] : [1, 2]}
             performance={{ min: 0.5 }}
             gl={{ antialias: true, powerPreference: "high-performance" }}
-            camera={{ fov: 30, position: [0, 0, 5.3] }}
+            camera={{ fov: 30, position: [0, 0, 5.7] }}
           >
-            {/* Notable can, WHOLE in frame: the camera is pulled back enough
-                that the full can (top rim to base) sits centered with a
-                comfortable margin. The can RESTS slightly low (negative Y) so
-                the change-flavor hop — which springs it UP by ~0.15×the
-                turntable scale — lands back near center instead of punching the
-                top rim out of frame. */}
-            <Center position={[0, -0.22, 1.15]}>
+            {/* Notable can, WHOLE in frame with SAFE MARGIN all around: the
+                camera sits back so the can fills ~2/3 of the stage and is
+                CENTERED (no vertical offset). That ~17% headroom top and bottom
+                means neither the top rim nor the base ever clips — including
+                during the change-flavor hop (which springs the can up by
+                0.15×the turntable scale) and the idle float. The stage box
+                itself is enlarged/widened so the render area is roomy. */}
+            <Center position={[0, 0, 1.15]}>
               {/* Slow turntable group — keeps the featured can alive; the
                   change-spin animates the inner can group on top of it. */}
-              <Turntable speed={0.5} scale={1.3}>
+              <Turntable speed={0.5} scale={1.1}>
                 <FloatingCan
                   ref={sodaCanRef}
                   floatIntensity={0.3}
