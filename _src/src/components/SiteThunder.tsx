@@ -56,6 +56,31 @@ function makeCrackle(cx: number, cy: number) {
   return d;
 }
 
+/**
+ * Conqueror's-clash burst: jagged arcs radiating outward from a single
+ * clash point, flattened vertically so they run mostly sideways — the
+ * exact shape the anime draws when two Conqueror's Haki users collide.
+ */
+function makeHakiBurst(cx: number, cy: number, arms: number) {
+  const paths: string[] = [];
+  for (let a = 0; a < arms; a++) {
+    const ang = (a / arms) * Math.PI * 2 + (Math.random() - 0.5) * 0.9;
+    const dirX = Math.cos(ang);
+    const dirY = Math.sin(ang) * 0.45; // squash: anime arcs hug the horizon
+    let x = cx;
+    let y = cy;
+    let d = `M${x},${y}`;
+    const segs = 3 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < segs; i++) {
+      x += dirX * (55 + Math.random() * 85) + (Math.random() - 0.5) * 45;
+      y += dirY * (55 + Math.random() * 85) + (Math.random() - 0.5) * 60;
+      d += ` L${x},${y}`;
+    }
+    paths.push(d);
+  }
+  return paths;
+}
+
 /** Build a jagged main bolt path + a few branch paths (viewBox 0..1000) */
 function makeBolt(startX: number, branchProb = 0.4) {
   const points: [number, number][] = [[startX, -20]];
@@ -106,17 +131,17 @@ export default function SiteThunder() {
 
       const lite = isLiteMode();
 
-      // ~1 in 3 strikes is a Conqueror's Haki burst: deep-crimson bolts that
-      // KEEP their red (barely lightened), ringed by a dark blood-red halo,
-      // plus jagged horizontal crackle arcs — the "cracks in the air" from
-      // the anime — instead of another plain white flash.
-      const haki = Math.random() < 0.35;
+      // Half the strikes are a Conqueror's Haki burst: black-red bolts that
+      // KEEP their red (barely lightened), ringed by a dark blood halo, plus
+      // a radial clash-burst and horizontal crackle arcs — the "cracks in
+      // the air" the anime draws — instead of another plain white flash.
+      const haki = Math.random() < 0.5;
 
       const tint = haki
-        ? "#B3111C"
+        ? "#C40E1B"
         : TINTS[Math.floor(Math.random() * TINTS.length)];
-      const core = haki ? lighten(tint, 0.28) : lighten(tint, 0.85);
-      const glow = haki ? "#6E0A12" : lighten(tint, 0.4);
+      const core = haki ? lighten(tint, 0.35) : lighten(tint, 0.85);
+      const glow = haki ? "#7A0A12" : lighten(tint, 0.4);
 
       svg.innerHTML = "";
       // Lite mode: a single bolt keeps the SVG cheap on mobile GPUs.
@@ -160,13 +185,13 @@ export default function SiteThunder() {
         if (haki) {
           // Dark outline under the red stroke — reads as black-red Haki
           // energy instead of hot white lightning.
-          mk(main, 12, "#1A0305", 0.55);
-          mk(main, 6, glow, 0.7);
-          mk(main, 2.5, core, 0.95);
+          mk(main, 13, "#160204", 0.7);
+          mk(main, 6.5, "#B3111C", 0.9);
+          mk(main, 2.6, core, 1);
           branches.forEach((b) => {
-            mk(b, 7, "#1A0305", 0.4);
-            mk(b, 3.5, glow, 0.55);
-            mk(b, 1.3, core, 0.85);
+            mk(b, 8, "#160204", 0.55);
+            mk(b, 4, "#B3111C", 0.75);
+            mk(b, 1.5, core, 0.95);
           });
         } else {
           mk(main, 9, glow, 0.5); // outer glow stroke
@@ -181,22 +206,43 @@ export default function SiteThunder() {
         groups.push(g);
       }
 
-      // Haki crackle arcs — short horizontal red fractures scattered across
-      // the sky. Fewer on lite mode so mobile GPUs stay smooth.
+      // Haki crackle work — a radial clash-burst plus stray horizontal red
+      // fractures scattered across the sky. Trimmed in lite mode so mobile
+      // GPUs stay smooth.
       if (haki) {
-        const crackleCount = lite ? 2 : 3 + Math.floor(Math.random() * 3);
+        const strokeCrackle = (g: SVGGElement, d: string) => {
+          mkInto(g, d, 8, "#160204", 0.65);
+          mkInto(g, d, 4, "#B3111C", 0.9);
+          mkInto(g, d, 1.6, lighten("#C40E1B", 0.5), 1);
+        };
+
+        // The clash point: arcs radiating outward like two Conqueror's
+        // Haki users colliding mid-sky.
+        const burstG = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "g",
+        );
+        burstG.style.filter = lite
+          ? "none"
+          : `drop-shadow(0 0 10px rgba(196, 14, 27, 0.9))`;
+        makeHakiBurst(
+          220 + Math.random() * 560,
+          200 + Math.random() * 450,
+          lite ? 4 : 6,
+        ).forEach((d) => strokeCrackle(burstG, d));
+        svg.appendChild(burstG);
+        groups.push(burstG);
+
+        const crackleCount = lite ? 2 : 4 + Math.floor(Math.random() * 3);
         for (let i = 0; i < crackleCount; i++) {
           const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
           g.style.filter = lite
             ? "none"
-            : `drop-shadow(0 0 8px rgba(179, 17, 28, 0.8))`;
-          const d = makeCrackle(
-            80 + Math.random() * 700,
-            120 + Math.random() * 700,
+            : `drop-shadow(0 0 8px rgba(179, 17, 28, 0.85))`;
+          strokeCrackle(
+            g,
+            makeCrackle(80 + Math.random() * 700, 120 + Math.random() * 700),
           );
-          mkInto(g, d, 7, "#1A0305", 0.5);
-          mkInto(g, d, 3.5, "#8C0A13", 0.85);
-          mkInto(g, d, 1.4, lighten("#B3111C", 0.45), 0.9);
           svg.appendChild(g);
           groups.push(g);
         }
@@ -229,10 +275,11 @@ export default function SiteThunder() {
 
     const loop = () => {
       strike();
-      // next strike: ambient on desktop (5–12s), rarer on mobile (9–18s)
+      // next strike: ambient on desktop (4–10s), a bit rarer on mobile
+      // (7–14s) — frequent enough that the Haki bursts get seen.
       const delay = isLiteMode()
-        ? 9000 + Math.random() * 9000
-        : 5000 + Math.random() * 7000;
+        ? 7000 + Math.random() * 7000
+        : 4000 + Math.random() * 6000;
       timer = window.setTimeout(loop, delay);
     };
 

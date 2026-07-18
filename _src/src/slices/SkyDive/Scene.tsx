@@ -29,6 +29,7 @@ type SkyDiveProps = {
 
 export default function Scene({ sentence, flavor, handle }: SkyDiveProps) {
   const groupRef = useRef<THREE.Group>(null);
+  const isDesktop = useMediaQuery("(min-width: 768px)", true);
   const canRef = useRef<THREE.Group>(null);
   const cloud1Ref = useRef<THREE.Group>(null);
   const cloud2Ref = useRef<THREE.Group>(null);
@@ -148,8 +149,9 @@ export default function Scene({ sentence, flavor, handle }: SkyDiveProps) {
 
   return (
     <group ref={groupRef}>
-      {/* Can */}
-      <group rotation={[0, 0, 0.5]}>
+      {/* Can — scaled down a touch on phones so it shares the small screen
+          with the crew dossier card instead of swallowing it. */}
+      <group rotation={[0, 0, 0.5]} scale={isDesktop ? 1 : 0.8}>
         <FloatingCan
           ref={canRef}
           flavor={flavor}

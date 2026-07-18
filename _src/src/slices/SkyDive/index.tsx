@@ -96,8 +96,10 @@ const SkyDive = (): JSX.Element => {
     <Bounded className="skydive relative min-h-screen overflow-hidden bg-[#0D1A2A]">
       <h2 className="sr-only">{SENTENCE}</h2>
 
-      {/* Title-card overlay + first-crew gallery */}
-      <div className="pointer-events-none absolute inset-0 z-20 flex select-none flex-col items-center justify-between px-4 py-14 md:py-20">
+      {/* Title-card overlay + first-crew gallery. z-40 keeps the dossier
+          card readable ABOVE the fixed 3D canvas (z-30) — on phones the
+          falling can is huge and used to cover the card entirely. */}
+      <div className="pointer-events-none absolute inset-0 z-40 flex select-none flex-col items-center justify-between px-4 py-14 md:py-20">
         <p className="op-kicker text-xs text-[#C9A227] md:text-sm">
           <ShinyText text="Chapter 01 · The First Crew" speed={6} />
         </p>
@@ -120,7 +122,7 @@ const SkyDive = (): JSX.Element => {
             />
             <div
               key={drink.key}
-              className="op-pop w-60 rounded-2xl border border-[#C9A227]/35 bg-[#0B0E14]/70 px-4 py-3 text-center shadow-[0_10px_40px_rgba(0,0,0,0.45)] backdrop-blur-md md:w-80 md:px-6 md:py-4"
+              className="op-pop w-60 rounded-2xl border border-[#C9A227]/35 bg-[#0B0E14]/80 px-4 py-3 text-center shadow-[0_10px_40px_rgba(0,0,0,0.45)] backdrop-blur-md md:w-80 md:px-6 md:py-4"
             >
               <p className="font-pirate text-xs tracking-[0.22em] text-[#C9A227] md:text-sm">
                 {drink.character}

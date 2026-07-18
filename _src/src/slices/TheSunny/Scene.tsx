@@ -28,20 +28,32 @@ function parallax() {
   return THREE.MathUtils.clamp(scroll.value, -0.35, 0.35);
 }
 
+/** Small / touch screens get cheaper water + clouds so phones stay smooth. */
+function isLite() {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia("(max-width: 768px)").matches ||
+    window.matchMedia("(hover: none)").matches
+  );
+}
+
 /** Reflective, animated ocean (three.js Water) — vivid anime-blue swell. */
 function Ocean() {
   const normals = useTexture(asset("/textures/waternormals.jpg"));
   const water = useMemo(() => {
+    const lite = isLite();
     normals.wrapS = normals.wrapT = THREE.RepeatWrapping;
     const geom = new THREE.PlaneGeometry(2400, 2400);
     const w = new Water(geom, {
-      textureWidth: 512,
-      textureHeight: 512,
+      // Half-size reflection buffer on phones — the single biggest win for
+      // mobile frame rate in this scene, and barely visible at phone size.
+      textureWidth: lite ? 256 : 512,
+      textureHeight: lite ? 256 : 512,
       waterNormals: normals,
       sunDirection: SUN_DIRECTION.clone(),
-      sunColor: 0xffe1b0,
-      // Brighter cerulean — the saturated anime blue of the New World sea.
-      waterColor: 0x1272a2,
+      sunColor: 0xffd9a3,
+      // Saturated royal azure — the One Piece anime's open-sea blue.
+      waterColor: 0x1565c8,
       distortionScale: 2.2,
       fog: true,
     });
@@ -60,6 +72,7 @@ function Ocean() {
 /** Slow-drifting New World weather — soft clouds hanging over the horizon. */
 function SkyWeather() {
   const grp = useRef<THREE.Group>(null);
+  const lite = useMemo(isLite, []);
   useFrame((state) => {
     if (!grp.current) return;
     // Lazy sideways drift, like weather rolling across the Grand Line.
@@ -67,11 +80,11 @@ function SkyWeather() {
   });
   return (
     <group ref={grp}>
-      <Clouds material={THREE.MeshLambertMaterial} limit={220}>
+      <Clouds material={THREE.MeshLambertMaterial} limit={lite ? 140 : 220}>
         <Cloud
           seed={7}
           bounds={[7, 1.4, 2]}
-          segments={16}
+          segments={lite ? 10 : 16}
           position={[-6.5, 2.1, -16]}
           color="#f6d7b4"
           opacity={0.4}
@@ -80,22 +93,25 @@ function SkyWeather() {
         <Cloud
           seed={13}
           bounds={[8, 1.6, 2]}
-          segments={16}
+          segments={lite ? 10 : 16}
           position={[7, 2.9, -19]}
           color="#f3cfae"
           opacity={0.32}
           speed={0.1}
         />
-        {/* cool sea-mist hugging the waterline for that chill-weather haze */}
-        <Cloud
-          seed={21}
-          bounds={[10, 0.8, 3]}
-          segments={12}
-          position={[0, -0.9, -11]}
-          color="#bcd9e6"
-          opacity={0.14}
-          speed={0.08}
-        />
+        {/* cool sea-mist hugging the waterline for that chill-weather haze —
+            desktop only; phones skip it for frame rate. */}
+        {!lite && (
+          <Cloud
+            seed={21}
+            bounds={[10, 0.8, 3]}
+            segments={12}
+            position={[0, -0.9, -11]}
+            color="#bcd9e6"
+            opacity={0.14}
+            speed={0.08}
+          />
+        )}
       </Clouds>
     </group>
   );
@@ -242,15 +258,16 @@ export default function Scene() {
   return (
     <>
       {/* Golden haze that melts the far sea into the sky — pushed further out
-          so more of the vivid anime water stays visible. */}
-      <fog attach="fog" args={["#c08a60", 10, 44]} />
+          (and slightly less orange) so the vivid anime blue stays dominant. */}
+      <fog attach="fog" args={["#c3926b", 11, 48]} />
 
       <Ocean />
       <SkyWeather />
       <Ship />
       <Fleet />
 
-      <hemisphereLight args={["#ffe4c0", "#0d4a6b", 0.85]} />
+      {/* Bluer sea-bounce light so the hulls and cans pick up the azure. */}
+      <hemisphereLight args={["#ffe4c0", "#0b4f8a", 0.85]} />
       <ambientLight intensity={0.4} color="#ffe9cf" />
       <directionalLight intensity={2.4} color="#ffdca6" position={[7, 3, -9]} />
       {/* Cool counter-light — the "chill" side of New World weather. */}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useGLTF, useTexture } from "@react-three/drei";
+import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
 import { asset } from "@/lib/asset";
@@ -53,14 +54,25 @@ export function SodaCan({
   ...props
 }: SodaCanProps) {
   const { nodes } = useGLTF(asset("/Soda-can.gltf"));
+  const maxAnisotropy = useThree((s) =>
+    s.gl.capabilities.getMaxAnisotropy(),
+  );
 
   const labels = useTexture(flavorTextures);
 
   Object.values(labels).forEach((texture) => {
-    // Fixes upside down labels
-    texture.flipY = false;
-    // Lets us rotate the label around the can via offset (below)
-    texture.wrapS = THREE.RepeatWrapping;
+    // One-time texture setup (guarded so we never re-upload every frame):
+    // sRGB keeps the label art as saturated as the source webp files, and
+    // anisotropic filtering keeps the print crisp at glancing angles.
+    if (texture.colorSpace !== THREE.SRGBColorSpace) {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      // Fixes upside down labels
+      texture.flipY = false;
+      // Lets us rotate the label around the can via offset (below)
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.anisotropy = Math.min(8, maxAnisotropy || 1);
+      texture.needsUpdate = true;
+    }
     texture.offset.x = LABEL_FRONT_OFFSET;
   });
 

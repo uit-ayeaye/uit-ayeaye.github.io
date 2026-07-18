@@ -13,6 +13,12 @@ const Loader = dynamic(
 type Props = {};
 
 export default function ViewCanvas({}: Props) {
+  // Sharper renders (crisper can labels) on hi-DPI screens. Touch devices
+  // get a slightly lower cap so weaker phone GPUs keep their frame rate.
+  const isTouch =
+    typeof window !== "undefined" &&
+    window.matchMedia("(hover: none)").matches;
+
   return (
     <>
       <Canvas
@@ -26,7 +32,7 @@ export default function ViewCanvas({}: Props) {
           zIndex: 30,
         }}
         shadows
-        dpr={[1, 1.5]}
+        dpr={isTouch ? [1, 1.75] : [1, 2]}
         gl={{ antialias: true }}
         camera={{
           fov: 30,

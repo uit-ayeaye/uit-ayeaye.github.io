@@ -44,6 +44,7 @@ const Carousel = (): JSX.Element => {
   // the wrapper keeps vertical page scrolling native on mobile; horizontal
   // drags rotate the can directly, with a little inertia fling on release.
   function onCanPointerDown(e: ReactPointerEvent) {
+    if ((e.target as HTMLElement).closest("button, a")) return;
     if (!sodaCanRef.current) return;
     spinDrag.current = { down: true, lastX: e.clientX, vel: 0 };
     // Stop any in-flight change-spin / fling so the drag takes over cleanly.
@@ -128,7 +129,7 @@ const Carousel = (): JSX.Element => {
       .fromTo(
         sodaCanRef.current.scale,
         { x: 1, y: 1, z: 1 },
-        { x: 1.16, y: 1.16, z: 1.16, duration: 0.25, ease: "power2.out" },
+        { x: 1.12, y: 1.12, z: 1.12, duration: 0.25, ease: "power2.out" },
         0,
       )
       .to(
@@ -136,11 +137,12 @@ const Carousel = (): JSX.Element => {
         { x: 1, y: 1, z: 1, duration: 0.9, ease: "elastic.out(1, 0.5)" },
         0.25,
       )
-      // A little hop so the can feels bouncy and alive.
+      // A little hop so the can feels bouncy and alive — kept small enough
+      // that the can never leaves the 3D stage while it bounces.
       .fromTo(
         sodaCanRef.current.position,
         { y: 0 },
-        { y: 0.4, duration: 0.25, ease: "power2.out" },
+        { y: 0.28, duration: 0.25, ease: "power2.out" },
         0,
       )
       .to(
@@ -207,13 +209,10 @@ const Carousel = (): JSX.Element => {
         </h2>
       </div>
 
-      {/* Featured can */}
-      <div className="relative z-10 grid w-full max-w-4xl shrink-0 grid-cols-[auto,1fr,auto] items-center">
-        <ArrowButton
-          onClick={() => changeFlavor(currentFlavorIndex + 1)}
-          direction="left"
-          label="Previous Drink"
-        />
+      {/* Featured can — a full-width 3D stage. The arrows float over the
+          stage's edges so the can keeps the whole area on phones, and the
+          view has vertical headroom so the bounce-hop never clips. */}
+      <div className="relative z-10 w-full max-w-4xl shrink-0">
         <div
           className="relative mx-auto w-full cursor-grab select-none active:cursor-grabbing"
           style={{ touchAction: "pan-y" }}
@@ -222,11 +221,11 @@ const Carousel = (): JSX.Element => {
           onPointerUp={onCanPointerUp}
           onPointerCancel={onCanPointerUp}
         >
-          <View className="pointer-events-none mx-auto aspect-square h-[50vmin] min-h-[13rem] w-full md:h-[56vmin]">
+          <View className="pointer-events-none mx-auto h-[54vmin] min-h-[16rem] w-full max-w-[560px] md:h-[60vmin]">
             <Center position={[0, 0, 1.5]}>
               {/* Slow turntable group — keeps the featured can alive; the
                   change-spin animates the inner can group on top of it. */}
-              <Turntable speed={0.5} scale={1.15}>
+              <Turntable speed={0.5} scale={1.02}>
                 <FloatingCan
                   ref={sodaCanRef}
                   floatIntensity={0.5}
@@ -258,8 +257,15 @@ const Carousel = (): JSX.Element => {
         </div>
         <ArrowButton
           onClick={() => changeFlavor(currentFlavorIndex - 1)}
+          direction="left"
+          label="Previous Drink"
+          className="absolute left-0 top-1/2 -translate-y-1/2 md:left-2"
+        />
+        <ArrowButton
+          onClick={() => changeFlavor(currentFlavorIndex + 1)}
           direction="right"
           label="Next Drink"
+          className="absolute right-0 top-1/2 -translate-y-1/2 md:right-2"
         />
       </div>
 
@@ -406,13 +412,22 @@ type ArrowButtonProps = {
   direction?: "right" | "left";
   label: string;
   onClick: () => void;
+  className?: string;
 };
 
-function ArrowButton({ label, onClick, direction = "right" }: ArrowButtonProps) {
+function ArrowButton({
+  label,
+  onClick,
+  direction = "right",
+  className,
+}: ArrowButtonProps) {
   return (
     <button
       onClick={onClick}
-      className="z-10 size-12 rounded-full border border-[#C9A227]/40 bg-[#141C2B]/60 p-3 text-[#C9A227] backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:border-[#C9A227] hover:bg-[#141C2B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] md:size-16 lg:size-20"
+      className={clsx(
+        "z-20 size-12 rounded-full border border-[#C9A227]/40 bg-[#141C2B]/60 p-3 text-[#C9A227] backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:border-[#C9A227] hover:bg-[#141C2B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] md:size-16 lg:size-20",
+        className,
+      )}
     >
       <ArrowIcon className={clsx(direction === "right" && "-scale-x-100")} />
       <span className="sr-only">{label}</span>
