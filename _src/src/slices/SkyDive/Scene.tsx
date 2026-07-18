@@ -168,10 +168,10 @@ export default function Scene({ sentence, flavor, handle }: SkyDiveProps) {
         </FloatingCan>
       </group>
 
-      {/* Clouds */}
+      {/* Clouds — lighter geometry on phones for smoother scrolling. */}
       <Clouds ref={cloudsRef}>
-        <Cloud ref={cloud1Ref} bounds={[10, 10, 2]} />
-        <Cloud ref={cloud2Ref} bounds={[10, 10, 2]} />
+        <Cloud ref={cloud1Ref} bounds={[10, 10, 2]} segments={isDesktop ? 20 : 12} />
+        <Cloud ref={cloud2Ref} bounds={[10, 10, 2]} segments={isDesktop ? 20 : 12} />
       </Clouds>
 
       {/* Text */}

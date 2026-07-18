@@ -5,10 +5,11 @@ import { View } from "@react-three/drei";
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
 
-const Loader = dynamic(
-  () => import("@react-three/drei").then((mod) => mod.Loader),
-  { ssr: false },
-);
+// Themed boot screen (emblem + gold progress bar) instead of drei's
+// generic loader — client-only since it reads the THREE loading manager.
+const SiteLoader = dynamic(() => import("@/components/SiteLoader"), {
+  ssr: false,
+});
 
 type Props = {};
 
@@ -45,7 +46,7 @@ export default function ViewCanvas({}: Props) {
           <View.Port />
         </Suspense>
       </Canvas>
-      <Loader />
+      <SiteLoader />
     </>
   );
 }

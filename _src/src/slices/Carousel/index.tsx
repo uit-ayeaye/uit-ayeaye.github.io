@@ -223,6 +223,10 @@ const Carousel = (): JSX.Element => {
           onPointerUp={onCanPointerUp}
           onPointerCancel={onCanPointerUp}
         >
+          {/* Unmounted while Full View is open — the site-wide canvas kept
+              drawing this can behind the modal's own can, so the two models
+              visually overlapped through the dimmed backdrop. */}
+          {!fullView && (
           <View className="pointer-events-none mx-auto h-[54vmin] min-h-[16rem] w-full max-w-[560px] md:h-[60vmin]">
             {/* Pushed back (z=1.0) + modest scale/hop: the FULL can — top rim
                 included — stays inside the stage through every bounce. */}
@@ -258,6 +262,12 @@ const Carousel = (): JSX.Element => {
             />
             <ambientLight intensity={2} color="#9DDEFA" />
           </View>
+          )}
+          {/* Same-size placeholder keeps the layout rock-steady while the
+              stage view is unmounted behind the modal. */}
+          {fullView && (
+            <div className="mx-auto h-[54vmin] min-h-[16rem] w-full max-w-[560px] md:h-[60vmin]" />
+          )}
         </div>
         <ArrowButton
           onClick={() => changeFlavor(currentFlavorIndex - 1)}
@@ -271,16 +281,17 @@ const Carousel = (): JSX.Element => {
           label="Next Drink"
           className="absolute right-0 top-1/2 -translate-y-1/2 md:right-2"
         />
-
-        {/* Light-weight gateway to the immersive single-can viewer. */}
-        <button
-          type="button"
-          onClick={() => setFullView(true)}
-          className="absolute bottom-1 right-1 z-20 rounded-full border border-[#C9A227]/40 bg-[#0B0E14]/60 px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.2em] text-[#C9A227] backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:border-[#C9A227] hover:bg-[#0B0E14] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] md:bottom-2 md:right-2 md:text-xs"
-        >
-          Full View ⤢
-        </button>
       </div>
+
+      {/* Light-weight gateway to the immersive single-can viewer — centred
+          right above the featured character's card, where the eye lands. */}
+      <button
+        type="button"
+        onClick={() => setFullView(true)}
+        className="relative z-10 -mt-1 shrink-0 rounded-full border border-[#C9A227]/45 bg-[#0B0E14]/70 px-5 py-2 font-display text-[11px] uppercase tracking-[0.25em] text-[#C9A227] backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:border-[#C9A227] hover:bg-[#0B0E14] hover:shadow-[0_0_24px_rgba(201,162,39,0.35)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] md:text-xs"
+      >
+        ⤢ Full View
+      </button>
 
       {/* Interaction hint — the can is a toy, tell people to play with it. */}
       <p className="relative z-10 -mt-2 shrink-0 text-center font-pirate text-sm text-[#ECE4D3]/45 md:-mt-4 md:text-base">

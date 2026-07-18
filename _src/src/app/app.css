@@ -299,6 +299,44 @@ body {
   display: none; /* WebKit */
 }
 
+/* Modal open/close — soft backdrop fade + a springy zoom for the content.
+   The -out variants play the same curves in reverse for a clean exit. */
+@keyframes op-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.op-fade {
+  animation: op-fade 0.3s ease both;
+}
+.op-fade-out {
+  animation: op-fade 0.22s ease reverse both;
+}
+
+@keyframes op-zoom-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.86) translateY(16px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.03) translateY(-4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.op-zoom-pop {
+  animation: op-zoom-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.op-zoom-out {
+  animation: op-zoom-pop 0.22s ease reverse both;
+}
+
 /* Bouncy pop-in for gallery cards (SkyDive crew card, FlavorGrid lightbox).
    Re-triggered by keying the element on the current item. */
 @keyframes op-pop {
@@ -327,7 +365,11 @@ body {
   .rb-star-border__trail {
     animation: none !important;
   }
-  .op-pop {
+  .op-pop,
+  .op-fade,
+  .op-fade-out,
+  .op-zoom-pop,
+  .op-zoom-out {
     animation: none !important;
   }
   html {
