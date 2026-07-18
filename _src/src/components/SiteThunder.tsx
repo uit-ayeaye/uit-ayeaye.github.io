@@ -38,6 +38,24 @@ function lighten(hex: string, amount: number) {
   return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
 }
 
+/**
+ * Build a short jagged horizontal crackle arc around (cx, cy) — the red
+ * "cracks in the air" look of Conqueror's Haki, rather than a sky bolt.
+ */
+function makeCrackle(cx: number, cy: number) {
+  let x = cx;
+  let y = cy;
+  let d = `M${x},${y}`;
+  const dir = Math.random() < 0.5 ? -1 : 1;
+  const segs = 4 + Math.floor(Math.random() * 4);
+  for (let i = 0; i < segs; i++) {
+    x += dir * (35 + Math.random() * 75);
+    y += (Math.random() - 0.5) * 70;
+    d += ` L${x},${y}`;
+  }
+  return d;
+}
+
 /** Build a jagged main bolt path + a few branch paths (viewBox 0..1000) */
 function makeBolt(startX: number, branchProb = 0.4) {
   const points: [number, number][] = [[startX, -20]];
@@ -88,14 +106,43 @@ export default function SiteThunder() {
 
       const lite = isLiteMode();
 
-      const tint = TINTS[Math.floor(Math.random() * TINTS.length)];
-      const core = lighten(tint, 0.85); // near-white hot core
-      const glow = lighten(tint, 0.4); // colored halo
+      // ~1 in 3 strikes is a Conqueror's Haki burst: deep-crimson bolts that
+      // KEEP their red (barely lightened), ringed by a dark blood-red halo,
+      // plus jagged horizontal crackle arcs — the "cracks in the air" from
+      // the anime — instead of another plain white flash.
+      const haki = Math.random() < 0.35;
+
+      const tint = haki
+        ? "#B3111C"
+        : TINTS[Math.floor(Math.random() * TINTS.length)];
+      const core = haki ? lighten(tint, 0.28) : lighten(tint, 0.85);
+      const glow = haki ? "#6E0A12" : lighten(tint, 0.4);
 
       svg.innerHTML = "";
       // Lite mode: a single bolt keeps the SVG cheap on mobile GPUs.
       const boltCount = lite ? 1 : 1 + Math.floor(Math.random() * 2); // 1–2 bolts
       const groups: SVGGElement[] = [];
+
+      const mkInto = (
+        g: SVGGElement,
+        d: string,
+        w: number,
+        stroke: string,
+        op: number,
+      ) => {
+        const p = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "path",
+        );
+        p.setAttribute("d", d);
+        p.setAttribute("fill", "none");
+        p.setAttribute("stroke", stroke);
+        p.setAttribute("stroke-width", String(w));
+        p.setAttribute("stroke-linecap", "round");
+        p.setAttribute("stroke-linejoin", "round");
+        p.setAttribute("opacity", String(op));
+        g.appendChild(p);
+      };
 
       for (let i = 0; i < boltCount; i++) {
         const startX = 120 + Math.random() * 760;
@@ -107,30 +154,52 @@ export default function SiteThunder() {
           ? "none"
           : `drop-shadow(0 0 6px ${glow}) drop-shadow(0 0 18px ${glow})`;
 
-        const mk = (d: string, w: number, stroke: string, op: number) => {
-          const p = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "path",
-          );
-          p.setAttribute("d", d);
-          p.setAttribute("fill", "none");
-          p.setAttribute("stroke", stroke);
-          p.setAttribute("stroke-width", String(w));
-          p.setAttribute("stroke-linecap", "round");
-          p.setAttribute("stroke-linejoin", "round");
-          p.setAttribute("opacity", String(op));
-          g.appendChild(p);
-        };
+        const mk = (d: string, w: number, stroke: string, op: number) =>
+          mkInto(g, d, w, stroke, op);
 
-        mk(main, 9, glow, 0.5); // outer glow stroke
-        mk(main, 3, core, 1); // hot core
-        branches.forEach((b) => {
-          mk(b, 5, glow, 0.35);
-          mk(b, 1.5, core, 0.85);
-        });
+        if (haki) {
+          // Dark outline under the red stroke — reads as black-red Haki
+          // energy instead of hot white lightning.
+          mk(main, 12, "#1A0305", 0.55);
+          mk(main, 6, glow, 0.7);
+          mk(main, 2.5, core, 0.95);
+          branches.forEach((b) => {
+            mk(b, 7, "#1A0305", 0.4);
+            mk(b, 3.5, glow, 0.55);
+            mk(b, 1.3, core, 0.85);
+          });
+        } else {
+          mk(main, 9, glow, 0.5); // outer glow stroke
+          mk(main, 3, core, 1); // hot core
+          branches.forEach((b) => {
+            mk(b, 5, glow, 0.35);
+            mk(b, 1.5, core, 0.85);
+          });
+        }
 
         svg.appendChild(g);
         groups.push(g);
+      }
+
+      // Haki crackle arcs — short horizontal red fractures scattered across
+      // the sky. Fewer on lite mode so mobile GPUs stay smooth.
+      if (haki) {
+        const crackleCount = lite ? 2 : 3 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < crackleCount; i++) {
+          const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+          g.style.filter = lite
+            ? "none"
+            : `drop-shadow(0 0 8px rgba(179, 17, 28, 0.8))`;
+          const d = makeCrackle(
+            80 + Math.random() * 700,
+            120 + Math.random() * 700,
+          );
+          mkInto(g, d, 7, "#1A0305", 0.5);
+          mkInto(g, d, 3.5, "#8C0A13", 0.85);
+          mkInto(g, d, 1.4, lighten("#B3111C", 0.45), 0.9);
+          svg.appendChild(g);
+          groups.push(g);
+        }
       }
 
       // Flicker each bolt like real lightning (staggered double-strike)

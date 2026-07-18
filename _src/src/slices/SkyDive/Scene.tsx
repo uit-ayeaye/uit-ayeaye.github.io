@@ -10,16 +10,24 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import FloatingCan from "@/components/FloatingCan";
 import { SodaCanProps } from "@/components/SodaCan";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { DRINKS } from "@/data/drinks";
 import { asset } from "@/lib/asset";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
+/** Shared mutable handle so the DOM overlay can drag-spin the 3D can. */
+export type SkyDiveHandle = {
+  can: THREE.Group | null;
+  spin: gsap.core.Tween | null;
+};
+
 type SkyDiveProps = {
   sentence: string | null;
   flavor: SodaCanProps["flavor"];
+  handle?: SkyDiveHandle;
 };
 
-export default function Scene({ sentence, flavor }: SkyDiveProps) {
+export default function Scene({ sentence, flavor, handle }: SkyDiveProps) {
   const groupRef = useRef<THREE.Group>(null);
   const canRef = useRef<THREE.Group>(null);
   const cloud1Ref = useRef<THREE.Group>(null);
@@ -58,13 +66,18 @@ export default function Scene({ sentence, flavor }: SkyDiveProps) {
       { ...getXYPositions(7), z: 2 },
     );
 
-    // Spinning can
-    gsap.to(canRef.current.rotation, {
-      y: Math.PI * 2,
+    // Spinning can — relative (`+=`) so the overlay can pause it, let the
+    // visitor drag-spin the can, and hand rotation back seamlessly.
+    const spinTween = gsap.to(canRef.current.rotation, {
+      y: `+=${Math.PI * 2}`,
       duration: 1.7,
       repeat: -1,
       ease: "none",
     });
+    if (handle) {
+      handle.can = canRef.current;
+      handle.spin = spinTween;
+    }
 
     // Infinite cloud movement
     const DISTANCE = 15;
@@ -144,7 +157,12 @@ export default function Scene({ sentence, flavor }: SkyDiveProps) {
           floatIntensity={3}
           floatSpeed={3}
         >
-          <pointLight intensity={30} color="#8C0413" decay={0.6} />
+          {/* Glow tinted to whichever crewmate is featured in the gallery. */}
+          <pointLight
+            intensity={30}
+            color={DRINKS.find((d) => d.key === flavor)?.color ?? "#8C0413"}
+            decay={0.6}
+          />
         </FloatingCan>
       </group>
 

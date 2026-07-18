@@ -38,6 +38,35 @@ const Carousel = (): JSX.Element => {
   const chipRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const railRef = useRef<HTMLDivElement>(null);
   const drag = useRef({ down: false, startX: 0, scrollLeft: 0, moved: false });
+  const spinDrag = useRef({ down: false, lastX: 0, vel: 0 });
+
+  // ── Drag-to-spin the featured can (mouse + touch). touch-action: pan-y on
+  // the wrapper keeps vertical page scrolling native on mobile; horizontal
+  // drags rotate the can directly, with a little inertia fling on release.
+  function onCanPointerDown(e: ReactPointerEvent) {
+    if (!sodaCanRef.current) return;
+    spinDrag.current = { down: true, lastX: e.clientX, vel: 0 };
+    // Stop any in-flight change-spin / fling so the drag takes over cleanly.
+    gsap.killTweensOf(sodaCanRef.current.rotation);
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+  }
+  function onCanPointerMove(e: ReactPointerEvent) {
+    if (!spinDrag.current.down || !sodaCanRef.current) return;
+    const dx = e.clientX - spinDrag.current.lastX;
+    spinDrag.current.lastX = e.clientX;
+    spinDrag.current.vel = dx;
+    sodaCanRef.current.rotation.y += dx * 0.012;
+  }
+  function onCanPointerUp() {
+    if (!spinDrag.current.down || !sodaCanRef.current) return;
+    spinDrag.current.down = false;
+    // Inertia fling, eased out like a spun bar-top can.
+    gsap.to(sodaCanRef.current.rotation, {
+      y: `+=${spinDrag.current.vel * 0.012 * 22}`,
+      duration: 1.2,
+      ease: "power3.out",
+    });
+  }
 
   // Pointer drag-to-scroll for the crew gallery (mouse only — touch keeps
   // native momentum scrolling). `moved` suppresses the click after a drag so
@@ -72,6 +101,16 @@ const Carousel = (): JSX.Element => {
     const dir = index > currentFlavorIndex ? -1 : 1;
     const spin = Math.PI * 2 * SPINS_ON_CHANGE;
 
+    // The visitor may have drag-spun the can to an arbitrary angle, so aim
+    // the spin at an absolute target that lands exactly on the front-facing
+    // rotation (mod 2π) instead of a blind relative `+=` add.
+    gsap.killTweensOf(sodaCanRef.current.rotation);
+    const twoPi = Math.PI * 2;
+    const cur = sodaCanRef.current.rotation.y;
+    const toFront = ((CAN_FRONT_ROTATION_Y - cur) % twoPi + twoPi) % twoPi;
+    const targetY =
+      dir < 0 ? cur + (toFront - twoPi) - spin : cur + toFront + spin;
+
     const tl = gsap.timeline();
 
     tl
@@ -79,7 +118,7 @@ const Carousel = (): JSX.Element => {
       .to(
         sodaCanRef.current.rotation,
         {
-          y: dir < 0 ? `-=${spin}` : `+=${spin}`,
+          y: targetY,
           ease: "back.out(1.3)",
           duration: 1.1,
         },
@@ -124,13 +163,16 @@ const Carousel = (): JSX.Element => {
       .to(".text-wrapper", { duration: 0.2, y: 0, opacity: 1 }, 0.7);
   }
 
-  // Keep the active crew chip scrolled into view in the roster rail.
+  // Keep the active crew chip centred in the roster rail. This scrolls ONLY
+  // the rail element horizontally — scrollIntoView() also scrolled the page
+  // vertically, which yanked the viewport down to the rail after every
+  // selection on mobile. That was the "camera auto-scroll" glitch.
   useEffect(() => {
-    chipRefs.current[currentFlavorIndex]?.scrollIntoView({
-      behavior: "smooth",
-      inline: "center",
-      block: "nearest",
-    });
+    const rail = railRef.current;
+    const chip = chipRefs.current[currentFlavorIndex];
+    if (!rail || !chip) return;
+    const left = chip.offsetLeft - rail.clientWidth / 2 + chip.clientWidth / 2;
+    rail.scrollTo({ left: Math.max(0, left), behavior: "smooth" });
   }, [currentFlavorIndex]);
 
   const current = DRINKS[currentFlavorIndex];
@@ -172,45 +214,59 @@ const Carousel = (): JSX.Element => {
           direction="left"
           label="Previous Drink"
         />
-        <View className="mx-auto aspect-square h-[46vmin] min-h-[12rem] w-full md:h-[56vmin]">
-          <Center position={[0, 0, 1.5]}>
-            {/* Slow turntable group — keeps the featured can alive; the
-                change-spin animates the inner can group on top of it. */}
-            <Turntable speed={0.5} scale={1.15}>
-              <FloatingCan
-                ref={sodaCanRef}
-                floatIntensity={0.5}
-                rotationIntensity={0.35}
-                flavor={current.key}
-                rotation={[0, CAN_FRONT_ROTATION_Y, 0]}
-              >
-                {/* Character-tinted glow that travels with the can — same
-                    intensity/decay as the SkyDive hero can. */}
-                <pointLight
-                  intensity={30}
-                  decay={0.6}
-                  color={current.color}
-                  position={[0, 0.5, -1.6]}
-                />
-              </FloatingCan>
-            </Turntable>
-          </Center>
+        <div
+          className="relative mx-auto w-full cursor-grab select-none active:cursor-grabbing"
+          style={{ touchAction: "pan-y" }}
+          onPointerDown={onCanPointerDown}
+          onPointerMove={onCanPointerMove}
+          onPointerUp={onCanPointerUp}
+          onPointerCancel={onCanPointerUp}
+        >
+          <View className="pointer-events-none mx-auto aspect-square h-[50vmin] min-h-[13rem] w-full md:h-[56vmin]">
+            <Center position={[0, 0, 1.5]}>
+              {/* Slow turntable group — keeps the featured can alive; the
+                  change-spin animates the inner can group on top of it. */}
+              <Turntable speed={0.5} scale={1.15}>
+                <FloatingCan
+                  ref={sodaCanRef}
+                  floatIntensity={0.5}
+                  rotationIntensity={0.35}
+                  flavor={current.key}
+                  rotation={[0, CAN_FRONT_ROTATION_Y, 0]}
+                >
+                  {/* Character-tinted glow that travels with the can — same
+                      intensity/decay as the SkyDive hero can. */}
+                  <pointLight
+                    intensity={30}
+                    decay={0.6}
+                    color={current.color}
+                    position={[0, 0.5, -1.6]}
+                  />
+                </FloatingCan>
+              </Turntable>
+            </Center>
 
-          {/* Exact SkyDive-can lighting: field HDRI @1.5 + cool ambient,
-              no hard direct lights. Reads as a clean, attractive product
-              instead of a harsh mirror, and keeps the label readable. */}
-          <Environment
-            files={asset("/hdr/field.hdr")}
-            environmentIntensity={1.5}
-          />
-          <ambientLight intensity={2} color="#9DDEFA" />
-        </View>
+            {/* Exact SkyDive-can lighting: field HDRI @1.5 + cool ambient,
+                no hard direct lights. Reads as a clean, attractive product
+                instead of a harsh mirror, and keeps the label readable. */}
+            <Environment
+              files={asset("/hdr/field.hdr")}
+              environmentIntensity={1.5}
+            />
+            <ambientLight intensity={2} color="#9DDEFA" />
+          </View>
+        </div>
         <ArrowButton
           onClick={() => changeFlavor(currentFlavorIndex - 1)}
           direction="right"
           label="Next Drink"
         />
       </div>
+
+      {/* Interaction hint — the can is a toy, tell people to play with it. */}
+      <p className="relative z-10 -mt-2 shrink-0 text-center font-pirate text-sm text-[#ECE4D3]/45 md:-mt-4 md:text-base">
+        Drag the can to spin it &middot; swipe the crew rail below
+      </p>
 
       {/* Crew gallery — all 14 cans. Drag (mouse) or swipe (touch) to scroll
           the row; tap a card to feature that can above. */}
@@ -221,7 +277,7 @@ const Carousel = (): JSX.Element => {
           onPointerMove={onRailPointerMove}
           onPointerUp={onRailPointerUp}
           onPointerLeave={onRailPointerUp}
-          className="crew-rail flex cursor-grab select-none gap-3 overflow-x-auto px-4 pb-3 pt-2 active:cursor-grabbing md:gap-4"
+          className="crew-rail relative flex cursor-grab select-none gap-3 overflow-x-auto px-4 pb-3 pt-2 active:cursor-grabbing md:gap-4"
         >
           {DRINKS.map((drink, i) => {
             const active = i === currentFlavorIndex;

@@ -20,11 +20,21 @@ import { asset } from "@/lib/asset";
 type Drink = (typeof DRINKS)[number];
 
 const FlavorGrid = (): JSX.Element => {
-  const [selected, setSelected] = useState<Drink | null>(null);
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const selected: Drink | null =
+    selectedIdx === null ? null : DRINKS[selectedIdx];
+
+  // Gallery step with wrap-around, so the lightbox browses the whole crew.
+  const step = (dir: number) =>
+    setSelectedIdx((i) =>
+      i === null ? null : (i + dir + DRINKS.length) % DRINKS.length,
+    );
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setSelected(null);
+      if (e.key === "Escape") setSelectedIdx(null);
+      if (e.key === "ArrowRight") step(1);
+      if (e.key === "ArrowLeft") step(-1);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -82,7 +92,7 @@ const FlavorGrid = (): JSX.Element => {
             <button
               key={drink.key}
               type="button"
-              onClick={() => setSelected(drink)}
+              onClick={() => setSelectedIdx(DRINKS.indexOf(drink))}
               aria-label={`View ${drink.character} — ${drink.name}`}
               className="group block rounded-2xl text-left transition-transform duration-300 hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227]"
             >
@@ -143,22 +153,48 @@ const FlavorGrid = (): JSX.Element => {
         </div>
       </div>
 
-      {/* Lightbox — tap a card to view the full can art + dossier */}
+      {/* Lightbox — tap a card to view the full can art + dossier. Browse
+          the whole crew with the side arrows or ←/→ keys, like a gallery. */}
       {selected && (
         <div
           className="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-label={`${selected.character} — ${selected.name}`}
-          onClick={() => setSelected(null)}
+          onClick={() => setSelectedIdx(null)}
         >
+          {/* Prev / next gallery arrows */}
+          <button
+            type="button"
+            aria-label="Previous can"
+            onClick={(e) => {
+              e.stopPropagation();
+              step(-1);
+            }}
+            className="absolute left-2 top-1/2 z-10 flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#C9A227]/40 bg-black/50 text-xl text-[#C9A227] backdrop-blur-sm transition hover:scale-110 hover:bg-black/70 md:left-8 md:size-14"
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            aria-label="Next can"
+            onClick={(e) => {
+              e.stopPropagation();
+              step(1);
+            }}
+            className="absolute right-2 top-1/2 z-10 flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#C9A227]/40 bg-black/50 text-xl text-[#C9A227] backdrop-blur-sm transition hover:scale-110 hover:bg-black/70 md:right-8 md:size-14"
+          >
+            ›
+          </button>
+
           <div
-            className="relative max-h-[92vh] w-full max-w-sm overflow-y-auto rounded-2xl border border-[#C9A227]/30 bg-[#0B0E14] shadow-[0_0_60px_rgba(0,0,0,0.6)]"
+            key={selected.key}
+            className="op-pop relative max-h-[92vh] w-full max-w-sm overflow-y-auto rounded-2xl border border-[#C9A227]/30 bg-[#0B0E14] shadow-[0_0_60px_rgba(0,0,0,0.6)]"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               type="button"
-              onClick={() => setSelected(null)}
+              onClick={() => setSelectedIdx(null)}
               aria-label="Close"
               className="absolute right-3 top-3 z-10 flex size-9 items-center justify-center rounded-full border border-[#C9A227]/40 bg-black/50 text-[#ECE4D3] backdrop-blur-sm transition hover:bg-black/70"
             >
@@ -190,6 +226,9 @@ const FlavorGrid = (): JSX.Element => {
                   {selected.bounty.toLocaleString("en-US")}
                 </span>
               </div>
+              <p className="mt-4 text-[10px] uppercase tracking-[0.3em] text-[#ECE4D3]/35">
+                {(selectedIdx ?? 0) + 1} / {DRINKS.length} · browse with ‹ ›
+              </p>
             </div>
           </div>
         </div>

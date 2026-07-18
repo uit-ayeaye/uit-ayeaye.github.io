@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { Environment, useGLTF, useTexture } from "@react-three/drei";
+import { Cloud, Clouds, Environment, useGLTF, useTexture } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { Water } from "three/examples/jsm/objects/Water.js";
@@ -21,7 +21,14 @@ const CAN_FRONT_Y = -Math.PI * 1.62;
 // in a provider (which broke its internal portal). <Scene/> updates it.
 const scroll = { value: 0 };
 
-/** Reflective, animated ocean (three.js Water). */
+// Clamped parallax: a gentle drift while the section is on screen, but the
+// ship and the can fleet stay in frame — they never sink out of view no
+// matter how far the visitor scrolls past.
+function parallax() {
+  return THREE.MathUtils.clamp(scroll.value, -0.35, 0.35);
+}
+
+/** Reflective, animated ocean (three.js Water) — vivid anime-blue swell. */
 function Ocean() {
   const normals = useTexture(asset("/textures/waternormals.jpg"));
   const water = useMemo(() => {
@@ -33,22 +40,68 @@ function Ocean() {
       waterNormals: normals,
       sunDirection: SUN_DIRECTION.clone(),
       sunColor: 0xffe1b0,
-      waterColor: 0x184e6b,
-      distortionScale: 2.6,
+      // Brighter cerulean — the saturated anime blue of the New World sea.
+      waterColor: 0x1272a2,
+      distortionScale: 2.2,
       fog: true,
     });
     w.rotation.x = -Math.PI / 2;
     w.position.y = -1.35;
-    (w.material as THREE.ShaderMaterial).uniforms.size.value = 2.6;
+    (w.material as THREE.ShaderMaterial).uniforms.size.value = 3.1;
     return w;
   }, [normals]);
   useFrame((_, delta) => {
-    (water.material as THREE.ShaderMaterial).uniforms.time.value += delta * 0.6;
+    // A touch slower than before — calm, chill New World swell.
+    (water.material as THREE.ShaderMaterial).uniforms.time.value += delta * 0.45;
   });
   return <primitive object={water} />;
 }
 
-/** The Thousand Sunny, riding the swell with organic buoyancy + scroll parallax. */
+/** Slow-drifting New World weather — soft clouds hanging over the horizon. */
+function SkyWeather() {
+  const grp = useRef<THREE.Group>(null);
+  useFrame((state) => {
+    if (!grp.current) return;
+    // Lazy sideways drift, like weather rolling across the Grand Line.
+    grp.current.position.x = Math.sin(state.clock.elapsedTime * 0.03) * 1.6;
+  });
+  return (
+    <group ref={grp}>
+      <Clouds material={THREE.MeshLambertMaterial} limit={220}>
+        <Cloud
+          seed={7}
+          bounds={[7, 1.4, 2]}
+          segments={16}
+          position={[-6.5, 2.1, -16]}
+          color="#f6d7b4"
+          opacity={0.4}
+          speed={0.12}
+        />
+        <Cloud
+          seed={13}
+          bounds={[8, 1.6, 2]}
+          segments={16}
+          position={[7, 2.9, -19]}
+          color="#f3cfae"
+          opacity={0.32}
+          speed={0.1}
+        />
+        {/* cool sea-mist hugging the waterline for that chill-weather haze */}
+        <Cloud
+          seed={21}
+          bounds={[10, 0.8, 3]}
+          segments={12}
+          position={[0, -0.9, -11]}
+          color="#bcd9e6"
+          opacity={0.14}
+          speed={0.08}
+        />
+      </Clouds>
+    </group>
+  );
+}
+
+/** The Thousand Sunny, riding the swell with organic buoyancy. */
 function Ship() {
   const { scene } = useGLTF(asset("/models/sunny.glb"));
   const grp = useRef<THREE.Group>(null);
@@ -72,10 +125,11 @@ function Ship() {
   useFrame((state) => {
     if (!grp.current) return;
     const t = state.clock.elapsedTime;
-    const p = scroll.value;
-    // Two-wave bob so the heave feels like water, not a metronome.
+    const p = parallax();
+    // Two-wave bob so the heave feels like water, not a metronome. The
+    // parallax only slides the ship a little sideways — never underwater.
     const heave = Math.sin(t * 0.7) * 0.09 + Math.sin(t * 0.31 + 1.7) * 0.04;
-    grp.current.position.set(baseX + p * 0.5, baseY + heave - p * 0.45, baseZ);
+    grp.current.position.set(baseX + p * 0.3, baseY + heave, baseZ);
     grp.current.rotation.set(
       Math.sin(t * 0.45 + 1) * 0.035, // pitch
       0.55,
@@ -99,22 +153,34 @@ type Drift = {
 };
 
 /** A single character can bobbing on the sea, label kept toward the camera. */
-function FloatingDrink({ flavor, position, scale, phase, rim }: Drift) {
+function FloatingDrink({
+  flavor,
+  position,
+  scale,
+  phase,
+  rim,
+  designWidth,
+}: Drift & { designWidth: number }) {
   const grp = useRef<THREE.Group>(null);
+  const vw = useThree((s) => s.viewport.width);
+  // Fleet spread is tuned for a reference viewport width; on narrower
+  // windows squeeze the x positions in so no can clips offscreen.
+  const xFactor = Math.min(1, Math.max(0.6, vw / designWidth));
   useFrame((state) => {
     if (!grp.current) return;
     const t = state.clock.elapsedTime + phase;
-    const p = scroll.value;
-    // Buoyant bob + rock; parallax drift with scroll.
+    const p = parallax();
+    // Buoyant bob + rock; a whisper of clamped parallax drift with scroll so
+    // the cans stay big, high and readable the whole way through the section.
     grp.current.position.set(
-      position[0] - p * 0.5,
-      position[1] + Math.sin(t * 0.95) * 0.09 + Math.sin(t * 0.4) * 0.03,
+      position[0] * xFactor - p * 0.25,
+      position[1] + Math.sin(t * 0.95) * 0.08 + Math.sin(t * 0.4) * 0.03,
       position[2],
     );
     grp.current.rotation.set(
-      Math.sin(t * 0.55 + 1) * 0.09, // pitch
-      CAN_FRONT_Y + Math.sin(t * 0.4) * 0.5, // face camera, gentle yaw
-      Math.sin(t * 0.7) * 0.14, // roll
+      Math.sin(t * 0.55 + 1) * 0.08, // pitch
+      CAN_FRONT_Y + Math.sin(t * 0.4) * 0.4, // face camera, gentle yaw
+      Math.sin(t * 0.7) * 0.12, // roll
     );
   });
   return (
@@ -131,24 +197,27 @@ function FloatingDrink({ flavor, position, scale, phase, rim }: Drift) {
   );
 }
 
-/** The featured Gum-Gum can up front + a little fleet drifting on the swell. */
+/** The first crew drifting on the swell — raised high so every label reads. */
 function Fleet() {
   const narrow = useThree((s) => s.viewport.width) < 2.7;
   const cans: Drift[] = narrow
     ? [
-        { flavor: "luffy", position: [0.4, -1.0, 0.7], scale: 0.4, phase: 0, rim: "#8C0A13" },
-        { flavor: "zoro", position: [-0.62, -1.15, 0.15], scale: 0.28, phase: 1.6, rim: "#14471E" },
+        { flavor: "luffy", position: [0.4, -0.68, 0.9], scale: 0.42, phase: 0, rim: "#8C0A13" },
+        { flavor: "zoro", position: [-0.52, -0.82, 0.3], scale: 0.3, phase: 1.6, rim: "#14471E" },
+        { flavor: "chopper", position: [0.02, -0.98, 1.55], scale: 0.26, phase: 3.1, rim: "#7C2650" },
       ]
     : [
-        { flavor: "luffy", position: [1.5, -0.95, 0.9], scale: 0.42, phase: 0, rim: "#8C0A13" },
-        { flavor: "zoro", position: [-2.25, -1.12, -0.2], scale: 0.34, phase: 1.2, rim: "#14471E" },
-        { flavor: "nami", position: [2.5, -1.15, -1.2], scale: 0.3, phase: 2.4, rim: "#8A4500" },
-        { flavor: "chopper", position: [-1.05, -1.2, 1.55], scale: 0.32, phase: 3.3, rim: "#7C2650" },
+        { flavor: "luffy", position: [1.35, -0.7, 1.05], scale: 0.48, phase: 0, rim: "#8C0A13" },
+        { flavor: "zoro", position: [-1.75, -0.85, 0.2], scale: 0.38, phase: 1.2, rim: "#14471E" },
+        { flavor: "usopp", position: [-1.0, -0.78, 1.4], scale: 0.4, phase: 4.1, rim: "#574318" },
+        { flavor: "nami", position: [2.15, -0.88, -0.7], scale: 0.34, phase: 2.4, rim: "#8A4500" },
+        { flavor: "sanji", position: [-2.4, -0.95, -1.15], scale: 0.34, phase: 5.2, rim: "#122B47" },
+        { flavor: "chopper", position: [0.55, -0.92, 1.7], scale: 0.34, phase: 3.3, rim: "#7C2650" },
       ];
   return (
     <>
       {cans.map((c, i) => (
-        <FloatingDrink key={i} {...c} />
+        <FloatingDrink key={i} {...c} designWidth={narrow ? 1.5 : 4.8} />
       ))}
     </>
   );
@@ -172,16 +241,20 @@ export default function Scene() {
 
   return (
     <>
-      {/* Golden haze that melts the far sea into the sky at the horizon. */}
-      <fog attach="fog" args={["#c58a5b", 8, 32]} />
+      {/* Golden haze that melts the far sea into the sky — pushed further out
+          so more of the vivid anime water stays visible. */}
+      <fog attach="fog" args={["#c08a60", 10, 44]} />
 
       <Ocean />
+      <SkyWeather />
       <Ship />
       <Fleet />
 
-      <hemisphereLight args={["#ffe4c0", "#123a52", 0.8]} />
+      <hemisphereLight args={["#ffe4c0", "#0d4a6b", 0.85]} />
       <ambientLight intensity={0.4} color="#ffe9cf" />
       <directionalLight intensity={2.4} color="#ffdca6" position={[7, 3, -9]} />
+      {/* Cool counter-light — the "chill" side of New World weather. */}
+      <directionalLight intensity={0.7} color="#8fd0ff" position={[-6, 2.5, 6]} />
 
       {/* Warm HDRI env map so the metal cans + ship stay glossy. */}
       <Environment

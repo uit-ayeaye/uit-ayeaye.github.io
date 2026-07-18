@@ -84,8 +84,8 @@ export const ThunderBolts = forwardRef<ThunderBoltsHandle>(
 
         const lite = isLiteMode();
 
-        const core = lighten(color, 0.85); // near-white hot core
-        const glow = lighten(color, 0.45); // colored glow
+        const core = lighten(color, 0.68); // hot core, still clearly tinted
+        const glow = lighten(color, 0.35); // colored glow
 
         svg.innerHTML = "";
         const boltCount = lite ? 1 : 2 + Math.floor(Math.random() * 2);
