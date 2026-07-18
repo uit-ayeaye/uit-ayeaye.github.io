@@ -268,10 +268,11 @@ const Carousel = (): JSX.Element => {
           >
             {/* Notable can, WHOLE in frame: the camera is pulled back enough
                 that the full can (top rim to base) sits centered with a
-                comfortable margin — the tall stage still makes it read big,
-                and the margin leaves room for the change-flavor hop + float so
-                the can never crops. */}
-            <Center position={[0, 0, 1.15]}>
+                comfortable margin. The can RESTS slightly low (negative Y) so
+                the change-flavor hop — which springs it UP by ~0.15×the
+                turntable scale — lands back near center instead of punching the
+                top rim out of frame. */}
+            <Center position={[0, -0.22, 1.15]}>
               {/* Slow turntable group — keeps the featured can alive; the
                   change-spin animates the inner can group on top of it. */}
               <Turntable speed={0.5} scale={1.3}>
