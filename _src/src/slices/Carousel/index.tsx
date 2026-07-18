@@ -229,12 +229,19 @@ const Carousel = (): JSX.Element => {
         </h2>
       </div>
 
-      {/* Featured can — a full-width 3D stage. The arrows float over the
+      {/* Featured can — a tall portrait 3D stage. The arrows float over the
           stage's edges so the can keeps the whole area on phones, and the
           view has vertical headroom so the bounce-hop never clips. */}
       <div className="relative z-10 w-full max-w-4xl shrink-0">
+        {/* The stage box owns the height. R3F's <Canvas> forces an inline
+            height:100% on its root, which beats any height utility class — so
+            sizing the Canvas directly collapsed it to its min-height and the
+            can rendered tiny. Giving THIS wrapper a real, generous height lets
+            the canvas fill it, so the can reads big and fills the frame. The
+            box is kept portrait (max-w) so it hugs the can instead of leaving
+            wide empty bands left and right. */}
         <div
-          className="relative mx-auto w-full cursor-grab select-none active:cursor-grabbing"
+          className="relative mx-auto h-[64vmin] max-h-[34rem] min-h-[21rem] w-full max-w-[400px] cursor-grab select-none active:cursor-grabbing md:h-[68vmin] md:max-h-[40rem] md:max-w-[440px]"
           style={{ touchAction: "pan-y" }}
           onPointerDown={onCanPointerDown}
           onPointerMove={onCanPointerMove}
@@ -252,22 +259,22 @@ const Carousel = (): JSX.Element => {
           {!fullView && (
           <Canvas
             frameloop={onScreen ? "always" : "never"}
-            className="mx-auto h-[46vmin] max-h-[27rem] min-h-[15rem] w-full max-w-[440px] md:h-[52vmin] md:max-h-[31rem]"
+            className="!absolute inset-0 h-full w-full"
             style={{ pointerEvents: "none" }}
             dpr={isTouch ? [1, 1.5] : [1, 2]}
             performance={{ min: 0.5 }}
             gl={{ antialias: true, powerPreference: "high-performance" }}
-            camera={{ fov: 30, position: [0, 0, 5] }}
+            camera={{ fov: 30, position: [0, 0, 5.3] }}
           >
-            {/* Big, notable can: the stage box is narrowed (max-w-440) so it
-                hugs the can's tall portrait shape instead of leaving wide
-                bands, and the can is scaled up to fill it — while the tuned
-                hop/punch below keep the FULL can (top rim included) inside the
-                frame through every bounce. */}
+            {/* Notable can, WHOLE in frame: the camera is pulled back enough
+                that the full can (top rim to base) sits centered with a
+                comfortable margin — the tall stage still makes it read big,
+                and the margin leaves room for the change-flavor hop + float so
+                the can never crops. */}
             <Center position={[0, 0, 1.15]}>
               {/* Slow turntable group — keeps the featured can alive; the
                   change-spin animates the inner can group on top of it. */}
-              <Turntable speed={0.5} scale={1.32}>
+              <Turntable speed={0.5} scale={1.3}>
                 <FloatingCan
                   ref={sodaCanRef}
                   floatIntensity={0.3}
@@ -296,11 +303,6 @@ const Carousel = (): JSX.Element => {
             />
             <ambientLight intensity={2} color="#9DDEFA" />
           </Canvas>
-          )}
-          {/* Same-size placeholder keeps the layout rock-steady while the
-              stage view is unmounted behind the modal. */}
-          {fullView && (
-            <div className="mx-auto h-[46vmin] max-h-[27rem] min-h-[15rem] w-full max-w-[440px] md:h-[52vmin] md:max-h-[31rem]" />
           )}
         </div>
         <ArrowButton

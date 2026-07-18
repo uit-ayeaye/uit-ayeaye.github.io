@@ -22,9 +22,11 @@ const FRONT_Y = -(Math.PI * 1.62);
 // Exit animation length — keep in sync with .op-fade-out / .op-zoom-out.
 const CLOSE_MS = 220;
 
-// Camera distances for the Close-up toggle.
-const DIST_NORMAL = 3.4;
-const DIST_CLOSE = 2.45;
+// Camera distances for the Close-up toggle. DIST_NORMAL is the auto-framed
+// opening shot — pulled back so the WHOLE can is centered in frame with a
+// comfortable margin (not cropped); DIST_CLOSE glides in to read the label.
+const DIST_NORMAL = 4;
+const DIST_CLOSE = 2.8;
 
 /**
  * CanFullView — an immersive product-viewer modal for one can. Runs its own
@@ -113,16 +115,17 @@ export default function CanFullView({
 
       <div
         className={clsx(
-          "flex max-h-full min-h-0 w-full max-w-3xl flex-col items-center justify-center gap-2 overflow-hidden md:gap-3",
+          "flex h-full max-h-full min-h-0 w-full max-w-3xl flex-col items-center justify-center gap-2 overflow-hidden py-2 md:gap-3",
           closing ? "op-zoom-out" : "op-zoom-pop",
         )}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* svh (small viewport height) sizes the stage against the VISIBLE
-            area even with the mobile URL bar expanded, so canvas + text never
-            overflow and items-center/justify-center truly centers it. Desktop
-            keeps 60vh unchanged. */}
-        <div className="relative h-[46svh] w-full md:h-[60vh]">
+        {/* The stage GROWS to fill everything above the compact caption, so
+            the can is auto-centered in the free space and rendered as large as
+            the viewport allows — a comfortable, well-aligned hero shot instead
+            of a small can floating in a fixed box. min-h-0 lets it shrink on
+            short screens without overflowing. */}
+        <div className="relative w-full min-h-0 flex-1">
           {/* Character-tinted stage glow — fills the dark void around the
               can so the viewer reads as a lit studio, not empty space. */}
           <div
@@ -178,7 +181,7 @@ export default function CanFullView({
           </Canvas>
         </div>
 
-        <div className="text-center">
+        <div className="shrink-0 text-center">
           <p className="font-pirate text-sm tracking-[0.22em] text-[#C9A227]">
             {drink.character}
           </p>
