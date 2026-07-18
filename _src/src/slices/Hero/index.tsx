@@ -123,6 +123,9 @@ const Hero = (): JSX.Element => {
         <div className="grid h-screen place-items-center">
           <div className="grid auto-rows-min place-items-center text-center">
             <StrawHatMark className="hero-mark mb-6 h-20 w-20 drop-shadow-[0_4px_16px_rgba(0,0,0,0.5)] md:h-24 md:w-24" />
+            <h1 className="sr-only">
+              Grand Line Fizz — Drink Like the Pirate King
+            </h1>
             {/* <h1 className="hero-header font-display text-7xl font-black uppercase leading-[.8] text-red-600 md:text-[9rem] lg:text-[13rem]">
               <TextSplitter
                 text="Grand Line Fizz"
@@ -130,16 +133,16 @@ const Hero = (): JSX.Element => {
                 className="hero-header-word"
               />
             </h1> */}
-            <div className="hero-subheading mt-12 font-pirate text-5xl font-semibold text-[#ECE4D3] lg:text-6xl">
+            <div className="hero-subheading mt-8 font-pirate text-3xl font-semibold text-[#ECE4D3] sm:text-4xl md:mt-12 lg:text-6xl">
               <p>Drink Like the Pirate King</p>
             </div>
-            <div className="hero-body text-2xl font-normal text-[#ECE4D3]/80">
+            <div className="hero-body text-lg font-normal text-[#ECE4D3]/80 sm:text-xl md:text-2xl">
               <p>Six devil-fruit-grade sodas, one for every legend of the crew.</p>
             </div>
             <Button
               href="#crew"
               buttonText="Join the Crew"
-              className="hero-button mt-12"
+              className="hero-button mt-8 md:mt-12"
             />
           </div>
         </div>

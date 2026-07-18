@@ -43,6 +43,7 @@ export default function CanFullView({
   const [closing, setClosing] = useState(false);
   const [closeUp, setCloseUp] = useState(false);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
+  const closeBtnRef = useRef<HTMLButtonElement | null>(null);
   // Small themed spinner while the can's model/textures stream in (only
   // really visible on a cold first open — everything is cached after).
   const { active: loading } = useProgress();
@@ -74,6 +75,9 @@ export default function CanFullView({
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    // Move focus into the dialog so keyboard / AT users aren't left on the
+    // trigger button hidden behind the modal.
+    closeBtnRef.current?.focus({ preventScroll: true });
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") close();
     };
@@ -98,10 +102,11 @@ export default function CanFullView({
       onWheel={(e) => e.stopPropagation()}
     >
       <button
+        ref={closeBtnRef}
         type="button"
         onClick={close}
         aria-label="Close full view"
-        className="absolute right-4 top-4 z-10 flex size-10 items-center justify-center rounded-full border border-[#C9A227]/40 bg-black/50 text-[#ECE4D3] backdrop-blur-sm transition hover:bg-black/70"
+        className="absolute right-4 top-4 z-10 flex size-10 items-center justify-center rounded-full border border-[#C9A227]/40 bg-black/50 text-[#ECE4D3] backdrop-blur-sm transition hover:bg-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227]"
       >
         ✕
       </button>
@@ -194,12 +199,12 @@ export default function CanFullView({
           <button
             type="button"
             onClick={toggleCloseUp}
-            className="mt-3 rounded-full border border-[#C9A227]/45 bg-[#0B0E14]/70 px-5 py-2 font-display text-[11px] uppercase tracking-[0.25em] text-[#C9A227] backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:border-[#C9A227] hover:bg-[#0B0E14] hover:shadow-[0_0_24px_rgba(201,162,39,0.35)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] md:text-xs"
+            className="mt-3 inline-flex min-h-[44px] items-center justify-center rounded-full border border-[#C9A227]/45 bg-[#0B0E14]/70 px-5 py-2 font-display text-[11px] uppercase tracking-[0.25em] text-[#C9A227] backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:border-[#C9A227] hover:bg-[#0B0E14] hover:shadow-[0_0_24px_rgba(201,162,39,0.35)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] md:text-xs"
           >
             {closeUp ? "⊖ Step Back" : "⊕ Close-Up"}
           </button>
 
-          <p className="mt-2 text-[11px] uppercase tracking-[0.3em] text-[#ECE4D3]/40">
+          <p className="mt-2 text-[11px] uppercase tracking-[0.3em] text-[#ECE4D3]/70">
             Drag to rotate · pinch or scroll to zoom
           </p>
         </div>

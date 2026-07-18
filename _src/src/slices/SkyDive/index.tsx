@@ -152,21 +152,26 @@ const SkyDive = (): JSX.Element => {
             />
           </div>
 
-          {/* Crew position dots */}
+          {/* Crew position dots. The visible bar stays 8px, but an invisible
+              36px after: pseudo-element gives each a proper touch target. */}
           <div className="pointer-events-auto flex items-center gap-2">
-            {FIRST_CREW.map((key, i) => (
-              <button
-                key={key}
-                aria-label={`Show the ${key} can`}
-                onClick={() => setCrewIndex(i)}
-                className={clsx(
-                  "h-2 rounded-full transition-all duration-300",
-                  i === crewIndex
-                    ? "w-6 bg-[#C9A227]"
-                    : "w-2 bg-[#ECE4D3]/30 hover:bg-[#ECE4D3]/60",
-                )}
-              />
-            ))}
+            {FIRST_CREW.map((key, i) => {
+              const crew = DRINKS.find((d) => d.key === key)!;
+              return (
+                <button
+                  key={key}
+                  aria-label={`Show ${crew.character}`}
+                  aria-current={i === crewIndex ? "true" : undefined}
+                  onClick={() => setCrewIndex(i)}
+                  className={clsx(
+                    "relative h-2 rounded-full transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] after:absolute after:left-1/2 after:top-1/2 after:h-9 after:w-9 after:-translate-x-1/2 after:-translate-y-1/2 after:content-['']",
+                    i === crewIndex
+                      ? "w-6 bg-[#C9A227]"
+                      : "w-2 bg-[#ECE4D3]/30 hover:bg-[#ECE4D3]/60",
+                  )}
+                />
+              );
+            })}
           </div>
 
           <p className="text-center font-pirate text-xs text-[#ECE4D3]/40 md:text-sm">

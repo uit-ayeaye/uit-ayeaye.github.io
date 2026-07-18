@@ -1,7 +1,7 @@
 "use client";
 
 import * as THREE from "three";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import gsap from "gsap";
 
@@ -23,13 +23,35 @@ export function Bubbles({
   const minSpeed = speed * 0.001;
   const maxSpeed = speed * 0.005;
 
-  // Create geometry and material for our mesh
-  const geometry = new THREE.SphereGeometry(bubbleSize, 16, 16);
+  // Create geometry and material for our mesh (memoized so re-renders reuse
+  // them — avoids orphaning GPU resources and a one-frame flash when Hero
+  // re-renders on `ready` / media-query change).
+  const geometry = useMemo(
+    () => new THREE.SphereGeometry(bubbleSize, 16, 16),
+    [bubbleSize],
+  );
 
-  const material = new THREE.MeshStandardMaterial({
-    transparent: true,
-    opacity,
-  });
+  const material = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        transparent: true,
+        opacity,
+      }),
+    [opacity],
+  );
+
+  // Free GPU resources when they actually change or on unmount.
+  useEffect(() => {
+    return () => {
+      geometry.dispose();
+      material.dispose();
+    };
+  }, [geometry, material]);
+
+  // Only re-parse the CSS background color when it actually changes, instead
+  // of allocating a THREE.Color + parsing a string every single frame.
+  const lastBg = useRef("");
+  const bubbleColor = useRef(new THREE.Color());
 
   // Runs once to create and place our bubbles
   useEffect(() => {
@@ -57,10 +79,6 @@ export function Bubbles({
     }
 
     mesh.instanceMatrix.needsUpdate = true;
-    return () => {
-      mesh.geometry.dispose();
-      (mesh.material as THREE.Material).dispose();
-    };
   }, [count, minSpeed, maxSpeed]);
 
   // useFrame runs on every animation frame
@@ -69,8 +87,15 @@ export function Bubbles({
       return;
     }
 
-    // Assign current body color to bubble so it looks natural
-    material.color = new THREE.Color(document.body.style.backgroundColor);
+    // Assign current body color to bubble so it looks natural — only re-parse
+    // the CSS string when it changes; the copy still runs every frame so a
+    // freshly re-rendered material stays correctly tinted.
+    const bg = document.body.style.backgroundColor;
+    if (bg && bg !== lastBg.current) {
+      lastBg.current = bg;
+      bubbleColor.current.set(bg);
+    }
+    material.color.copy(bubbleColor.current);
 
     for (let i = 0; i < count; i++) {
       meshRef.current.getMatrixAt(i, o.matrix);

@@ -16,10 +16,16 @@ export default function Footer() {
         <div className="op-rule w-40" />
 
         <nav className="flex flex-wrap items-center justify-center gap-6 font-display text-xs uppercase tracking-[0.25em] text-[#ECE4D3]/60">
-          <a href="#crew" className="transition-colors hover:text-[#C9A227]">
+          <a
+            href="#crew"
+            className="-mx-1 rounded-sm px-1 transition-colors hover:text-[#C9A227] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227]"
+          >
             The Crew
           </a>
-          <a href="#manifest" className="transition-colors hover:text-[#C9A227]">
+          <a
+            href="#manifest"
+            className="-mx-1 rounded-sm px-1 transition-colors hover:text-[#C9A227] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227]"
+          >
             Manifest
           </a>
           <span className="hidden md:inline">·</span>

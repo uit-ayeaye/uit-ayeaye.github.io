@@ -40,6 +40,20 @@ const Carousel = (): JSX.Element => {
   // it composites with native momentum scroll instead of swimming.
   const isTouch = useMediaQuery("(hover: none)", false);
   const sodaCanRef = useRef<Group>(null);
+  // Pause the featured-can render loop while the crew section is scrolled
+  // off-screen — no visual change (it only stops when nothing is visible),
+  // and it keeps the second always-on canvas from burning frames elsewhere.
+  const [onScreen, setOnScreen] = useState(true);
+  useEffect(() => {
+    const el = document.getElementById("crew");
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      ([entry]) => setOnScreen(entry.isIntersecting),
+      { rootMargin: "200px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   const thunderRef = useRef<ThunderBoltsHandle>(null);
   const chipRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const railRef = useRef<HTMLDivElement>(null);
@@ -135,7 +149,7 @@ const Carousel = (): JSX.Element => {
       .fromTo(
         sodaCanRef.current.scale,
         { x: 1, y: 1, z: 1 },
-        { x: 1.1, y: 1.1, z: 1.1, duration: 0.25, ease: "power2.out" },
+        { x: 1.06, y: 1.06, z: 1.06, duration: 0.25, ease: "power2.out" },
         0,
       )
       .to(
@@ -237,20 +251,23 @@ const Carousel = (): JSX.Element => {
               two 3D cans never draw at once. */}
           {!fullView && (
           <Canvas
-            className="mx-auto h-[48vmin] max-h-[30rem] min-h-[15rem] w-full max-w-[560px] md:h-[54vmin] md:max-h-[34rem]"
+            frameloop={onScreen ? "always" : "never"}
+            className="mx-auto h-[46vmin] max-h-[27rem] min-h-[15rem] w-full max-w-[440px] md:h-[52vmin] md:max-h-[31rem]"
             style={{ pointerEvents: "none" }}
             dpr={isTouch ? [1, 1.5] : [1, 2]}
             performance={{ min: 0.5 }}
             gl={{ antialias: true, powerPreference: "high-performance" }}
             camera={{ fov: 30, position: [0, 0, 5] }}
           >
-            {/* Height-capped stage + can sized to fill it: no dead space
-                above/below on big screens, and the FULL can — top rim
-                included — still stays inside through every bounce. */}
+            {/* Big, notable can: the stage box is narrowed (max-w-440) so it
+                hugs the can's tall portrait shape instead of leaving wide
+                bands, and the can is scaled up to fill it — while the tuned
+                hop/punch below keep the FULL can (top rim included) inside the
+                frame through every bounce. */}
             <Center position={[0, 0, 1.15]}>
               {/* Slow turntable group — keeps the featured can alive; the
                   change-spin animates the inner can group on top of it. */}
-              <Turntable speed={0.5} scale={0.98}>
+              <Turntable speed={0.5} scale={1.32}>
                 <FloatingCan
                   ref={sodaCanRef}
                   floatIntensity={0.3}
@@ -283,7 +300,7 @@ const Carousel = (): JSX.Element => {
           {/* Same-size placeholder keeps the layout rock-steady while the
               stage view is unmounted behind the modal. */}
           {fullView && (
-            <div className="mx-auto h-[48vmin] max-h-[30rem] min-h-[15rem] w-full max-w-[560px] md:h-[54vmin] md:max-h-[34rem]" />
+            <div className="mx-auto h-[46vmin] max-h-[27rem] min-h-[15rem] w-full max-w-[440px] md:h-[52vmin] md:max-h-[31rem]" />
           )}
         </div>
         <ArrowButton
@@ -305,7 +322,7 @@ const Carousel = (): JSX.Element => {
       <button
         type="button"
         onClick={() => setFullView(true)}
-        className="relative z-10 -mt-1 shrink-0 rounded-full border border-[#C9A227]/45 bg-[#0B0E14]/70 px-5 py-2 font-display text-[11px] uppercase tracking-[0.25em] text-[#C9A227] backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:border-[#C9A227] hover:bg-[#0B0E14] hover:shadow-[0_0_24px_rgba(201,162,39,0.35)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] md:text-xs"
+        className="relative z-10 -mt-1 inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-full border border-[#C9A227]/45 bg-[#0B0E14]/70 px-5 py-2 font-display text-[11px] uppercase tracking-[0.25em] text-[#C9A227] backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:border-[#C9A227] hover:bg-[#0B0E14] hover:shadow-[0_0_24px_rgba(201,162,39,0.35)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] md:text-xs"
       >
         ⤢ Full View
       </button>

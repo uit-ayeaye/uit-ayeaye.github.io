@@ -171,7 +171,7 @@ const FlavorGrid = (): JSX.Element => {
               e.stopPropagation();
               step(-1);
             }}
-            className="absolute left-2 top-1/2 z-10 flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#C9A227]/40 bg-black/50 text-xl text-[#C9A227] backdrop-blur-sm transition hover:scale-110 hover:bg-black/70 md:left-8 md:size-14"
+            className="absolute left-2 top-1/2 z-10 flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#C9A227]/40 bg-black/50 text-xl text-[#C9A227] backdrop-blur-sm transition hover:scale-110 hover:bg-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] md:left-8 md:size-14"
           >
             ‹
           </button>
@@ -182,9 +182,21 @@ const FlavorGrid = (): JSX.Element => {
               e.stopPropagation();
               step(1);
             }}
-            className="absolute right-2 top-1/2 z-10 flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#C9A227]/40 bg-black/50 text-xl text-[#C9A227] backdrop-blur-sm transition hover:scale-110 hover:bg-black/70 md:right-8 md:size-14"
+            className="absolute right-2 top-1/2 z-10 flex size-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#C9A227]/40 bg-black/50 text-xl text-[#C9A227] backdrop-blur-sm transition hover:scale-110 hover:bg-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] md:right-8 md:size-14"
           >
             ›
+          </button>
+
+          {/* Close lives on the fixed backdrop (not inside the scrolling
+              card) so it stays reachable no matter how far the dossier
+              scrolls on a small screen. */}
+          <button
+            type="button"
+            onClick={() => setSelectedIdx(null)}
+            aria-label="Close"
+            className="absolute right-3 top-3 z-[95] flex size-9 items-center justify-center rounded-full border border-[#C9A227]/40 bg-black/50 text-[#ECE4D3] backdrop-blur-sm transition hover:scale-110 hover:bg-black/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] md:right-8 md:size-11"
+          >
+            ✕
           </button>
 
           <div
@@ -192,14 +204,6 @@ const FlavorGrid = (): JSX.Element => {
             className="op-pop relative max-h-[92vh] w-full max-w-sm overflow-y-auto rounded-2xl border border-[#C9A227]/30 bg-[#0B0E14] shadow-[0_0_60px_rgba(0,0,0,0.6)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              type="button"
-              onClick={() => setSelectedIdx(null)}
-              aria-label="Close"
-              className="absolute right-3 top-3 z-10 flex size-9 items-center justify-center rounded-full border border-[#C9A227]/40 bg-black/50 text-[#ECE4D3] backdrop-blur-sm transition hover:bg-black/70"
-            >
-              ✕
-            </button>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={asset(`/labels/${selected.key}.webp`)}

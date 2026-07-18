@@ -13,16 +13,33 @@ import { StrawHatMark } from "@/components/StrawHatMark";
  * fades away and unmounts for good. Later lazy loads never re-summon it.
  */
 export default function SiteLoader() {
-  const { progress, active } = useProgress();
+  const { progress } = useProgress();
   const [done, setDone] = useState(false);
-  const finished = !active && progress >= 100;
+  // Latch on the FIRST time progress reaches 100%. We deliberately ignore
+  // drei's `active` flag: the site now runs two canvases (the shared one and
+  // the carousel's own in-flow canvas), and `active` can flicker back true as
+  // the second canvas warms its cached assets — which would keep the straw-hat
+  // boot logo on screen. `progress >= 100` means every queued asset is in, and
+  // the `finished` latch guarantees the logo is removed for good afterwards.
+  const [finished, setFinished] = useState(false);
 
-  // Give the fade-out time to play before unmounting entirely.
+  useEffect(() => {
+    if (progress >= 100) setFinished(true);
+  }, [progress]);
+
+  // Fade out once finished, then unmount so it can never reappear.
   useEffect(() => {
     if (!finished) return;
-    const t = window.setTimeout(() => setDone(true), 650);
+    const t = window.setTimeout(() => setDone(true), 550);
     return () => window.clearTimeout(t);
   }, [finished]);
+
+  // Hard safety net: never let the boot logo linger past 10s even if a loader
+  // stalls or a texture request hangs.
+  useEffect(() => {
+    const hard = window.setTimeout(() => setFinished(true), 10000);
+    return () => window.clearTimeout(hard);
+  }, []);
 
   if (done) return null;
 

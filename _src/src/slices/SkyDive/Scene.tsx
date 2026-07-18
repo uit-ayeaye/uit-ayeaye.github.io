@@ -1,7 +1,7 @@
 "use client";
 
 import { Cloud, Clouds, Environment, Text } from "@react-three/drei";
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -195,7 +195,7 @@ function ThreeText({
 }) {
   const words = sentence.toUpperCase().split(" ");
 
-  const material = new THREE.MeshLambertMaterial();
+  const material = useMemo(() => new THREE.MeshLambertMaterial(), []);
   const isDesktop = useMediaQuery("(min-width: 950px)", true);
 
   return words.map((word: string, wordIndex: number) => (

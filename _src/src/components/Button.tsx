@@ -16,6 +16,7 @@ export default function Button({ href = "#", buttonText, className }: Props) {
         "text-lg font-black uppercase tracking-wider text-[#0B0E14] md:text-xl",
         "ring-1 ring-[#F5E6B3]/60 shadow-[0_10px_30px_-6px_rgba(201,162,39,0.5)]",
         "transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_44px_-8px_rgba(201,162,39,0.65)] active:translate-y-0",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B0E14]",
         className,
       )}
     >
