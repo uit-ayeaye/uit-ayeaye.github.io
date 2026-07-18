@@ -11,6 +11,7 @@ import type { DrinkKey } from "@/data/drinks";
 import { asset } from "@/lib/asset";
 
 useGLTF.preload(asset("/models/sunny.glb"));
+useTexture.preload(asset("/textures/waternormals.jpg"));
 
 const SUN_DIRECTION = new THREE.Vector3(0.35, 0.18, -0.5).normalize();
 // Resting angle that turns the character label toward the camera.
@@ -52,14 +53,15 @@ function Ocean() {
       waterNormals: normals,
       sunDirection: SUN_DIRECTION.clone(),
       sunColor: 0xffd9a3,
-      // Saturated royal azure — the One Piece anime's open-sea blue.
-      waterColor: 0x1565c8,
-      distortionScale: 2.2,
+      // Saturated royal azure with strong sparkle — the flat, vivid blue
+      // the One Piece anime paints its open sea with.
+      waterColor: 0x1b74dd,
+      distortionScale: 2.4,
       fog: true,
     });
     w.rotation.x = -Math.PI / 2;
     w.position.y = -1.35;
-    (w.material as THREE.ShaderMaterial).uniforms.size.value = 3.1;
+    (w.material as THREE.ShaderMaterial).uniforms.size.value = 3.4;
     return w;
   }, [normals]);
   useFrame((_, delta) => {
@@ -80,38 +82,27 @@ function SkyWeather() {
   });
   return (
     <group ref={grp}>
-      <Clouds material={THREE.MeshLambertMaterial} limit={lite ? 140 : 220}>
+      {/* Two lean horizon clouds — the sea-mist layer was cut entirely: it
+          hazed over the fleet and cost render time for little payoff. */}
+      <Clouds material={THREE.MeshLambertMaterial} limit={lite ? 100 : 160}>
         <Cloud
           seed={7}
           bounds={[7, 1.4, 2]}
-          segments={lite ? 10 : 16}
+          segments={lite ? 8 : 12}
           position={[-6.5, 2.1, -16]}
           color="#f6d7b4"
-          opacity={0.4}
+          opacity={0.34}
           speed={0.12}
         />
         <Cloud
           seed={13}
           bounds={[8, 1.6, 2]}
-          segments={lite ? 10 : 16}
+          segments={lite ? 8 : 12}
           position={[7, 2.9, -19]}
           color="#f3cfae"
-          opacity={0.32}
+          opacity={0.28}
           speed={0.1}
         />
-        {/* cool sea-mist hugging the waterline for that chill-weather haze —
-            desktop only; phones skip it for frame rate. */}
-        {!lite && (
-          <Cloud
-            seed={21}
-            bounds={[10, 0.8, 3]}
-            segments={12}
-            position={[0, -0.9, -11]}
-            color="#bcd9e6"
-            opacity={0.14}
-            speed={0.08}
-          />
-        )}
       </Clouds>
     </group>
   );

@@ -9,6 +9,7 @@ import { Group } from "three";
 import gsap from "gsap";
 
 import FloatingCan from "@/components/FloatingCan";
+import CanFullView from "@/components/CanFullView";
 import { DRINKS } from "@/data/drinks";
 import { ArrowIcon } from "./ArrowIcon";
 import { ThunderBolts, ThunderBoltsHandle } from "./ThunderBolts";
@@ -33,6 +34,7 @@ const CAN_FRONT_ROTATION_Y = -(Math.PI * 1 * 1.62); // 10% turn left
  */
 const Carousel = (): JSX.Element => {
   const [currentFlavorIndex, setCurrentFlavorIndex] = useState(0);
+  const [fullView, setFullView] = useState(false);
   const sodaCanRef = useRef<Group>(null);
   const thunderRef = useRef<ThunderBoltsHandle>(null);
   const chipRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -129,7 +131,7 @@ const Carousel = (): JSX.Element => {
       .fromTo(
         sodaCanRef.current.scale,
         { x: 1, y: 1, z: 1 },
-        { x: 1.12, y: 1.12, z: 1.12, duration: 0.25, ease: "power2.out" },
+        { x: 1.1, y: 1.1, z: 1.1, duration: 0.25, ease: "power2.out" },
         0,
       )
       .to(
@@ -142,7 +144,7 @@ const Carousel = (): JSX.Element => {
       .fromTo(
         sodaCanRef.current.position,
         { y: 0 },
-        { y: 0.28, duration: 0.25, ease: "power2.out" },
+        { y: 0.15, duration: 0.25, ease: "power2.out" },
         0,
       )
       .to(
@@ -222,14 +224,16 @@ const Carousel = (): JSX.Element => {
           onPointerCancel={onCanPointerUp}
         >
           <View className="pointer-events-none mx-auto h-[54vmin] min-h-[16rem] w-full max-w-[560px] md:h-[60vmin]">
-            <Center position={[0, 0, 1.5]}>
+            {/* Pushed back (z=1.0) + modest scale/hop: the FULL can — top rim
+                included — stays inside the stage through every bounce. */}
+            <Center position={[0, 0, 1.0]}>
               {/* Slow turntable group — keeps the featured can alive; the
                   change-spin animates the inner can group on top of it. */}
-              <Turntable speed={0.5} scale={1.02}>
+              <Turntable speed={0.5} scale={0.95}>
                 <FloatingCan
                   ref={sodaCanRef}
-                  floatIntensity={0.5}
-                  rotationIntensity={0.35}
+                  floatIntensity={0.3}
+                  rotationIntensity={0.25}
                   flavor={current.key}
                   rotation={[0, CAN_FRONT_ROTATION_Y, 0]}
                 >
@@ -267,6 +271,15 @@ const Carousel = (): JSX.Element => {
           label="Next Drink"
           className="absolute right-0 top-1/2 -translate-y-1/2 md:right-2"
         />
+
+        {/* Light-weight gateway to the immersive single-can viewer. */}
+        <button
+          type="button"
+          onClick={() => setFullView(true)}
+          className="absolute bottom-1 right-1 z-20 rounded-full border border-[#C9A227]/40 bg-[#0B0E14]/60 px-3 py-1.5 font-display text-[10px] uppercase tracking-[0.2em] text-[#C9A227] backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:border-[#C9A227] hover:bg-[#0B0E14] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C9A227] md:bottom-2 md:right-2 md:text-xs"
+        >
+          Full View ⤢
+        </button>
       </div>
 
       {/* Interaction hint — the can is a toy, tell people to play with it. */}
@@ -376,6 +389,11 @@ const Carousel = (): JSX.Element => {
           </StarBorder>
         </Magnet>
       </div>
+
+      {/* Immersive single-can viewer (own canvas, orbit + pinch-zoom). */}
+      {fullView && (
+        <CanFullView drink={current} onClose={() => setFullView(false)} />
+      )}
     </section>
   );
 };

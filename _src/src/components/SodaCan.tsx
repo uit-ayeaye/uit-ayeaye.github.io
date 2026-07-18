@@ -27,6 +27,10 @@ const flavorTextures = {
   shanks: asset("/labels/shanks.webp"),
 };
 
+// Warm the label cache as soon as the bundle loads, so flavor swaps and the
+// Full View modal never pop in with an untextured can.
+useTexture.preload(Object.values(flavorTextures));
+
 // ─── Front-facing adjustment ────────────────────────────────────────────
 // The label image wraps the full 360° of the can. This value slides that
 // wrap left/right so you can choose exactly which part of the image faces

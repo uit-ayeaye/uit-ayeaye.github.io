@@ -13,8 +13,11 @@ const Loader = dynamic(
 type Props = {};
 
 export default function ViewCanvas({}: Props) {
-  // Sharper renders (crisper can labels) on hi-DPI screens. Touch devices
-  // get a slightly lower cap so weaker phone GPUs keep their frame rate.
+  // Sharper renders (crisper can labels) on hi-DPI desktops; touch devices
+  // stay at 1.5 so phone GPUs never drop frames while scrolling. The
+  // sRGB + anisotropy work in SodaCan carries the label quality either way,
+  // and the performance floor lets r3f shed resolution under load instead
+  // of stuttering.
   const isTouch =
     typeof window !== "undefined" &&
     window.matchMedia("(hover: none)").matches;
@@ -31,9 +34,9 @@ export default function ViewCanvas({}: Props) {
           pointerEvents: "none",
           zIndex: 30,
         }}
-        shadows
-        dpr={isTouch ? [1, 1.75] : [1, 2]}
-        gl={{ antialias: true }}
+        dpr={isTouch ? [1, 1.5] : [1, 2]}
+        performance={{ min: 0.5 }}
+        gl={{ antialias: true, powerPreference: "high-performance" }}
         camera={{
           fov: 30,
         }}

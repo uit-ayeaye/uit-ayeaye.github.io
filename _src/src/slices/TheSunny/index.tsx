@@ -34,9 +34,9 @@ const TheSunny = (): JSX.Element => {
             Board the Thousand Sunny
           </GradientText>
         </h2>
-        <p className="max-w-xl font-pirate text-lg text-[#ECE4D3]/70 md:text-xl">
-          Every case of Grand Line Fizz sets sail aboard the Sunny — figurehead
-          grinning, sun on the sails, forever chasing the horizon.
+        <p className="max-w-md font-pirate text-base text-[#ECE4D3]/70 md:max-w-xl md:text-xl">
+          Sun on the sails, the first crew bobbing alongside — forever chasing
+          the horizon.
         </p>
       </div>
 
