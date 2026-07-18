@@ -227,13 +227,14 @@ const Carousel = (): JSX.Element => {
               drawing this can behind the modal's own can, so the two models
               visually overlapped through the dimmed backdrop. */}
           {!fullView && (
-          <View className="pointer-events-none mx-auto h-[54vmin] min-h-[16rem] w-full max-w-[560px] md:h-[60vmin]">
-            {/* Pushed back (z=1.0) + modest scale/hop: the FULL can — top rim
-                included — stays inside the stage through every bounce. */}
-            <Center position={[0, 0, 1.0]}>
+          <View className="pointer-events-none mx-auto h-[48vmin] max-h-[30rem] min-h-[15rem] w-full max-w-[560px] md:h-[54vmin] md:max-h-[34rem]">
+            {/* Height-capped stage + can sized to fill it: no dead space
+                above/below on big screens, and the FULL can — top rim
+                included — still stays inside through every bounce. */}
+            <Center position={[0, 0, 1.15]}>
               {/* Slow turntable group — keeps the featured can alive; the
                   change-spin animates the inner can group on top of it. */}
-              <Turntable speed={0.5} scale={0.95}>
+              <Turntable speed={0.5} scale={0.98}>
                 <FloatingCan
                   ref={sodaCanRef}
                   floatIntensity={0.3}
@@ -266,7 +267,7 @@ const Carousel = (): JSX.Element => {
           {/* Same-size placeholder keeps the layout rock-steady while the
               stage view is unmounted behind the modal. */}
           {fullView && (
-            <div className="mx-auto h-[54vmin] min-h-[16rem] w-full max-w-[560px] md:h-[60vmin]" />
+            <div className="mx-auto h-[48vmin] max-h-[30rem] min-h-[15rem] w-full max-w-[560px] md:h-[54vmin] md:max-h-[34rem]" />
           )}
         </div>
         <ArrowButton
