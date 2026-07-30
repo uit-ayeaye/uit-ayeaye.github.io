@@ -7,14 +7,53 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title>Elbaf: The Under-Realm — Fan Project</title>
-    <meta name="description" content="A fan-made walkable 3D under-realm. Unofficial, non-commercial." />
+    <meta name="description" content="Walk the frozen under-realm beneath the Tree of Adam, where an Ancient Giant has been chained for ten thousand years. A fan-made, playable 3D game in your browser. Unofficial, non-commercial." />
+    <meta name="author" content="Thomas D. Lynn" />
+    <link rel="canonical" href="https://thomasdlynn.dev/showcase/elbaf/" />
+    <meta name="robots" content="index,follow" />
 
-    <!-- Social card: this is what renders when the link is pasted into a post. -->
-    <meta property="og:title" content="Elbaf: The Under-Realm" />
-    <meta property="og:description" content="Walk the frozen under-realm where the chained one sleeps. Fan-made, playable in your browser." />
+    <!--
+      The social card: what renders when this link is pasted into Telegram,
+      Messenger, a Facebook feed, Discord, Slack, WhatsApp, iMessage or X.
+
+      EVERY URL HERE MUST BE ABSOLUTE. This is the whole reason the preview never
+      worked: `og:image` was `./social-card.jpg`, and no scraper resolves a
+      relative image URL — Facebook, Telegram and Twitter all require a full
+      scheme+host. Worse, the file it pointed at did not exist, so even a client
+      that did resolve it got a 404 and fell back to a bare link. The image is
+      now a real 1200x630 JPEG in `public/`, referenced absolutely.
+
+      1200x630 is the size to hold to: it is Facebook's and Twitter's preferred
+      ratio, it is above the 300x200 floor below which Telegram renders a thumb
+      instead of a wide card, and declaring width/height lets a scraper lay out
+      the card before it has finished fetching the image.
+
+      `og:url` is the canonical deployed URL, NOT wherever the page is served
+      from — a scraper that follows it must land back on the same page, or the
+      preview attaches to the wrong link.
+    -->
+    <meta property="og:site_name" content="Thomas D. Lynn" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="./social-card.jpg" />
+    <meta property="og:url" content="https://thomasdlynn.dev/showcase/elbaf/" />
+    <meta property="og:title" content="Elbaf: The Under-Realm — playable in your browser" />
+    <meta property="og:description" content="Under the branches of Adam, where the sun has not reached in ten thousand years, something enormous is chained to the tree and still breathing. Walk down and see for yourself." />
+    <meta property="og:image" content="https://thomasdlynn.dev/showcase/elbaf/social-card.jpg" />
+    <meta property="og:image:secure_url" content="https://thomasdlynn.dev/showcase/elbaf/social-card.jpg" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="A chained Ancient Giant seated beneath the Tree of Adam in a snowbound under-realm, wrapped in seastone chains" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter/X reads its own namespace and ignores og: for card type. -->
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Elbaf: The Under-Realm — playable in your browser" />
+    <meta name="twitter:description" content="Ten thousand years chained under the Tree of Adam. Walk down and see for yourself. Fan-made, non-commercial." />
+    <meta name="twitter:image" content="https://thomasdlynn.dev/showcase/elbaf/social-card.jpg" />
+    <meta name="twitter:image:alt" content="A chained Ancient Giant seated beneath the Tree of Adam" />
+
+    <!-- Old-school scrapers (some chat clients still only look for this). -->
+    <link rel="image_src" href="https://thomasdlynn.dev/showcase/elbaf/social-card.jpg" />
 
     <meta name="theme-color" content="#05070d" />
     <style>
@@ -32,9 +71,9 @@
       }
       canvas { display: block; touch-action: none; }
     </style>
-    <script type="module" crossorigin src="./assets/index-CztYkozB.js"></script>
-    <link rel="modulepreload" crossorigin href="./assets/three-CnvPhXXD.js">
-    <link rel="modulepreload" crossorigin href="./assets/vendor-Cl_2oBCR.js">
+    <script type="module" crossorigin src="./assets/index-DUCgJA0A.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/three-pmhx_ZZ6.js">
+    <link rel="modulepreload" crossorigin href="./assets/vendor-DTIpGkNb.js">
   </head>
   <body>
     <div id="root"></div>
