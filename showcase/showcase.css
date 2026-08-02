@@ -225,6 +225,7 @@ body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
 .showcase-card.jjk       { --show-a: #8b5cf6; --show-b: #c4b5fd; --show-c: #c4b5fd; --show-void: #06030c; }
 .showcase-card.onepiece  { --show-a: #c9a227; --show-b: #e07a5f; --show-c: #f5d67a; --show-void: #0b0e14; }
 .showcase-card.elbaf     { --show-a: #8fb8ec; --show-b: #e8c04a; --show-c: #c8202a; --show-void: #080c16; }
+.showcase-card.onigashima{ --show-a: #a855f7; --show-b: #ff9c2e; --show-c: #d63420; --show-void: #0a0714; }
 
 /* ---- Springy staggered entrance ---- */
 @keyframes cardPop {
