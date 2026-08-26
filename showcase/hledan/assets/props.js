@@ -466,6 +466,48 @@ export async function loadVehicleGeometry(url, { bodyMat, length, size }) {
   return { geometry: merged, material: textured };
 }
 
+/**
+ * Repaint a palette-atlas model into a YBS livery.
+ *
+ * The downloaded bus does not carry a livery — its 256x256 map is a five-colour
+ * palette (window blue, body, indicator orange, tyre grey, tail red) that each
+ * UV island samples as a flat patch. The body patch is `#e0e0e0`, which is why
+ * a fleet of them reads as white blocks.
+ *
+ * So the body patch is found by value rather than by position — it is the one
+ * bright, near-neutral colour in the palette — and repainted. Everything
+ * saturated is left alone, so the glass stays glass and the indicators stay
+ * orange instead of being dragged along by a per-instance tint.
+ */
+function makeLivery(srcTex, bodyHex) {
+  const img = srcTex.image;
+  const c = document.createElement('canvas');
+  c.width = img.width; c.height = img.height;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(img, 0, 0);
+  const data = ctx.getImageData(0, 0, c.width, c.height);
+  const px = data.data;
+  /* Unpack the hex by hand. THREE.Color applies colour management and stores
+     linear values, so `col.r * 255` writes a linear number into an sRGB canvas
+     and the livery comes out far darker than asked for — 0x1f5fa8 landed near
+     #001060. The canvas wants the sRGB bytes, which is what the literal is. */
+  const R = (bodyHex >> 16) & 255, G = (bodyHex >> 8) & 255, B = bodyHex & 255;
+  for (let i = 0; i < px.length; i += 4) {
+    const r = px[i], g = px[i + 1], b = px[i + 2];
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+    if (mx > 190 && mx - mn < 26) { px[i] = R; px[i + 1] = G; px[i + 2] = B; }
+  }
+  ctx.putImageData(data, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  /* Match the source exactly. A GLTF texture is flipY:false; CanvasTexture
+     defaults to true, and getting that wrong turns the bus inside out. */
+  t.colorSpace = srcTex.colorSpace;
+  t.flipY = srcTex.flipY;
+  t.wrapS = srcTex.wrapS; t.wrapT = srcTex.wrapT;
+  t.needsUpdate = true;
+  return t;
+}
+
 /* ----------------------------------------------------------------- build */
 
 function instanced(geo, mat, rows, colours, rng, jitterYaw) {
@@ -542,6 +584,9 @@ export class StreetProps {
 
     const busRows = take(BUS);
     const taxiRows = take(TAXI, 2);
+    this._busRows = busRows;
+    this._busSeed = BUS_SEED;
+    this._mk = mk;
 
     this.meshes = [
       instanced(busGeo(),      mk(), busRows,  BUS_COLOURS,  mulberry32(BUS_SEED),  0.05),
@@ -649,7 +694,7 @@ export class StreetProps {
    * after load, so the map is interactive before the extra download lands and
    * a failed fetch simply leaves the procedural one in place.
    */
-  replaceVehicle(kind, loaded) {
+  replaceVehicle(kind, loaded, liveries) {
     const idx = kind === 'bus' ? 0 : 1;
     const mesh = this.meshes[idx];
     if (!mesh || !loaded || !loaded.geometry) return false;
@@ -662,7 +707,46 @@ export class StreetProps {
       mesh.instanceColor = null;
     }
     mesh.computeBoundingSphere();
+
+    /* One texture per livery, one InstancedMesh per texture. A per-instance
+       tint cannot do this job: it multiplies the whole map, so painting a bus
+       green would take its windows and indicators with it. Splitting the fleet
+       costs a draw call each and keeps every other colour on the bus intact. */
+    if (liveries && liveries.length > 1 && loaded.material && loaded.material.map) {
+      const rows = this._busRows || [];
+      const per = Math.ceil(rows.length / liveries.length);
+      liveries.forEach((hex, i) => {
+        const slice = rows.slice(i * per, (i + 1) * per);
+        if (!slice.length) return;
+        const mat = loaded.material.clone();
+        mat.map = makeLivery(loaded.material.map, hex);
+        if (i === 0) { mesh.material = mat; this._reseat(mesh, slice); return; }
+        const extra = new THREE.InstancedMesh(loaded.geometry, mat, slice.length);
+        this._reseat(extra, slice);
+        extra.castShadow = extra.receiveShadow = false;
+        extra.matrixAutoUpdate = false;
+        this.group.add(extra);
+        this.meshes.push(extra);
+      });
+    }
     return true;
+  }
+
+  /** Rewrite an InstancedMesh's transforms from a slice of anchor rows. */
+  _reseat(mesh, rows) {
+    const dummy = new THREE.Object3D();
+    const rng = mulberry32(this._busSeed || 1);
+    mesh.count = rows.length;
+    rows.forEach((r, i) => {
+      dummy.position.set(r[0], r[1], r[2]);
+      dummy.rotation.y = (r.length > 3 ? r[3] : 0) + (rng() < 0.5 ? 0 : Math.PI) + (rng() - 0.5) * 0.05;
+      const sc = 0.94 + rng() * 0.12;
+      dummy.scale.set(sc, sc, sc);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.computeBoundingSphere();
   }
 
   /**

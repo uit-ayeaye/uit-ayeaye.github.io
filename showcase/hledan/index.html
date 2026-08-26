@@ -283,6 +283,18 @@
         max-width: calc(100vw - 24px);
       }
       body.playing #kit { display: flex; }
+
+      /* Gear Second and Haki are toggled states, not swings, so they sit out of
+         the attack row — stacked in the free strip on the left, mirroring the
+         weather chips on the right. Keeping them out also stops the attack row
+         wrapping to two lines on a laptop window. */
+      #kitState {
+        position: absolute; left: 14px;
+        bottom: calc(max(16px, env(safe-area-inset-bottom)) + 92px);
+        display: none; flex-direction: column; gap: 4px; align-items: flex-start;
+      }
+      body.playing #kitState { display: flex; }
+      body.touch #kitState { display: none !important; }   /* the pad has them */
       .movechip {
         position: relative; overflow: hidden;
         display: inline-flex; align-items: center; gap: 5px;
@@ -405,6 +417,12 @@
         <button data-ui-button class="movechip" data-move="heavy">—</button>
         <button data-ui-button class="movechip" data-move="dash">—</button>
         <button data-ui-button class="movechip" data-move="ult">—</button>
+      </div>
+
+      <!-- The two that are states rather than swings live apart from the swing
+           row: they mirror the weather group on the other side and stop the
+           attack row from wrapping. -->
+      <div data-ui-button id="kitState">
         <button data-ui-button class="movechip" data-move="gear">—</button>
         <button data-ui-button class="movechip" data-move="guard">—</button>
       </div>

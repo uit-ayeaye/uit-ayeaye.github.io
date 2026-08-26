@@ -318,10 +318,13 @@ new GLTFLoader().load(
        have replaced simply stays, so the street is never short of traffic. */
     for (const v of [
       { file: 'car-quaternius.glb', kind: 'taxi', bodyMat: 'LightBlue', size: [1.78, 1.52, 4.40] },
-      { file: 'bus-poly.glb',       kind: 'bus',  bodyMat: 'Mat',       size: [2.50, 3.20, 11.5] },
+      { file: 'bus-poly.glb',       kind: 'bus',  bodyMat: 'Mat',       size: [2.50, 3.20, 11.5],
+        /* YBS runs flat single colours, and the fleet is genuinely mixed: the
+           blues and the pale green are the ones you see most at Hledan. */
+        liveries: [0x1f5fa8, 0x2f8f4e, 0xd8482c, 0xe0a52a] },
     ]) {
       loadVehicleGeometry(`models/vehicles/${v.file}`, { bodyMat: v.bodyMat, size: v.size })
-        .then((loaded) => { if (props) props.replaceVehicle(v.kind, loaded); })
+        .then((loaded) => { if (props) props.replaceVehicle(v.kind, loaded, v.liveries); })
         .catch((e) => console.warn(`${v.file} unavailable, keeping the built-in one:`, e.message));
     }
     mapBox.setFromObject(mapRoot);
