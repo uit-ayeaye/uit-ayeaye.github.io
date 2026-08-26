@@ -117,8 +117,26 @@ export class Combat {
     this.bolt = new THREE.Mesh(
       new THREE.CylinderGeometry(0.10 * S, 0.34 * S, 1, 5, 1, true), addMat(0xbfe4ff));
 
-    for (const m of [this.beam, this.ring, this.arc, this.bolt]) {
+    /* fist: Gigant's whole point is that the hand arrives, not that a beam
+       does. A low-poly sphere flown down the aim reads as a fist at speed and
+       costs one draw. */
+    this.fist = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 12, 8), addMat(0xffc27a));
+    /* puff: the Balloon silhouette, parked on the character rather than fired */
+    this.puff = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 14, 10), addMat(0xffd9a0, 0.5));
+
+    for (const m of [this.beam, this.ring, this.arc, this.bolt, this.fist, this.puff]) {
       m.visible = false; m.frustumCulled = false; g.add(m);
+    }
+    /* three extra bolt columns so Thunder Tempo can come down as a storm rather
+       than as one bigger version of Thunder Ball */
+    this.bolts = [this.bolt];
+    for (let i = 0; i < 3; i++) {
+      const b = this.bolt.clone();
+      b.material = this.bolt.material.clone();
+      b.visible = false; b.frustumCulled = false; g.add(b);
+      this.bolts.push(b);
     }
     // a couple of extra arcs so Sanzen can show three blades at once
     this.arcs = [this.arc];
@@ -166,10 +184,21 @@ export class Combat {
     this.banner = mv.name;
     this.bannerT = 1.15;
 
-    /* What the body should be doing. A hold move keeps the pose up for as long
-       as it is held rather than playing a single swing, so its window is short
-       and simply re-armed on every repeat cast. */
-    this.pose = { id: mv.id, t: 0, dur: mv.hold ? 0.20 : (mv.dur ? 0.45 : 0.38) };
+    /* What the body should be doing.
+
+       A hold move re-casts every ~0.1 s while the key is down. Resetting `t`
+       each time restarted the pose envelope, so Balloon pulsed instead of
+       staying inflated. Re-arming an already-live hold pose therefore *extends*
+       its window rather than restarting it, and hold poses use a trapezoid
+       envelope — up fast, hold, down on release — instead of a single swing. */
+    if (mv.hold && this.pose && this.pose.id === mv.id && this.pose.t < this.pose.dur) {
+      this.pose.dur = this.pose.t + 0.26;
+    } else {
+      this.pose = {
+        id: mv.id, t: 0, hold: !!mv.hold,
+        dur: mv.hold ? 0.26 : (mv.dur ? 0.45 : 0.38),
+      };
+    }
 
     /* Hit stop, Elbaf's. The heaviest moves freeze everything for a beat on the
        frame they land, which is most of why they feel heavy — a big number with
@@ -205,12 +234,12 @@ export class Combat {
       case 'spin':   for (let i = 0; i < 2; i++)       // Tatsumaki: a rising twin cyclone
                        this._arc(origin, aim, mv.color, i, 3.0 * S, 0.22, i * 0.05);
                      break;
-      case 'giant':  this._beam(origin, end, mv.color, 0.55, 1.5);
-                     this._ring(end, mv.color, 15 * S, 0.7);
-                     this._ring(origin, mv.color, 11 * S, 0.55);
+      case 'giant':  this._fist(origin, end, mv.color);
+                     this._ring(end, mv.color, 18 * S, 0.8);
+                     this._ring(origin, mv.color, 9 * S, 0.5);
                      break;
-      case 'storm':  this._bolt(end, mv.color, 0.7, 2.4);
-                     this._ring(end, mv.color, 14 * S, 0.7);
+      case 'storm':  this._storm(end, mv.color);
+                     this._ring(end, mv.color, 20 * S, 0.9);
                      this.skyFlash = 1;                // the weather driver reads this
                      break;
       case 'blink':  this._ring(origin, mv.color, 6 * S, 0.3);
@@ -223,7 +252,7 @@ export class Combat {
       case 'haki':   this.haki = mv.dur;
                      this._ring(origin, mv.color, 8 * S, 0.55);
                      break;
-      case 'balloon': break;                            // pure state, see holdSlow
+      case 'balloon': this._puff(ctrl, mv.color); break;
     }
     return true;
   }
@@ -251,6 +280,70 @@ export class Combat {
       m.scale.y = baseY * grow * back;
       m.position.copy(a).addScaledVector(dir, 0.5 * grow * back);
       m.material.opacity = 0.9 * (1 - k * k);
+    });
+  }
+
+  /**
+   * Gum-Gum Gigant: the fist flies out, lands, and snaps back.
+   *
+   * It travels rather than appearing at the far end — the arrival is the whole
+   * read — and it grows on the way so it is biggest at the moment of impact,
+   * which is also when the hit stop bites.
+   */
+  _fist(a, b, color) {
+    const m = this.fist;
+    m.material.color.setHex(color);
+    const dir = b.clone().sub(a);
+    this._push(m, 0.85, (k) => {
+      // out over the first 45%, held briefly, whipped back
+      const out = k < 0.45 ? k / 0.45 : (k < 0.62 ? 1 : 1 - (k - 0.62) / 0.38);
+      const e = out * out * (3 - 2 * out);            // smoothstep, so it lands hard
+      m.position.copy(a).addScaledVector(dir, e);
+      const r = (1.6 + 3.4 * e) * S;
+      m.scale.set(r, r, r);
+      m.material.opacity = 0.85 * (1 - k * k * 0.9);
+    });
+  }
+
+  /**
+   * Thunder Tempo: four columns rather than one, scattered around the point and
+   * staggered, so it reads as weather arriving instead of a bigger Thunder Ball.
+   */
+  _storm(at, color) {
+    this.bolts.forEach((m, i) => {
+      const ang = (i / this.bolts.length) * Math.PI * 2 + 0.4;
+      const rad = i === 0 ? 0 : (4 + i * 2.6) * S;
+      const p = at.clone();
+      p.x += Math.cos(ang) * rad;
+      p.z += Math.sin(ang) * rad;
+      m.material.color.setHex(color);
+      m.position.copy(p); m.position.y += 26 * S;
+      const delay = i * 0.09;
+      const w = i === 0 ? 0.8 : 0.45;
+      this._push(m, 2.2 + delay, (k) => {
+        const kk = (k * (2.2 + delay) - delay) / 2.2;
+        if (kk < 0) { m.material.opacity = 0; return; }
+        m.scale.set(w, 52 * S, w);
+        // strike, then flicker out rather than fade evenly
+        const flick = kk < 0.12 ? 1 : Math.max(0, 1 - (kk - 0.12) / 0.88) * (0.55 + 0.45 * Math.sin(kk * 47));
+        m.material.opacity = 0.95 * flick;
+      });
+    });
+  }
+
+  /**
+   * Gum-Gum Balloon: a translucent sphere around the torso. The body inflates
+   * too — see MOVE_POSES.balloon — but the character's own silhouette can only
+   * go so far, and the sphere is what actually sells it.
+   */
+  _puff(ctrl, color) {
+    const m = this.puff;
+    m.material.color.setHex(color);
+    this._push(m, 0.34, (k) => {
+      if (ctrl) m.position.set(ctrl.pos.x, ctrl.pos.y + 1.1 * S, ctrl.pos.z);
+      const r = (1.5 + 1.3 * Math.min(1, k * 4)) * S;
+      m.scale.set(r, r * 0.92, r);
+      m.material.opacity = 0.34 * Math.min(1, k * 5) * (k > 0.7 ? (1 - k) / 0.3 : 1);
     });
   }
 

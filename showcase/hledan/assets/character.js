@@ -330,7 +330,7 @@ export class Character {
   /** @param pose {id, t, dur} from Combat, or null */
   setMove(pose) {
     this._pose = pose && MOVE_POSES[pose.id]
-      ? { id: pose.id, k: Math.min(1, pose.t / pose.dur) }
+      ? { id: pose.id, k: Math.min(1, pose.t / pose.dur), t: pose.t, dur: pose.dur, hold: !!pose.hold }
       : null;
   }
 
@@ -356,7 +356,19 @@ export class Character {
     const table = p ? MOVE_POSES[p.id] : null;
     if (table) this._table = table;            // keep it for the release
 
-    const want = table ? Math.sin(Math.min(1, p.k) * Math.PI) : 0;
+    /* A swing travels out and back inside its window: sin(k*PI). A held state
+       has to reach full and stay there, so it gets a trapezoid keyed off real
+       elapsed time — ramp in RAMP seconds, hold, ramp out over the last RAMP —
+       which stays flat while the move keeps re-arming underneath it. */
+    const RAMP = 0.09;
+    let want = 0;
+    if (table) {
+      if (p.hold) {
+        want = Math.min(1, p.t / RAMP) * Math.min(1, Math.max(0, p.dur - p.t) / RAMP);
+      } else {
+        want = Math.sin(Math.min(1, p.k) * Math.PI);
+      }
+    }
     // ease so releasing a hold move relaxes rather than cuts
     this._blend += (want - this._blend) * (1 - Math.exp(-18 * dt));
 
