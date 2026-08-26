@@ -61,20 +61,22 @@ export const PRESETS = {
 
   night: {
     label: 'Night',
-    /* Hledan does not go quiet at night, it goes orange. The sky drops to
-       almost nothing and everything you can see is sodium: the lamps, the shop
-       fronts, the tea shops that stay open long after the buses stop. Exposure
-       is lifted well above 1 on purpose — a night that is genuinely dark is
-       just a black screen, and what the eye remembers is the glow, not the
-       absence of light. */
-    zenith: 0x0a1020, horizon: 0x1d2740, nadir: 0x05080f,
-    fog: 0x1d2740, fogNear: 520, fogFar: 2700,
-    hemiSky: 0x2c3c5c, hemiGround: 0x151820, hemi: 0.95,
-    ambient: 0x93a6c8, ambientI: 0.24,
-    sun: 0x7387b4, sunI: 0.20, sunDir: [-260, 780, 180],   // the moon, barely
-    exposure: 1.16, tint: 0x8e9bb6, skirt: 0x161b25,
+    /* Hledan does not go quiet at night, it goes orange — and the sky over it
+       stays blue. The split is the whole look: a cool moonlit sky and a big
+       moon overhead, sodium lamps and neon doing all the warm work at street
+       level. Hemisphere ground bounces amber (that is the lamps coming back
+       off the tarmac), the ambient leans cool so shadows read as night, and
+       the moonlight itself is strong enough to rim the rooflines without
+       flattening the pools of lamp light. Exposure sits above 1 on purpose —
+       what the eye remembers of this street at night is the glow. */
+    zenith: 0x0a1226, horizon: 0x25304c, nadir: 0x05080f,
+    fog: 0x1f2940, fogNear: 520, fogFar: 2700,
+    hemiSky: 0x31456b, hemiGround: 0x30231a, hemi: 1.1,
+    ambient: 0x9cabc8, ambientI: 0.27,
+    sun: 0x9db8e8, sunI: 0.5, sunDir: [-260, 780, 180],    // the moon, properly
+    exposure: 1.22, tint: 0x9fa3ae, skirt: 0x161a24,
     cloud: 0x2b3448, cloudAmt: 0.34, cloudSharp: 0.22,
-    rain: 0, wind: 0, lamps: 1.0, traffic: 0.45, headlights: 1.0,
+    rain: 0, wind: 0, lamps: 1.0, traffic: 0.45, headlights: 1.0, moon: 1,
   },
 
   blackout: {
@@ -91,7 +93,8 @@ export const PRESETS = {
     sun: 0x6b7ea8, sunI: 0.14, sunDir: [-260, 780, 180],
     exposure: 1.24, tint: 0x7c869a, skirt: 0x10141c,
     cloud: 0x1b2231, cloudAmt: 0.30, cloudSharp: 0.24,
-    rain: 0, wind: 0, lamps: 0.06, traffic: 0.30, headlights: 1.0,
+    /* with the grid down the moon owns the street */
+    rain: 0, wind: 0, lamps: 0.06, traffic: 0.30, headlights: 1.0, moon: 0.9,
   },
 
   dawn: {
@@ -112,7 +115,11 @@ export const PRESETS = {
 };
 
 const KEYS = ['zenith', 'horizon', 'nadir', 'fog', 'ambient', 'sun', 'tint', 'skirt', 'hemiSky', 'hemiGround', 'cloud'];
-const NUMS = ['fogNear', 'fogFar', 'hemi', 'ambientI', 'sunI', 'exposure', 'rain', 'wind', 'cloudAmt', 'cloudSharp', 'lamps', 'traffic', 'headlights'];
+const NUMS = ['fogNear', 'fogFar', 'hemi', 'ambientI', 'sunI', 'exposure', 'rain', 'wind', 'cloudAmt', 'cloudSharp', 'lamps', 'traffic', 'headlights', 'moon'];
+
+/* Presets that predate the moon simply do not carry the key; a fade toward
+   them treats it as zero, which is exactly the intent. */
+for (const p of Object.values(PRESETS)) if (p.moon === undefined) p.moon = 0;
 
 export class Weather {
   /**
@@ -136,7 +143,55 @@ export class Weather {
     for (const m of refs.mapMaterials) this._baseTint.set(m, m.color.clone());
     this.rain = this._buildRain(tier === 'hi' ? 3200 : 1400);
     refs.scene.add(this.rain.points);
+    this.moon = this._buildMoon();
+    refs.sky.add(this.moon);          // the sky rides the camera; so must the moon
     this.apply(this.cur, 1);
+  }
+
+  /**
+   * လမင်းကြီး — the big moon. A sprite, not geometry: it always faces the
+   * viewer, it costs one draw, and being parented to the camera-riding sky
+   * sphere it never gets closer or further. Deliberately outsized (~5° of
+   * sky against the real 0.5°) — this is the cinematic moon a city night
+   * runs on, not an astronomy lesson. Buildings still occlude it, because
+   * it depth-tests like anything else.
+   */
+  _buildMoon() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 256;
+    const ctx = c.getContext('2d');
+    // the halo
+    let g = ctx.createRadialGradient(128, 128, 60, 128, 128, 128);
+    g.addColorStop(0, 'rgba(200,220,255,0.30)');
+    g.addColorStop(1, 'rgba(200,220,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 256, 256);
+    // the disc, softly edged, with a hint of maria
+    g = ctx.createRadialGradient(120, 118, 8, 128, 128, 64);
+    g.addColorStop(0, 'rgba(240,247,255,1)');
+    g.addColorStop(0.72, 'rgba(214,228,250,0.95)');
+    g.addColorStop(0.97, 'rgba(190,208,238,0.85)');
+    g.addColorStop(1, 'rgba(190,208,238,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(128, 128, 64, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(150,170,205,0.35)';
+    for (const [mx, my, mr] of [[112, 112, 17], [146, 132, 12], [124, 152, 9], [148, 106, 7]]) {
+      ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.fill();
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const mat = new THREE.SpriteMaterial({
+      map: tex, transparent: true, opacity: 0, fog: false, depthWrite: false,
+    });
+    const moon = new THREE.Sprite(mat);
+    /* Hung lower than the light actually comes from — ~35° up, where the
+       chase camera can frame it over the rooflines. The moonLIGHT direction
+       stays overhead in the preset; nobody reads that discrepancy at night. */
+    const dir = new THREE.Vector3(-320, 260, 200).normalize();
+    moon.position.copy(dir.multiplyScalar(5200));
+    moon.scale.setScalar(520);
+    moon.visible = false;
+    return moon;
   }
 
   /* One Points cloud in a box around the camera. Because the box moves with the
@@ -236,6 +291,12 @@ export class Weather {
 
     this.rain.mat.uniforms.uOpacity.value = p.rain * 0.55;
     this.rain.points.visible = p.rain > 0.01;
+
+    if (this.moon) {
+      const mv = (p.moon || 0) * (1 - this.flash * 0.6);   // lightning washes it out
+      this.moon.material.opacity = mv;
+      this.moon.visible = mv > 0.01;
+    }
 
     /* Street lamps come up on the same cross-fade as everything else, plus a
        kick from the lightning so a bolt reads on the lamps as well as the sky. */

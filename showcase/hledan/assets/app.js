@@ -513,10 +513,11 @@ const play = {
   on: false, loading: false,
   nav: null, chr: null, ctrl: null, cam: new ChaseCamera(),
   index: 0, jump: false, sprintHeld: false,
-  held: new Set(), rollQueued: false,
-  combat: null, queued: null,
-  aimRay: new THREE.Raycaster(), aimDir: new THREE.Vector3(), chest: new THREE.Vector3(),
+  held: new Set(), queued: new Set(), rollQueued: false,
+  combat: null, swapGate: 0,
+  aimDir: new THREE.Vector3(),
 };
+play.cam.touch = IS_TOUCH;
 
 function syncModeButtons(active) {
   document.querySelectorAll('[data-mode]').forEach((b) =>
@@ -566,7 +567,11 @@ async function enterPlay() {
   controls.autoRotate = false;
 
   if (!play.ctrl) play.ctrl = new CharacterController(play.nav, props ? props.obstacles : null);
-  if (!play.combat) play.combat = new Combat(scene, DEVICE.tier);
+  if (!play.combat) {
+    play.combat = new Combat(scene, DEVICE.tier);
+    play.combat.bindGround((x, z) => play.nav.heightAt(x, z));
+  }
+  play.combat.setStyle(play.chr.def.style);
   const c = coreBox.getCenter(new THREE.Vector3());
   play.ctrl.placeAt(c.x, c.z);
   play.cam.yaw = Math.PI * 0.15;
@@ -582,7 +587,7 @@ async function enterPlay() {
 function exitPlay() {
   play.on = false;
   play.held.clear();
-  if (play.combat) play.combat.holdSlow = 1;
+  play.queued.clear();
   document.body.classList.remove('playing');
   if (play.chr) play.chr.root.visible = false;
   controls.enabled = true;
@@ -615,6 +620,12 @@ async function swapCharacter(delta) {
       await ensurePlayAssets(play.index);
       play.chr.root.visible = true;
       refreshCharChips();
+      /* Elbaf's swap flourish: a dark ring, a shake, a beat of slow-mo and a
+         lens punch, so the change of body lands as an event. */
+      if (play.combat && play.ctrl) {
+        play.combat.setStyle(play.chr.def.style);
+        play.combat.swapFlourish(play.ctrl);
+      }
     }
   } finally {
     play.loading = false;
@@ -658,6 +669,13 @@ function refreshCharChips() {
   }
 }
 
+/**
+ * One player frame, in Elbaf's order: hit-stop scales time, aim runs first,
+ * the combat machine consumes the queued inputs and computes its velocity
+ * drive, the controller integrates under that drive, and the character visual
+ * reads the result. Combat and movement are one machine split across two
+ * files, exactly as they are one function in the Elbaf source.
+ */
 function updatePlay(dt) {
   const k = walk.keys;
   let mx = (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0);
@@ -670,77 +688,69 @@ function updatePlay(dt) {
      the index here meant firing Zoro's sword kit out of Luffy's body. */
   const def = play.chr.def;
   const c0 = play.ctrl;
+  const cb = play.combat;
 
-  /* Gear Second multiplies speed and jump; a held Gatling divides speed. Both
-     are folded in here rather than inside the controller, which stays a pure
-     function of the stats it is handed. */
+  /* Hit stop, Elbaf's: not a freeze but a bite of slow motion — the world
+     runs at 12% for a few hundredths of a second, which reads as impact
+     instead of a hitch. Only the player frame slows; weather and sound keep
+     the real clock. */
+  let pdt = dt;
+  if (cb.hitStop > 0) {
+    cb.hitStop = Math.max(0, cb.hitStop - dt);
+    pdt = dt * 0.12;
+  }
+
+  // aim: one ray down the camera's look, walls from the TriGrid, ground from
+  // the baked height field — every frame, for the reticle and the targeting
+  camera.getWorldDirection(play.aimDir);
+  cb.updateAim(c0, play.aimDir, occlusionGrid, play.nav);
+
+  // the move machine
+  cb.step(pdt, c0, def, { queued: play.queued, held: play.held, rollQueued: play.rollQueued });
+  play.queued.clear();
+  play.rollQueued = false;
+
   const scaled = {
-    speed: def.speed * play.combat.speedMul(),
-    jump: def.jump * play.combat.jumpMul(),
+    speed: def.speed * cb.speedMul(),
+    jump: def.jump * cb.jumpMul(),
   };
-  play.ctrl.update(dt, { moveX: mx, moveZ: mz, sprint, jump: play.jump, yaw: play.cam.yaw }, scaled);
+  c0.update(pdt, { moveX: mx, moveZ: mz, sprint, jump: play.jump, yaw: play.cam.yaw }, scaled, cb.drive);
   play.jump = false;
+  cb.landed(c0);
 
-  /* Aim exactly the way Elbaf does: a ray straight down the camera's forward
-     axis, and the move lands at the first thing it meets (or at max range in
-     open air). Only the map is tested — 8 meshes, once per cast, never per
-     frame — so this costs nothing while simply running around. */
-  // A held move (Gatling / Tatsumaki / Balloon) re-fires whenever its short
-  // cooldown clears, and drags move speed down while it does.
-  const kit = MOVES[def.style] || {};
-  let slow = 1;
-  for (const slot of play.held) {
-    const mv = kit[slot];
-    if (!mv) continue;
-    if (mv.slow) slow = Math.min(slow, mv.slow);
-    if (!play.queued && play.combat.ready(def, slot)) play.queued = slot;
-  }
-  play.combat.holdSlow = slow;
-
-  if (play.rollQueued) {
-    play.rollQueued = false;
-    const d = new THREE.Vector3(c0.vel.x, 0, c0.vel.z);
-    if (d.lengthSq() < 1e-4) d.set(Math.sin(c0.facing), 0, Math.cos(c0.facing));
-    play.combat.startRoll(d);
-  }
-
-  if (play.queued) {
-    const slot = play.queued; play.queued = null;
-    camera.getWorldDirection(play.aimDir);
-    play.chest.set(c0.pos.x, c0.pos.y + 1.05 * WORLD_SCALE, c0.pos.z);
-    play.aimRay.set(play.chest, play.aimDir);
-    play.aimRay.far = Math.max(1, (MOVES[def.style][slot] || {}).range || 1);
-    const hits = mapRoot ? play.aimRay.intersectObject(mapRoot, true) : [];
-    play.combat.cast(def, slot, play.chest, play.aimDir, hits[0] || null, c0);
-    refreshMoveChips();
-  }
-  play.combat.update(dt, c0);
-
+  // the character reads everything back
   play.chr.root.position.set(c0.pos.x, c0.pos.y, c0.pos.z);
-  /* How fast the facing is swinging, for the bank into turns. Wrapped, or a
-     pass through +-PI reads as a violent turn and throws the body on its side. */
-  let turn = c0.facing - (play._lastFacing === undefined ? c0.facing : play._lastFacing);
-  turn = Math.atan2(Math.sin(turn), Math.cos(turn)) / Math.max(dt, 1e-4);
-  play._lastFacing = c0.facing;
+  play.chr.update(dt, {
+    speed: c0.speedXZ, maxSpeed: def.speed, grounded: c0.grounded,
+    vy: c0.vel.y, landing: c0.landing, roll: cb.rollK,
+    facing: c0.facing, lookYaw: Math.atan2(play.aimDir.x, play.aimDir.z),
+    turn: c0.turn,
+  }, {
+    style: def.style, move: cb.move.kind, moveK: cb.moveK,
+    gatling: cb.gatling, balloon: cb.balloon, haki: cb.haki, gear2: cb.gear2,
+  });
 
-  play.chr.setLocomotion(dt, c0.speedXZ, def.speed, c0.grounded);
-  play.chr.setBody(dt, c0.speedXZ, def.speed, c0.grounded, c0.facing, turn);
-  play.chr.setMove(play.combat.pose);
-  play.chr.update(dt);
+  // camera: Elbaf's 60° lens, kicked in by the heavy hits
+  play.cam.punch(cb.fovPunch);
+  cb.fovPunch = 0;
+  play.cam.update(pdt, camera, c0, play.nav, occlusionGrid);
 
-  play.cam.update(dt, camera, c0, play.nav, sprint && c0.speedXZ > 3 * WORLD_SCALE, occlusionGrid);
-
-  /* Screen shake, same shape as Elbaf's: amplitude falls with the square of a
-     decaying scalar, driven by three out-of-phase sines so it never reads as a
-     regular wobble. Applied after the camera has been placed. */
-  const sh = play.combat.shake;
+  /* Screen shake, Elbaf's: amplitude falls with the square of a decaying
+     scalar, three out-of-phase sines so it never reads as a regular wobble. */
+  const sh = cb.shake;
   if (sh > 0.001) {
-    const A = sh * sh * 0.9 * WORLD_SCALE;
+    const A = sh * sh * 0.35 * WORLD_SCALE;
     const t = performance.now() * 0.001;
     camera.position.x += Math.sin(t * 41) * A;
     camera.position.y += Math.sin(t * 53 + 1.7) * A * 0.7;
     camera.position.z += Math.sin(t * 47 + 3.1) * A;
   }
+
+  // every pooled effect, on the real clock
+  cb.render(dt, camera, c0, performance.now() * 0.001);
+
+  // Thunder Tempo lights the sky the way the monsoon bolts do
+  if (weather && cb.skyFlash > 0) weather.flash = Math.max(weather.flash, cb.skyFlash);
 }
 
 function setMode(m) {
@@ -778,9 +788,9 @@ addEventListener('keydown', (e) => {
       const mv = kit[slot];
       if (!mv || mv.key !== e.code) continue;
       if (mv.hold) play.held.add(slot);
-      else if (!e.repeat) play.queued = slot;
+      else if (!e.repeat) play.queued.add(slot);
     }
-    if (e.code === 'KeyC' && !e.repeat) play.rollQueued = true;     // Elbaf: C roll
+    if ((e.code === 'KeyC' || e.code === 'ControlLeft') && !e.repeat) play.rollQueued = true; // Elbaf: C / Ctrl rolls
     if (e.code === 'Space' && !e.repeat) play.jump = true;          // Elbaf: Space jumps
     if (e.code === 'Tab' || e.code === 'KeyZ') {                    // Elbaf: Tab/Z swaps
       if (!e.repeat) swapCharacter(1);
@@ -891,7 +901,11 @@ inputLayer.addEventListener('pointermove', (e) => {
     walk.stick.x = 0; walk.stick.y = 0; play.sprintHeld = false;
   } else {
     walk.stick.x = nx; walk.stick.y = ny;
-    play.sprintHeld = mag > STICK_SPRINT;      // push far = run, no extra button
+    /* Push far = run, no extra button — with hysteresis. A thumb holding the
+       rim wobbles around any single threshold, and without the gap the sprint
+       flag flapped on and off, so the speed target surged: the mobile "sprint
+       glitch". Engage past 0.8, release only under 0.68. */
+    play.sprintHeld = mag > (play.sprintHeld ? STICK_SPRINT - 0.12 : STICK_SPRINT);
   }
   knobEl.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
 });
@@ -899,7 +913,7 @@ inputLayer.addEventListener('pointermove', (e) => {
 function endPointer(e) {
   const p = pointers.get(e.pointerId);
   if (p && p.mode === 'look' && p.mouse && p.drift < 7 && performance.now() - p.startT < 240) {
-    if (play.on) play.queued = 'light';        // Elbaf: a mouse tap is a pistol
+    if (play.on) play.queued.add('strike');    // Elbaf: a mouse tap is a pistol
   }
   pointers.delete(e.pointerId);
   if (e.pointerId === stickId) clearStick();
@@ -1016,30 +1030,54 @@ if (jumpBtn) {
   jumpBtn.addEventListener('pointercancel', releaseJump);
   jumpBtn.addEventListener('pointerleave', releaseJump);
 }
-/* Elbaf's mobile rule for the strike button: a tap fires the strike, holding
-   it past HOLD_MS switches to the sustained version (Gatling / Tatsumaki) and
-   keeps firing until release. Buttons without data-hold are plain taps. */
+/* Elbaf's mobile rule for the strike button, exactly: press starts a 260 ms
+   timer; if it fires, the button becomes the sustained move (Gatling /
+   Tatsumaki / Lance) until release — and if it does NOT fire, the release is
+   the tap, so a strike never double-fires alongside its own hold version.
+   The gear button behaves the same way so a tap toggles and a hold sustains
+   nothing. Buttons without data-hold queue on press, the way Elbaf's do. */
 const HOLD_MS = 260;
-document.querySelectorAll('[data-move]').forEach((b) => {
-  let timer = null;
+document.querySelectorAll('.pad-btn[data-move]').forEach((b) => {
+  let timer = null, heldFired = false;
   const down = (e) => {
     e.preventDefault();
     b.classList.add('held');
     const holdSlot = b.dataset.hold;
     if (holdSlot) {
-      timer = setTimeout(() => { timer = null; play.held.add(holdSlot); }, HOLD_MS);
+      heldFired = false;
+      timer = setTimeout(() => { timer = null; heldFired = true; play.held.add(holdSlot); }, HOLD_MS);
+      return;                                  // the tap decision waits for release
     }
-    play.queued = b.dataset.move;
+    play.queued.add(b.dataset.move);
   };
   const up = () => {
     b.classList.remove('held');
     if (timer) { clearTimeout(timer); timer = null; }
-    if (b.dataset.hold) play.held.delete(b.dataset.hold);
+    if (b.dataset.hold) {
+      if (heldFired) play.held.delete(b.dataset.hold);
+      else play.queued.add(b.dataset.move);
+      heldFired = false;
+    }
   };
   b.addEventListener('pointerdown', down);
   b.addEventListener('pointerup', up);
   b.addEventListener('pointercancel', up);
   b.addEventListener('pointerleave', up);
+});
+/* The desktop kit chips fire on click — they are labels first, buttons second. */
+document.querySelectorAll('.movechip[data-move]').forEach((b) => {
+  b.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    const kit = (play.chr && MOVES[play.chr.def.style]) || {};
+    const mv = kit[b.dataset.move];
+    if (!mv) return;
+    if (mv.hold) {
+      play.held.add(b.dataset.move);
+      const off = () => { play.held.delete(b.dataset.move); b.removeEventListener('pointerup', off); b.removeEventListener('pointerleave', off); };
+      b.addEventListener('pointerup', off);
+      b.addEventListener('pointerleave', off);
+    } else play.queued.add(b.dataset.move);
+  });
 });
 
 const rollBtn = document.querySelector('[data-roll]');
@@ -1151,21 +1189,12 @@ function loop(now) {
   if (!running) return;
   requestAnimationFrame(loop);
   const frameMs = now - last;
-  let dt = Math.min(frameMs / 1000, 0.1);
-  const realDt = dt;                       // unfrozen, for anything hit stop must not touch
+  const dt = Math.min(frameMs / 1000, 0.1);
+  const realDt = dt;                       // weather and sound keep the real clock
   last = now;
 
-  /* Hit stop. A heavy move buys a few hundredths of a second in which the world
-     stops moving, which is most of why it lands heavy — a big effect with no
-     pause in front of it just reads as a bigger effect. Weather, sound and the
-     spin keep their real dt: freezing the rain and cutting the audio would give
-     the pause away as a stutter rather than an impact. */
-  if (play.on && play.combat && play.combat.hitStop > 0) {
-    const bite = Math.min(play.combat.hitStop, dt);
-    play.combat.hitStop -= bite;
-    dt = Math.max(0, dt - bite);
-  }
-
+  /* Hit stop lives inside updatePlay now — Elbaf's version is a bite of slow
+     motion on the player frame alone, not a freeze of the whole world. */
   if (play.on && play.ctrl && play.chr) updatePlay(dt);
   else if (walk.on) updateWalk(dt);
   else controls.update();
