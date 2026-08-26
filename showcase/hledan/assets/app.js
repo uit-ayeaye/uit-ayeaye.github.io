@@ -1122,7 +1122,8 @@ function loop(now) {
 
   if (play.on && play.combat) paintCombatHud();
   if (weather) weather.update(dt, camera);
-  if (sound.enabled) sound.update(dt, camera.position, { rain: weather ? weather.cur.rain : 0, flash: weather ? weather.flash : 0 });
+  if (sound.enabled) sound.update(dt, camera.position, { rain: weather ? weather.cur.rain : 0, flash: weather ? weather.flash : 0,
+      traffic: weather ? weather.cur.traffic : 1 });
   sky.position.copy(camera.position);
   skirt.position.x = camera.position.x;
   skirt.position.z = camera.position.z;

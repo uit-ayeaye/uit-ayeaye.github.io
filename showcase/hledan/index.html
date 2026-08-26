@@ -237,8 +237,11 @@
         /* Keep the weather stack top-right. Along the bottom it lands under the
            action pad, and the pad has to own that corner — it is the only part
            of the UI a thumb uses continuously. */
+        /* Seven chips in one column is 190px of phone screen. Two columns puts
+           it back to four rows without touching the dock's corner. */
         #sky { right: 12px; left: auto; top: calc(52px + env(safe-area-inset-top));
-               flex-direction: column; align-items: flex-end; gap: 4px; }
+               display: grid; grid-template-columns: repeat(2, auto);
+               justify-items: stretch; gap: 4px; }
         #sky .chip { min-width: 0; font-size: 10px; padding: 4px 8px; }
       }
 
@@ -403,6 +406,9 @@
         <button data-ui-button class="chip on" data-sky="noon">☀︎ Midday</button>
         <button data-ui-button class="chip" data-sky="evening">◐ Golden</button>
         <button data-ui-button class="chip" data-sky="rain">☂ Monsoon</button>
+        <button data-ui-button class="chip" data-sky="night">☾ Night</button>
+        <button data-ui-button class="chip" data-sky="blackout">⏻ Blackout</button>
+        <button data-ui-button class="chip" data-sky="dawn">⌇ Dawn</button>
         <button data-ui-button class="chip" id="soundBtn" aria-pressed="false"
                 aria-label="Street sound">♪ Sound</button>
       </div>
@@ -452,7 +458,7 @@
           <dt>Quality</dt><dd id="tier">—</dd>
           <dt>Crew</dt><dd>Luffy · Zoro · Nami</dd>
           <dt>Scale</dt><dd>map ≈ 3× life size</dd>
-          <dt>Weather</dt><dd>Midday · Golden · Monsoon</dd>
+          <dt>Weather</dt><dd>Midday · Golden · Monsoon · Night · Blackout · Dawn</dd>
         </dl>
         <p style="margin-top:12px;font-size:11.5px;color:#6d80a0">
           Fan-made and non-commercial. One Piece characters belong to Eiichiro

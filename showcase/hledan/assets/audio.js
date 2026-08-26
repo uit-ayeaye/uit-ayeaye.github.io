@@ -251,12 +251,16 @@ export class Soundscape {
 
   /**
    * @param view {x, z}         where the listener is
-   * @param w    {rain, flash}  straight off the weather
+   * @param w    {rain, flash, traffic}  straight off the weather. `traffic`
+   *             scales the whole road bed: the junction at three in the morning
+   *             is the same place with the volume down, and during a blackout
+   *             it is quieter still.
    */
   update(dt, view, w) {
     if (!this.enabled || !this.ctx || !this.nodes || this.ctx.state !== 'running') return;
     const n = this.nodes, t = this.ctx.currentTime;
     const rain = w.rain || 0;
+    const traf = w.traffic === undefined ? 1 : w.traffic;
 
     /* Proximity at 4 Hz. Every layer below reads these, and a full pass over
        the anchor lists every frame would be the most expensive thing here. */
@@ -267,7 +271,7 @@ export class Soundscape {
       this._near.road = road;
       this._near.tea = Math.min(nearest(ANCHORS.TEA, view.x, view.z), nearest(ANCHORS.STALL, view.x, view.z));
     }
-    const roadNear = Math.max(0, 1 - this._near.road / 90);
+    const roadNear = Math.max(0, 1 - this._near.road / 90) * traf;
     const teaNear = Math.max(0, 1 - this._near.tea / 34);
 
     /* Slow, irrational wobble so the bed never settles into a loop the ear can
@@ -291,7 +295,8 @@ export class Soundscape {
     // horns: constant near the carriageway, rare away from it
     this._hornIn -= dt;
     if (this._hornIn <= 0) {
-      this._hornIn = (1.4 + Math.random() * 4.5) / (0.25 + roadNear);
+      // horns thin right out once the buses stop running
+      this._hornIn = (1.4 + Math.random() * 4.5) / (0.25 + roadNear) / Math.max(0.25, traf);
       const lvl = (0.020 + 0.055 * roadNear) * (0.6 + Math.random() * 0.6);
       this._horn(lvl, 300 + Math.random() * 210, 0.16 + Math.random() * 0.4);
     }
@@ -305,7 +310,7 @@ export class Soundscape {
     this._crowIn -= dt;
     if (this._crowIn <= 0) {
       this._crowIn = 7 + Math.random() * 20;
-      if (rain < 0.4) this._crow(0.016 * (0.5 + Math.random() * 0.8));
+      if (rain < 0.4 && traf > 0.4) this._crow(0.016 * (0.5 + Math.random() * 0.8));
     }
   }
 

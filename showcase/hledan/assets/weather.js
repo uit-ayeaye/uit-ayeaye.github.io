@@ -27,7 +27,7 @@ export const PRESETS = {
     sun: 0xfff2d8, sunI: 1.05, sunDir: [-420, 560, 300],
     exposure: 1.0, tint: 0xffffff, skirt: 0xa9b4a2,
     cloud: 0xfdfdfb, cloudAmt: 0.42, cloudSharp: 0.13,
-    rain: 0, wind: 0, lamps: 0,
+    rain: 0, wind: 0, lamps: 0, traffic: 1,
   },
   evening: {
     label: 'Golden hour',
@@ -42,7 +42,7 @@ export const PRESETS = {
     // sunset light comes from underneath, so the deck lights up warm
     cloud: 0xffcf9a, cloudAmt: 0.60, cloudSharp: 0.17,
     // the lamps are already on before the sun is gone — they always are here
-    rain: 0, wind: 0, lamps: 0.85,
+    rain: 0, wind: 0, lamps: 0.85, traffic: 0.95,
   },
   rain: {
     label: 'Monsoon',
@@ -54,12 +54,65 @@ export const PRESETS = {
     exposure: 0.94, tint: 0x93a3b8, skirt: 0x6e7885,
     // monsoon overcast: near-total cover with soft edges, no blue left
     cloud: 0x6f7885, cloudAmt: 0.96, cloudSharp: 0.30,
-    rain: 1, wind: 0.32, lamps: 0.7,
+    rain: 1, wind: 0.32, lamps: 0.7, traffic: 0.85,
+  },
+
+  /* ---- the three that are here for memory rather than for weather ---- */
+
+  night: {
+    label: 'Night',
+    /* Hledan does not go quiet at night, it goes orange. The sky drops to
+       almost nothing and everything you can see is sodium: the lamps, the shop
+       fronts, the tea shops that stay open long after the buses stop. Exposure
+       is lifted well above 1 on purpose — a night that is genuinely dark is
+       just a black screen, and what the eye remembers is the glow, not the
+       absence of light. */
+    zenith: 0x0a1020, horizon: 0x1d2740, nadir: 0x05080f,
+    fog: 0x1d2740, fogNear: 520, fogFar: 2700,
+    hemiSky: 0x2c3c5c, hemiGround: 0x151820, hemi: 0.95,
+    ambient: 0x93a6c8, ambientI: 0.24,
+    sun: 0x7387b4, sunI: 0.20, sunDir: [-260, 780, 180],   // the moon, barely
+    exposure: 1.16, tint: 0x8e9bb6, skirt: 0x161b25,
+    cloud: 0x2b3448, cloudAmt: 0.34, cloudSharp: 0.22,
+    rain: 0, wind: 0, lamps: 1.0, traffic: 0.45,
+  },
+
+  blackout: {
+    label: 'Blackout',
+    /* Load-shedding. The grid drops, the street lamps go with it, and the only
+       light left on the block is whatever runs off a generator — which is why
+       lamps is not zero but 0.06: a few shops keep going, and those few points
+       of warm light are the whole image. Anyone who grew up here knows this
+       street better in this state than in any other. */
+    zenith: 0x070c16, horizon: 0x121a2a, nadir: 0x03050a,
+    fog: 0x121a2a, fogNear: 400, fogFar: 2100,
+    hemiSky: 0x1f2c44, hemiGround: 0x0f1116, hemi: 0.62,
+    ambient: 0x8496b8, ambientI: 0.17,
+    sun: 0x6b7ea8, sunI: 0.14, sunDir: [-260, 780, 180],
+    exposure: 1.24, tint: 0x7c869a, skirt: 0x10141c,
+    cloud: 0x1b2231, cloudAmt: 0.30, cloudSharp: 0.24,
+    rain: 0, wind: 0, lamps: 0.06, traffic: 0.30,
+  },
+
+  dawn: {
+    label: 'Dawn',
+    /* Before six. River mist still on the street, the light coming in flat and
+       pink, the lamps not yet switched off. This is the quietest Hledan ever
+       gets and the one that is hardest to see from far away, so the fog is
+       pulled in tight — the far side of the junction should be a suggestion. */
+    zenith: 0x40608c, horizon: 0xe9bb90, nadir: 0x241f28,
+    fog: 0xd6bda6, fogNear: 300, fogFar: 2300,
+    hemiSky: 0xffdcc4, hemiGround: 0x7d6c5a, hemi: 2.05,
+    ambient: 0xffe6d4, ambientI: 0.42,
+    sun: 0xffcb93, sunI: 1.00, sunDir: [640, 150, -280],   // low, and from the east
+    exposure: 1.02, tint: 0xffeade, skirt: 0xa89a82,
+    cloud: 0xf7dcc4, cloudAmt: 0.52, cloudSharp: 0.20,
+    rain: 0, wind: 0, lamps: 0.38, traffic: 0.35,
   },
 };
 
 const KEYS = ['zenith', 'horizon', 'nadir', 'fog', 'ambient', 'sun', 'tint', 'skirt', 'hemiSky', 'hemiGround', 'cloud'];
-const NUMS = ['fogNear', 'fogFar', 'hemi', 'ambientI', 'sunI', 'exposure', 'rain', 'wind', 'cloudAmt', 'cloudSharp', 'lamps'];
+const NUMS = ['fogNear', 'fogFar', 'hemi', 'ambientI', 'sunI', 'exposure', 'rain', 'wind', 'cloudAmt', 'cloudSharp', 'lamps', 'traffic'];
 
 export class Weather {
   /**
