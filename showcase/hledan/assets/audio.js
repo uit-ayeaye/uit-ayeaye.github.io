@@ -23,10 +23,18 @@ import { ANCHORS } from './props.js';
 
 const VOICES = { hi: 12, lo: 5 };          // concurrent one-shots
 
-/** Pink-ish noise, two seconds, looped. Voss-McCartney with four running
-    poles — cheaper than a proper filter bank and indistinguishable here. */
+/**
+ * Pink-ish noise, looped. Voss-McCartney with four running poles — cheaper than
+ * a proper filter bank and indistinguishable here.
+ *
+ * Three seconds, not two, because the buffer also has to be long enough for the
+ * longest one-shot cut from it: thunder runs 2.4 s, and a 2 s buffer made the
+ * random start offset negative, which throws outright rather than degrading.
+ */
+const NOISE_SECONDS = 3;
+
 function pinkBuffer(ctx) {
-  const n = Math.floor(ctx.sampleRate * 2);
+  const n = Math.floor(ctx.sampleRate * NOISE_SECONDS);
   const buf = ctx.createBuffer(1, n, ctx.sampleRate);
   const d = buf.getChannelData(0);
   let a = 0, b = 0, c = 0;
@@ -171,7 +179,11 @@ export class Soundscape {
     g.gain.exponentialRampToValueAtTime(1e-4, t + dur);
     src.connect(f); f.connect(g); g.connect(this.nodes.master);
     src.onended = () => { this.voices--; };
-    src.start(t, Math.random() * (this.nodes.noise.duration - dur - 0.05), dur + 0.05);
+    /* Clamp both ends. start() throws on a negative offset, so a one-shot longer
+       than the buffer must not be allowed to compute one — belt as well as
+       braces, since the buffer is now sized for the longest burst. */
+    const room = Math.max(0, this.nodes.noise.duration - dur - 0.05);
+    src.start(t, Math.random() * room, Math.min(dur + 0.05, this.nodes.noise.duration));
   }
 
   /**

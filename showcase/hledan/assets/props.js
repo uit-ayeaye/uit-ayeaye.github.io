@@ -25,6 +25,7 @@
  */
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { WORLD_SCALE as S } from './character.js';
 
 /* ---------------------------------------------------------------- anchors */
@@ -389,6 +390,82 @@ function lampGlowGeo() {
   return merge([disc, bulb], 'lamp glow');
 }
 
+/* ------------------------------------------------------- downloaded models */
+
+/**
+ * Flatten a downloaded GLB into one instanceable geometry.
+ *
+ * InstancedMesh needs a single geometry and a single material, and these models
+ * arrive as several meshes with a material each. Since they are untextured flat
+ * colours, every primitive's base colour is baked into vertex colours and the
+ * lot merged — which also lets the body keep taking a per-instance tint, the
+ * same trick the procedural props use.
+ *
+ * @param bodyMat name of the material that is the paintwork. It is baked white
+ *                so `instanceColor` supplies the colour; everything else keeps
+ *                its own, so glass and tyres do not go blue with the bodywork.
+ * @param length  real length in metres, scaled uniformly.
+ * @param size    [width, height, length] in metres — corrects all three axes
+ *                independently, for a model whose proportions are wrong.
+ */
+export async function loadVehicleGeometry(url, { bodyMat, length, size }) {
+  const gltf = await new GLTFLoader().loadAsync(url);
+  gltf.scene.updateWorldMatrix(true, true);
+
+  const parts = [];
+  let textured = null;          // a model that carries its own map keeps it
+  gltf.scene.traverse((o) => {
+    if (!o.isMesh || !o.geometry) return;
+    const g = o.geometry.clone().applyMatrix4(o.matrixWorld);
+    const mat = Array.isArray(o.material) ? o.material[0] : o.material;
+    if (mat && mat.map) {
+      /* Baking vertex colours would throw the texture away, and a textured
+         vehicle cannot be recoloured per instance anyway — which is fine for a
+         fleet that runs one livery. Keep the material and skip the paint. */
+      textured = mat;
+    } else {
+      const isBody = mat && mat.name === bodyMat;
+      const hex = isBody || !mat || !mat.color ? 0xffffff : mat.color.getHex();
+      paint(g, hex);
+    }
+    parts.push(g.index ? g.toNonIndexed() : g);
+  });
+  if (!parts.length) throw new Error(`no meshes in ${url}`);
+
+  const merged = mergeGeometries(parts, false);
+  if (!merged) throw new Error(`could not merge ${url}`);
+
+  /* Normalise. The model arrives at whatever scale and proportion its author
+     chose, and stock low-poly vehicles are drawn stubby: this bus is natively
+     3.66 m across where a real one is 2.50, which would make it the widest
+     thing on a map whose entire scale was derived from bus dimensions.
+
+     So `size` corrects all three axes independently rather than scaling
+     uniformly. The distortion that costs is small and lands where it does not
+     show: the wheels' axles run along X, so narrowing X only makes the tyres
+     thinner, and the 0.9 on height is too slight to read. */
+  merged.computeBoundingBox();
+  const bb = merged.boundingBox;
+  const nat = new THREE.Vector3(); bb.getSize(nat);
+  merged.translate(-(bb.min.x + bb.max.x) / 2, -bb.min.y, -(bb.min.z + bb.max.z) / 2);
+
+  const longAxis = nat.x > nat.z ? 'x' : 'z';
+  if (size) {
+    const [w, hgt, len] = size;
+    const sx = ((longAxis === 'x' ? len : w) * S) / nat.x;
+    const sy = (hgt * S) / nat.y;
+    const sz = ((longAxis === 'x' ? w : len) * S) / nat.z;
+    merged.scale(sx, sy, sz);
+  } else {
+    const k = (length * S) / Math.max(nat.x, nat.z);
+    merged.scale(k, k, k);
+  }
+  // length must run along Z, the axis the road yaw is applied about
+  if (longAxis === 'x') merged.rotateY(Math.PI / 2);
+  merged.computeVertexNormals();
+  return { geometry: merged, material: textured };
+}
+
 /* ----------------------------------------------------------------- build */
 
 function instanced(geo, mat, rows, colours, rng, jitterYaw) {
@@ -443,7 +520,11 @@ export class StreetProps {
        first N: slicing the head of the list would empty one end of the junction
        and leave the other bumper to bumper, because the anchors were generated
        in scan order. */
-    const cut = tier === 'hi' ? 1 : 0.55;
+    /* The downloaded models are ~4x the triangles of the procedural ones they
+       replace (2.2k and 3.1k against 768 and 756), so the low tier thins the
+       fleet much harder than it used to. Fewer real vehicles beats more toy
+       ones — a phone still gets a bus that looks like a bus. */
+    const cut = tier === 'hi' ? 1 : 0.35;
     const BUS_SEED = 0x425553, TAXI_SEED = 0x545849;   // "BUS", "TXI"
     const every = (arr, n) => arr.filter((_, i) => i % n === 0);
     const take = (arr, n = 1) => {
@@ -562,6 +643,28 @@ export class StreetProps {
    * than switched, so walking from midday into the storm brings them up the way
    * a real photocell would.
    */
+  /**
+   * Swap a procedurally built vehicle for a downloaded model, keeping the
+   * transforms, the colours and the lamp layer exactly as they were. Called
+   * after load, so the map is interactive before the extra download lands and
+   * a failed fetch simply leaves the procedural one in place.
+   */
+  replaceVehicle(kind, loaded) {
+    const idx = kind === 'bus' ? 0 : 1;
+    const mesh = this.meshes[idx];
+    if (!mesh || !loaded || !loaded.geometry) return false;
+    mesh.geometry.dispose();
+    mesh.geometry = loaded.geometry;
+    if (loaded.material) {
+      /* A textured model brings its own material, and with it its own colour —
+         so drop the per-instance tint, which would multiply the livery. */
+      mesh.material = loaded.material;
+      mesh.instanceColor = null;
+    }
+    mesh.computeBoundingSphere();
+    return true;
+  }
+
   /**
    * @param lamps      street lamps and shop bulbs, 0..1 — these are on the grid
    * @param headlights vehicle lamps, 0..1 — these are not. In a blackout the

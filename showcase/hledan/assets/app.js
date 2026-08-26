@@ -15,7 +15,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TriGrid } from './occlusion.js';
-import { StreetProps } from './props.js';
+import { StreetProps, loadVehicleGeometry } from './props.js';
 import { Soundscape } from './audio.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {
@@ -312,6 +312,18 @@ new GLTFLoader().load(
     scene.add(mapRoot);
     occlusionGrid = new TriGrid(occluders, THREE);
     props = new StreetProps({ scene, tier: DEVICE.tier });
+
+    /* The real car model lands after the map is already interactive. If it
+       fails — offline, blocked, moved — the procedurally built one it would
+       have replaced simply stays, so the street is never short of traffic. */
+    for (const v of [
+      { file: 'car-quaternius.glb', kind: 'taxi', bodyMat: 'LightBlue', size: [1.78, 1.52, 4.40] },
+      { file: 'bus-poly.glb',       kind: 'bus',  bodyMat: 'Mat',       size: [2.50, 3.20, 11.5] },
+    ]) {
+      loadVehicleGeometry(`models/vehicles/${v.file}`, { bodyMat: v.bodyMat, size: v.size })
+        .then((loaded) => { if (props) props.replaceVehicle(v.kind, loaded); })
+        .catch((e) => console.warn(`${v.file} unavailable, keeping the built-in one:`, e.message));
+    }
     mapBox.setFromObject(mapRoot);
 
     /* The walkable surface is NOT mapBox. The tree mesh hangs 38 m below street
