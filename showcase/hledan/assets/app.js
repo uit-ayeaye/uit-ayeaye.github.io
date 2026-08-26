@@ -31,9 +31,14 @@ const UA = navigator.userAgent;
 /* Elbaf's own probe, including the ?touch escape hatch it ships so the mobile
    UI can be exercised on a desktop. matchMedia('hover:none') misses hybrids
    and anything with both a trackpad and a touchscreen. */
-const IS_TOUCH = new URLSearchParams(location.search).has('touch')
-  || 'ontouchstart' in window
-  || navigator.maxTouchPoints > 0;
+/* ?touch=1 forces the mobile UI on a desktop, ?touch=0 forces the desktop UI on
+   a touch device — and on anything that merely *reports* touch. Chrome's
+   headless/embedded views claim maxTouchPoints 5, so without the off switch the
+   desktop layout cannot be exercised in automation at all. */
+const TOUCH_PARAM = new URLSearchParams(location.search).get('touch');
+const IS_TOUCH = TOUCH_PARAM === null
+  ? ('ontouchstart' in window || navigator.maxTouchPoints > 0)
+  : TOUCH_PARAM !== '0' && TOUCH_PARAM !== 'false';
 const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function probeDevice() {
@@ -607,10 +612,17 @@ const CHIP_SLOTS = ['strike', 'sustain', 'heavy', 'dash', 'ult', 'gear', 'guard'
 function refreshMoveChips() {
   const def = (play.chr && play.chr.def) || CHARACTERS[play.index];
   const kit = MOVES[def.style] || {};
+  /* Short name plus the key, the way Elbaf labels them. "Gum-Gum Pistol" and
+     six siblings are wider than a laptop window, so the row wrapped four deep
+     and buried the view; the full name still arrives in the banner on cast and
+     in the tooltip. */
   document.querySelectorAll('.movechip[data-move]').forEach((b) => {
     const mv = kit[b.dataset.move];
-    b.textContent = mv ? mv.name : '—';
     b.classList.toggle('absent', !mv);
+    if (!mv) { b.textContent = '—'; b.removeAttribute('title'); return; }
+    b.innerHTML = `<kbd>${mv.key.replace(/^Key/, '')}</kbd>${mv.short || mv.name}`;
+    b.title = mv.name;
+    b.setAttribute('aria-label', mv.name);
   });
   // pad buttons keep their glyph but get the move name for screen readers
   document.querySelectorAll('.pad-btn[data-move]').forEach((b) => {

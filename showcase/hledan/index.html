@@ -274,20 +274,29 @@
       }
 
       #kit {
-        position: absolute; left: 14px; bottom: calc(max(16px, env(safe-area-inset-bottom)) + 96px);
-        display: none; gap: 6px;
-        /* Seven moves is wider than a narrow desktop window; wrap upward rather
-           than running off the right edge. */
-        flex-wrap: wrap-reverse; max-width: calc(100vw - 28px);
+        position: absolute; left: 50%; transform: translateX(-50%);
+        bottom: calc(max(16px, env(safe-area-inset-bottom)) + 92px);
+        display: none; gap: 4px;
+        /* Centred over the dock and allowed to wrap upward if a window really is
+           too narrow, but with short labels it is one row down to about 620px. */
+        flex-wrap: wrap-reverse; justify-content: center;
+        max-width: calc(100vw - 24px);
       }
       body.playing #kit { display: flex; }
       .movechip {
         position: relative; overflow: hidden;
+        display: inline-flex; align-items: center; gap: 5px;
         appearance: none; border: 1px solid #ffffff1f; cursor: pointer;
-        font: inherit; font-size: 11px; font-weight: 600; letter-spacing: .02em;
+        font: inherit; font-size: 10.5px; font-weight: 600; letter-spacing: .02em;
         color: #dbe6f6; background: #101a2ecc; backdrop-filter: blur(10px);
-        padding: 6px 11px; border-radius: 8px; white-space: nowrap;
+        padding: 5px 9px; border-radius: 7px; white-space: nowrap;
       }
+      .movechip kbd {
+        font: inherit; font-size: 8.5px; font-weight: 700; line-height: 1;
+        color: #8fa6c8; background: #ffffff14; border: 1px solid #ffffff1a;
+        border-radius: 3px; padding: 2px 3.5px; min-width: 11px; text-align: center;
+      }
+      .movechip.cooling kbd { color: #5a6a86; }
       /* cooldown drains left-to-right using a single custom property the loop
          writes; no extra element, no layout thrash */
       .movechip::after {
