@@ -27,6 +27,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { WORLD_SCALE as S } from './character.js';
+import { ObstacleField } from './obstacles.js';
 
 /* ---------------------------------------------------------------- anchors */
 /* [x, y, z] for pavement props; [x, y, z, yaw] for vehicles, where yaw is the
@@ -643,6 +644,20 @@ export class StreetProps {
     for (const mesh of this.meshes) this.group.add(mesh);
 
     if (tier === 'hi') this.group.add(this._cables(rng));
+
+    /* Solid footprints, so none of this can be walked through. Vehicles use
+       their real dimensions rotated to the road; pavement props get a square
+       roughly the size of the thing you would actually bump into — the tea
+       shop's tarp is 3.2 m across but its poles and stools are what stop you,
+       so it is deliberately smaller than the canopy. */
+    this.obstacles = new ObstacleField();
+    this.obstacles.add(busRows,  m(2.50), m(11.5), m(3.2));
+    this.obstacles.add(taxiRows, m(1.78), m(4.40), m(1.6));
+    this.obstacles.add(TEA,   m(2.6), m(2.6), m(2.3));
+    this.obstacles.add(STALL, m(1.5), m(1.1), m(2.2));
+    this.obstacles.add(POT,   m(1.1), m(0.5), m(1.5));
+    this.obstacles.add(POLE,  m(0.4), m(0.4), m(8.0), 1);
+    this.obstacles.build();
 
     scene.add(this.group);
   }

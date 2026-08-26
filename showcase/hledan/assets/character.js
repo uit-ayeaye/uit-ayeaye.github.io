@@ -407,8 +407,11 @@ export class Character {
 /* -------------------------------------------------------------- controller */
 
 export class CharacterController {
-  constructor(nav) {
+  constructor(nav, obstacles = null) {
     this.nav = nav;
+    /* Props and vehicles are added on top of the baked map, so the navmap knows
+       nothing about them. Without this you can walk through a bus. */
+    this.obstacles = obstacles;
     this.pos = new THREE.Vector3();
     this.vel = new THREE.Vector3();
     this.facing = 0;
@@ -512,9 +515,10 @@ export class CharacterController {
     return this;
   }
 
-  /** Open cell, and not a step taller than a kerb. */
+  /** Open cell, nothing solid parked in it, and not a step taller than a kerb. */
   _canStand(x, z, fromY) {
     if (this.nav.bodyBlocked(x, z)) return false;
+    if (this.obstacles && this.obstacles.blocked(x, z, BODY_RADIUS, fromY)) return false;
     const y = this.nav.heightAt(x, z);
     if (y === null) return false;
     return this.grounded ? (y - fromY) <= STEP_UP : true;

@@ -565,7 +565,7 @@ async function enterPlay() {
   controls.enabled = false;
   controls.autoRotate = false;
 
-  if (!play.ctrl) play.ctrl = new CharacterController(play.nav);
+  if (!play.ctrl) play.ctrl = new CharacterController(play.nav, props ? props.obstacles : null);
   if (!play.combat) play.combat = new Combat(scene, DEVICE.tier);
   const c = coreBox.getCenter(new THREE.Vector3());
   play.ctrl.placeAt(c.x, c.z);
