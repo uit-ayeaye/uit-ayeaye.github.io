@@ -717,8 +717,14 @@ function updatePlay(dt) {
   play.combat.update(dt, c0);
 
   play.chr.root.position.set(c0.pos.x, c0.pos.y, c0.pos.z);
-  play.chr.root.rotation.y = c0.facing;
-  play.chr.setGait(c0.gait(), c0.speedXZ);
+  /* How fast the facing is swinging, for the bank into turns. Wrapped, or a
+     pass through +-PI reads as a violent turn and throws the body on its side. */
+  let turn = c0.facing - (play._lastFacing === undefined ? c0.facing : play._lastFacing);
+  turn = Math.atan2(Math.sin(turn), Math.cos(turn)) / Math.max(dt, 1e-4);
+  play._lastFacing = c0.facing;
+
+  play.chr.setLocomotion(dt, c0.speedXZ, def.speed, c0.grounded);
+  play.chr.setBody(dt, c0.speedXZ, def.speed, c0.grounded, c0.facing, turn);
   play.chr.setMove(play.combat.pose);
   play.chr.update(dt);
 

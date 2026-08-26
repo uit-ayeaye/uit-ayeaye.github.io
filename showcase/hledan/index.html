@@ -273,25 +273,24 @@
         opacity: 0; transition: opacity .12s linear; pointer-events: none; white-space: nowrap;
       }
 
+      /* Both kits are columns down the edges, not a row across the bottom. The
+         middle of the frame is where the character is and where a screen
+         recording wants to look; a bar of chips through it is the one thing
+         guaranteed to be in shot. Attacks left, states right. */
       #kit {
-        position: absolute; left: 50%; transform: translateX(-50%);
-        bottom: calc(max(16px, env(safe-area-inset-bottom)) + 92px);
-        display: none; gap: 4px;
-        /* Centred over the dock and allowed to wrap upward if a window really is
-           too narrow, but with short labels it is one row down to about 620px. */
-        flex-wrap: wrap-reverse; justify-content: center;
-        max-width: calc(100vw - 24px);
-      }
-      body.playing #kit { display: flex; }
-
-      /* Gear Second and Haki are toggled states, not swings, so they sit out of
-         the attack row — stacked in the free strip on the left, mirroring the
-         weather chips on the right. Keeping them out also stops the attack row
-         wrapping to two lines on a laptop window. */
-      #kitState {
         position: absolute; left: 14px;
         bottom: calc(max(16px, env(safe-area-inset-bottom)) + 92px);
         display: none; flex-direction: column; gap: 4px; align-items: flex-start;
+      }
+      body.playing #kit { display: flex; }
+
+      /* Gear Second and Haki are toggled states rather than swings, so they get
+         their own column on the right, under the weather chips. */
+      #kitState {
+        position: absolute; right: 14px;
+        /* clear of the info button, which owns the corner just above the dock */
+        bottom: calc(max(16px, env(safe-area-inset-bottom)) + 110px);
+        display: none; flex-direction: column; gap: 4px; align-items: flex-end;
       }
       body.playing #kitState { display: flex; }
       body.touch #kitState { display: none !important; }   /* the pad has them */

@@ -53,7 +53,7 @@ import { clone as skeletonClone } from 'three/addons/utils/SkeletonUtils.js';
 export const WORLD_SCALE = 1.5;
 
 const GRAVITY      = -18 * WORLD_SCALE;
-const SPRINT_MULT  = 1.75;                    // ratio — unscaled
+export const SPRINT_MULT = 1.75;                    // ratio — unscaled
 const ACCEL_GROUND = 14;                      // 1/s — unscaled
 const ACCEL_AIR    = 14 * 0.35;
 const BODY_HEIGHT  = 1.7 * WORLD_SCALE;
@@ -219,7 +219,24 @@ export class Character {
     this.actions = actions;
     this.modelHeight = height;
     this.current = 'idle';
-    actions.idle.play();
+    /* All three clips run at once and are mixed by weight, the way Elbaf does
+       it. Cross-fading between them discretely is what made the transitions
+       read as snaps: at Luffy's 5.6 m/s the walk clip was pinned at its
+       timeScale ceiling and the run clip never came in until you sprinted. */
+    for (const name of ['idle', 'walk', 'run']) {
+      const a = actions[name];
+      if (!a) continue;
+      a.reset().play();
+      a.setEffectiveWeight(name === 'idle' ? 1 : 0);
+    }
+    this._idleW = 1; this._runW = 0;
+    this._lean = 0; this._bank = 0; this._prevSpeed = 0;
+    this._t = 0;                // setBody reads this and runs before update()
+    /* Run and walk clips are different lengths, so the run has to be sped up by
+       their ratio or the two slide out of phase while blended and the feet
+       stutter. */
+    this._durRatio = (actions.walk && actions.run && actions.run.getClip().duration)
+      ? actions.walk.getClip().duration / actions.run.getClip().duration : 1;
 
     /* Resolved once. Everything the pose layer does is a rotation added to
        whatever the mixer just wrote onto these same bones. */
@@ -314,17 +331,70 @@ export class Character {
   }
 
   /** Crossfade on state change; scale run/walk playback to the actual speed. */
-  setGait(name, speed) {
-    if (name !== this.current) {
-      const from = this.actions[this.current], to = this.actions[name];
-      to.reset().setEffectiveWeight(1).play();
-      from.crossFadeTo(to, 0.18, false);
-      this.current = name;
-    }
-    // keep feet roughly in sync with ground travel instead of skating
-    const s = speed / WORLD_SCALE;   // compare in metres, the units the clips were authored in
-    if (name === 'walk') this.actions.walk.timeScale = THREE.MathUtils.clamp(s / 2.2, 0.55, 1.9);
-    else if (name === 'run') this.actions.run.timeScale = THREE.MathUtils.clamp(s / 5.6, 0.6, 1.7);
+  /**
+   * Elbaf's locomotion mixer, ported.
+   *
+   *   run blend   clamp((speed - max*0.55) / (max*0.5), 0, 1)
+   *   idle weight damped toward 0 while moving, 1 while still
+   *   timeScale   clamp(speed / 2.6, 0.3, 2.2), quartered in the air
+   *
+   * The run blend is what was missing. Luffy's base speed is 5.6 m/s, which is
+   * a run, but the old gait switch only reached the run clip past 6.6 — so
+   * ordinary movement played the walk clip pinned at its timeScale ceiling,
+   * feet skating, and sprinting snapped rather than building.
+   *
+   * @param speed    horizontal speed in map units per second
+   * @param baseSpeed this character's *un-sprinted* speed, same units. Elbaf
+   *        feeds its own `maxSpeed` here and that is the base figure, not the
+   *        sprint one — which matters: against the sprint speed the run blend
+   *        only reaches 0.04 at a walk, so ordinary movement stayed on the walk
+   *        clip. Against base it reaches 0.9, which is right, because 5.6 m/s
+   *        is a run.
+   */
+  setLocomotion(dt, speed, baseSpeed, grounded = true) {
+    const A = this.actions;
+    const s = speed / WORLD_SCALE;                 // clips were authored in metres
+    const max = Math.max(0.001, baseSpeed / WORLD_SCALE);
+
+    const runW = THREE.MathUtils.clamp((s - max * 0.55) / (max * 0.5), 0, 1);
+    const moving = s > 0.25;
+    // idle eases out fast and back in slower, as Elbaf does
+    const rate = moving ? 14 : 7;
+    this._idleW += ((moving ? 0 : 1) - this._idleW) * (1 - Math.exp(-rate * dt));
+    this._runW += (runW - this._runW) * (1 - Math.exp(-12 * dt));
+
+    const loco = 1 - this._idleW;
+    const ts = THREE.MathUtils.clamp(s / 2.6, 0.3, 2.2) * (grounded ? 1 : 0.25);
+    if (A.idle) A.idle.setEffectiveWeight(this._idleW);
+    if (A.walk) { A.walk.setEffectiveWeight(loco * (1 - this._runW)); A.walk.timeScale = ts; }
+    if (A.run) { A.run.setEffectiveWeight(loco * this._runW); A.run.timeScale = ts * this._durRatio; }
+    this.current = this._runW > 0.5 ? 'run' : (moving ? 'walk' : 'idle');
+  }
+
+  /**
+   * Lean, bob and bank — Elbaf's, and most of why its movement reads as weight
+   * rather than a model being slid along the ground.
+   *
+   *   forward lean grows with speed, plus a kick from acceleration
+   *   a small bob whose frequency rises with speed
+   *   a bank into the turn, scaled out at low speed so standing still is level
+   *
+   * Applied in YXZ order so it composes with the facing yaw the caller sets.
+   */
+  setBody(dt, speed, baseSpeed, grounded, facing, turnRate) {
+    const s = speed / WORLD_SCALE;
+    const max = Math.max(0.001, baseSpeed / WORLD_SCALE);
+    const k = THREE.MathUtils.clamp(s / (max * 1.6), 0, 1);
+    const accel = (s - this._prevSpeed) / Math.max(dt, 1e-4);
+    this._prevSpeed = s;
+
+    let want = grounded ? k * 0.14 + THREE.MathUtils.clamp(accel * 0.01, -0.06, 0.08) : -0.07;
+    if (grounded && k > 0.05) want += Math.sin(this._t * (4 + s * 1.6)) * 0.02 * k;
+    const bank = THREE.MathUtils.clamp(-turnRate * 0.06, -0.16, 0.16) * Math.min(1, s / 2.5);
+
+    this._lean += (want - this._lean) * (1 - Math.exp(-7 * dt));
+    this._bank += (bank - this._bank) * (1 - Math.exp(-7 * dt));
+    this.root.rotation.set(this._lean, facing, this._bank, 'YXZ');
   }
 
   /** @param pose {id, t, dur} from Combat, or null */
@@ -335,6 +405,7 @@ export class Character {
   }
 
   update(dt) {
+    this._t = (this._t || 0) + dt;
     this.mixer.update(dt);
     this._applyPose(dt);
   }
