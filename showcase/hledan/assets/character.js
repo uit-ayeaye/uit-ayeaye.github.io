@@ -220,6 +220,13 @@ export class Character {
     this.modelHeight = height;
     this.current = 'idle';
     actions.idle.play();
+
+    /* Resolved once. Everything the pose layer does is a rotation added to
+       whatever the mixer just wrote onto these same bones. */
+    this.bones = bindBones(root);
+    this._pose = null;          // {id, k} — k is 0..1 through the move
+    this._blend = 0;            // eased so a move does not snap on and off
+    this._rest = new Map();     // each posed bone's animated rotation, per frame
   }
 
   static async load(def, base = 'models/chars/', tier = 'hi') {
@@ -320,7 +327,76 @@ export class Character {
     else if (name === 'run') this.actions.run.timeScale = THREE.MathUtils.clamp(s / 5.6, 0.6, 1.7);
   }
 
-  update(dt) { this.mixer.update(dt); }
+  /** @param pose {id, t, dur} from Combat, or null */
+  setMove(pose) {
+    this._pose = pose && MOVE_POSES[pose.id]
+      ? { id: pose.id, k: Math.min(1, pose.t / pose.dur) }
+      : null;
+  }
+
+  update(dt) {
+    this.mixer.update(dt);
+    this._applyPose(dt);
+  }
+
+  /**
+   * Add the move's pose on top of the clip.
+   *
+   * Order matters: the mixer overwrites bone rotations wholesale every frame,
+   * so this has to run after it, and it has to add to what the mixer wrote
+   * rather than assign — otherwise the arm snaps to a fixed angle and the walk
+   * cycle stops existing from the shoulders up.
+   *
+   * The envelope is sin(k*PI): out and back inside the move's own duration, so
+   * a punch travels and returns instead of holding at full extension. That is
+   * the same shape Elbaf uses for its rubber-stretch term.
+   */
+  _applyPose(dt) {
+    const p = this._pose;
+    const table = p ? MOVE_POSES[p.id] : null;
+    if (table) this._table = table;            // keep it for the release
+
+    const want = table ? Math.sin(Math.min(1, p.k) * Math.PI) : 0;
+    // ease so releasing a hold move relaxes rather than cuts
+    this._blend += (want - this._blend) * (1 - Math.exp(-18 * dt));
+
+    /* The blend outlives the move: when the pose ends it decays from wherever
+       it was, and the *previous* table has to keep being applied while it does.
+       Returning early here instead left the rubber arm frozen at whatever
+       length it happened to be when the move ended. */
+    const t = this._table;
+    if (!t || this._blend < 0.002) {
+      if (this._blend < 0.002) { this._blend = 0; this._table = null; this._clearStretch(); }
+      return;
+    }
+    const w = this._blend;
+
+    for (const key in t) {
+      if (key === 'stretch' || key === 'puff') continue;
+      const bone = this.bones[key];
+      if (!bone) continue;
+      const [rx, ry, rz] = t[key];
+      bone.rotation.x += rx * w;
+      bone.rotation.y += ry * w;
+      bone.rotation.z += rz * w;
+    }
+
+    /* The rubber term. Scaling a bone stretches every bone under it, so only
+       the upper arm is touched and the forearm inherits the reach. Assigned
+       every frame, never accumulated, so it tracks the blend down as well as up. */
+    const arm = this.bones.armR;
+    if (arm) arm.scale.y = t.stretch ? 1 + (t.stretch - 1) * w : 1;
+    const chest = this.bones.chest;
+    if (chest) {
+      const g = t.puff ? 1 + 0.55 * w : 1;
+      chest.scale.set(g, g, g);
+    }
+  }
+
+  _clearStretch() {
+    if (this.bones.armR) this.bones.armR.scale.set(1, 1, 1);
+    if (this.bones.chest) this.bones.chest.scale.set(1, 1, 1);
+  }
 
   dispose() {
     this.mixer.stopAllAction();
@@ -457,6 +533,108 @@ export class CharacterController {
     return this._gait;
   }
 }
+
+
+/* ------------------------------------------------------------------- rig */
+
+/**
+ * Semantic bone binding, ported from Elbaf.
+ *
+ * These GLBs carry only three clips — idle, walk, run — and so does Elbaf's
+ * build; there is no attack animation in either showcase to play. What Elbaf
+ * has that this did not is a *pose layer*: it resolves the rig's bones to
+ * semantic names once at load, then rotates them on top of whatever the mixer
+ * just wrote. That is why a move there looks like the character throwing it and
+ * a move here looked like the character standing still while an effect went off.
+ *
+ * Bone names cannot be trusted — the same rig ships as `mixamorig:LeftArm`,
+ * `Bip01_L_UpperArm` or `upper_arm.L` depending on who exported it — so the
+ * name is normalised and matched against patterns, longest-specific first, with
+ * a guard that stops a left pattern claiming a right bone.
+ */
+const normBone = (n) => n.toLowerCase()
+  .replace(/^mixamorig:?/, '').replace(/^bip\d*_?/, '').replace(/[\s_.\-:]/g, '');
+const RE_L = /left|\bl$/;
+const RE_R = /right|\br$/;
+
+const BONE_PATTERNS = [
+  ['head',      [/^head$/, /^head[^fe]/]],
+  ['neck',      [/^neck/]],
+  ['chest',     [/upperchest/, /^chest/, /spine0?2/, /spine0?3/]],
+  ['spine',     [/spine0?1/, /^spine$/]],
+  ['hips',      [/^hips?$/, /pelvis/, /^root$/]],
+  ['shoulderL', [/leftshoulder/, /shoulderl$/, /lclavicle/]],
+  ['shoulderR', [/rightshoulder/, /shoulderr$/, /rclavicle/]],
+  ['armL',      [/leftarm$/, /leftupperarm/, /upperarml$/]],
+  ['armR',      [/rightarm$/, /rightupperarm/, /upperarmr$/]],
+  ['foreArmL',  [/leftforearm/, /leftlowerarm/, /forearml$/]],
+  ['foreArmR',  [/rightforearm/, /rightlowerarm/, /forearmr$/]],
+  ['handL',     [/lefthand$/, /handl$/]],
+  ['handR',     [/righthand$/, /handr$/]],
+  ['upLegL',    [/leftupleg/, /leftthigh/, /upperlegl$/]],
+  ['upLegR',    [/rightupleg/, /rightthigh/, /upperlegr$/]],
+  ['legL',      [/leftleg$/, /leftcalf/, /leftshin/]],
+  ['legR',      [/rightleg$/, /rightcalf/, /rightshin/]],
+  ['footL',     [/leftfoot/, /footl$/]],
+  ['footR',     [/rightfoot/, /footr$/]],
+];
+
+function bindBones(root) {
+  const all = [];
+  root.traverse((o) => { if (o.isBone) all.push(o); });
+  const found = {};
+  const taken = new Set();
+  for (const [key, patterns] of BONE_PATTERNS) {
+    for (const re of patterns) {
+      if (found[key]) break;
+      for (const bone of all) {
+        if (taken.has(bone)) continue;
+        const n = normBone(bone.name);
+        if (!re.test(n)) continue;
+        if (key.endsWith('L') && RE_R.test(n)) continue;
+        if (key.endsWith('R') && RE_L.test(n)) continue;
+        found[key] = bone; taken.add(bone); break;
+      }
+    }
+  }
+  return found;
+}
+
+/**
+ * What each move does to the body, as offsets in radians on the bones above.
+ *
+ * Authored rather than decompiled: Elbaf's own pose data lives inside a
+ * minified weight-blended layer stack that is not worth transcribing by
+ * guesswork, so these reproduce the *shape* of each move — which arm leads,
+ * how far the chest turns — against Elbaf's move list and timings.
+ *
+ * `stretch` is the rubber term: Gum-Gum moves scale the arm along its own
+ * length, which is the one thing that makes Luffy read as Luffy.
+ */
+const MOVE_POSES = {
+  pistol:   { armR: [-1.45, 0, -0.25], foreArmR: [-0.30, 0, 0], chest: [0, -0.45, 0], stretch: 2.6 },
+  gatling:  { armR: [-1.50, 0, -0.20], armL: [-1.35, 0, 0.20], chest: [0, -0.18, 0], stretch: 1.5 },
+  bazooka:  { armR: [-1.55, 0, -0.32], armL: [-1.55, 0, 0.32], chest: [-0.22, 0, 0], stretch: 2.2 },
+  rocket:   { armR: [-1.90, 0, -0.15], chest: [-0.30, -0.20, 0], stretch: 3.0 },
+  gigant:   { armR: [-2.05, 0, -0.40], armL: [-2.05, 0, 0.40], chest: [-0.40, 0, 0], spine: [-0.20, 0, 0], stretch: 1.8 },
+  gear2:    { armR: [0.35, 0, -0.30], armL: [0.35, 0, 0.30], chest: [0.28, 0, 0], head: [-0.20, 0, 0] },
+  haki:     { armR: [-0.95, 0, -0.75], armL: [-0.95, 0, 0.75], foreArmR: [-1.10, 0, 0], foreArmL: [-1.10, 0, 0], chest: [0.18, 0, 0] },
+  balloon:  { armR: [-0.55, 0, -1.05], armL: [-0.55, 0, 1.05], chest: [-0.15, 0, 0], puff: 1 },
+
+  onigiri:  { armR: [-1.70, 0, -0.55], armL: [-1.20, 0, 0.35], chest: [0, -0.62, 0] },
+  tatsumaki:{ armR: [-1.25, 0, -0.95], armL: [-1.25, 0, 0.95], chest: [0, 0.40, 0] },
+  yakkodori:{ armR: [-2.10, 0, -0.30], chest: [-0.25, -0.50, 0] },
+  flashstep:{ armR: [-0.40, 0, -0.20], chest: [0.20, -0.30, 0] },
+  sanzen:   { armR: [-1.85, 0, -0.65], armL: [-1.85, 0, 0.65], chest: [-0.28, 0, 0] },
+  asura:    { armR: [-1.10, 0, -0.90], armL: [-1.10, 0, 0.90], chest: [0.20, 0, 0] },
+
+  zap:      { armR: [-1.60, 0, -0.30], chest: [0, -0.30, 0] },
+  sizzle:   { armR: [-1.55, 0, -0.25], chest: [0, -0.20, 0] },
+  tempo:    { armR: [-2.15, 0, -0.20], chest: [-0.30, 0, 0], head: [-0.25, 0, 0] },
+  gust:     { armR: [-1.30, 0, -0.70], armL: [-1.30, 0, 0.70], chest: [0, 0.25, 0] },
+  storm:    { armR: [-2.25, 0, -0.25], armL: [-2.25, 0, 0.25], chest: [-0.35, 0, 0], head: [-0.30, 0, 0] },
+  mirage:   { armR: [-0.80, 0, -0.60], armL: [-0.80, 0, 0.60], chest: [0.15, 0, 0] },
+};
 
 /* ------------------------------------------------------------ chase camera */
 

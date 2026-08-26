@@ -32,6 +32,8 @@ const S = WORLD_SCALE;
  * Nami    has no Elbaf moveset (she is an NPC there), so her staff kit is new
  *         work mapped onto the same slots.
  */
+/* Elbaf's own cooldown table, verbatim: {bazooka: 1.1, gigant: 6, haki: 12,
+   gear2: 5}. Bazooka was 2.10 here and Haki 9.00 — both now match. */
 export const GEAR2_DUR = 8, GEAR2_CD = 5, GEAR2_SPEED = 1.4, GEAR2_JUMP = 1.12;
 export const GATLING_SLOW = 0.35, BALLOON_SLOW = 0.55;
 export const ROLL_DUR = 0.5, ROLL_SPEED = 13;
@@ -40,11 +42,11 @@ export const MOVES = {
   rubber: {
     strike:  { id: 'pistol',  name: 'Gum-Gum Pistol', short: 'Pistol',   key: 'KeyQ', cd: 0.42, range: 34 * S, kind: 'beam',   color: 0xffd9a0, shake: 0.16 },
     sustain: { id: 'gatling', name: 'Gum-Gum Gatling', short: 'Gatling',  key: 'KeyF', cd: 0.10, range: 22 * S, kind: 'beam',   color: 0xffe0b0, shake: 0.06, hold: true, slow: GATLING_SLOW },
-    heavy:   { id: 'bazooka', name: 'Gum-Gum Bazooka', short: 'Bazooka',  key: 'KeyR', cd: 2.10, range: 40 * S, kind: 'blast',  color: 0xffb56b, shake: 0.55 },
+    heavy:   { id: 'bazooka', name: 'Gum-Gum Bazooka', short: 'Bazooka',  key: 'KeyR', cd: 1.10, range: 40 * S, kind: 'blast',  color: 0xffb56b, shake: 0.55 },
     dash:    { id: 'rocket',  name: 'Gum-Gum Rocket', short: 'Rocket',   key: 'KeyE', cd: 1.30, range: 60 * S, kind: 'pull',   color: 0xfff0c0, shake: 0.22 },
     ult:     { id: 'gigant',  name: 'Gum-Gum Gigant', short: 'Gigant',   key: 'KeyT', cd: 6.00, range: 46 * S, kind: 'giant',  color: 0xffc27a, shake: 0.85 },
     gear:    { id: 'gear2',   name: 'Gear Second', short: 'Gear 2',      key: 'KeyG', cd: GEAR2_CD, range: 0,   kind: 'gear2',  color: 0xff6a4a, shake: 0.30, dur: GEAR2_DUR },
-    guard:   { id: 'haki',    name: 'Armament Haki', short: 'Haki',    key: 'KeyH', cd: 9.00, range: 0,       kind: 'haki',   color: 0x2b2f3a, shake: 0.25, dur: 6 },
+    guard:   { id: 'haki',    name: 'Armament Haki', short: 'Haki',    key: 'KeyH', cd: 12.00, range: 0,       kind: 'haki',   color: 0x2b2f3a, shake: 0.25, dur: 6 },
     float:   { id: 'balloon', name: 'Gum-Gum Balloon', short: 'Balloon',  key: 'KeyV', cd: 0.10, range: 0,       kind: 'balloon',color: 0xffd9a0, shake: 0,    hold: true, slow: BALLOON_SLOW },
   },
   sword: {
@@ -53,7 +55,7 @@ export const MOVES = {
     heavy:   { id: 'yakkodori', name: 'Yakkodori', short: 'Yakkodori',      key: 'KeyR', cd: 1.60, range: 52 * S, kind: 'wave',   color: 0xd6f6ff, shake: 0.34 },
     dash:    { id: 'flashstep', name: 'Flash Step', short: 'Flash Step',     key: 'KeyE', cd: 1.15, range: 30 * S, kind: 'blink',  color: 0xe8fbff, shake: 0.18 },
     ult:     { id: 'sanzen',    name: 'Sanzen Sekai', short: 'Sanzen',   key: 'KeyT', cd: 2.30, range: 16 * S, kind: 'triarc', color: 0xc9f4ff, shake: 0.60 },
-    guard:   { id: 'asura',     name: 'Asura', short: 'Asura',          key: 'KeyH', cd: 9.00, range: 0,      kind: 'haki',   color: 0x1d2430, shake: 0.35, dur: 6 },
+    guard:   { id: 'asura',     name: 'Asura', short: 'Asura',          key: 'KeyH', cd: 12.00, range: 0,      kind: 'haki',   color: 0x1d2430, shake: 0.35, dur: 6 },
   },
   staff: {
     strike:  { id: 'zap',    name: 'Thunder Ball', short: 'Ball',      key: 'KeyQ', cd: 0.50, range: 40 * S, kind: 'bolt',   color: 0xbfe4ff, shake: 0.12 },
@@ -61,7 +63,7 @@ export const MOVES = {
     heavy:   { id: 'tempo',  name: 'Thunderbolt Tempo', short: 'Bolt', key: 'KeyR', cd: 2.60, range: 55 * S, kind: 'strike', color: 0xdff2ff, shake: 0.70 },
     dash:    { id: 'gust',   name: 'Cyclone Tempo', short: 'Cyclone',     key: 'KeyE', cd: 1.20, range: 26 * S, kind: 'gust',   color: 0xd8f0e8, shake: 0.18 },
     ult:     { id: 'storm',  name: 'Thunder Tempo', short: 'Storm',     key: 'KeyT', cd: 6.00, range: 55 * S, kind: 'storm',  color: 0xeaf6ff, shake: 0.80 },
-    guard:   { id: 'mirage', name: 'Mirage Tempo', short: 'Mirage',      key: 'KeyH', cd: 9.00, range: 0,      kind: 'haki',   color: 0x4a5a70, shake: 0.20, dur: 6 },
+    guard:   { id: 'mirage', name: 'Mirage Tempo', short: 'Mirage',      key: 'KeyH', cd: 12.00, range: 0,      kind: 'haki',   color: 0x4a5a70, shake: 0.20, dur: 6 },
   },
 };
 
@@ -94,6 +96,8 @@ export class Combat {
     this.holdSlow = 1;             // move-speed multiplier while a hold move fires
     this.roll = null;              // {t, dir}
     this.blink = null;             // Flash Step target
+    this.pose = null;              // {id, t, dur} — drives the character's limbs
+    this.hitStop = 0;              // seconds of freeze owed to the frame loop
 
     const g = new THREE.Group();
     g.frustumCulled = false;
@@ -161,6 +165,17 @@ export class Combat {
     this.shake = Math.min(1.2, this.shake + mv.shake);
     this.banner = mv.name;
     this.bannerT = 1.15;
+
+    /* What the body should be doing. A hold move keeps the pose up for as long
+       as it is held rather than playing a single swing, so its window is short
+       and simply re-armed on every repeat cast. */
+    this.pose = { id: mv.id, t: 0, dur: mv.hold ? 0.20 : (mv.dur ? 0.45 : 0.38) };
+
+    /* Hit stop, Elbaf's. The heaviest moves freeze everything for a beat on the
+       frame they land, which is most of why they feel heavy — a big number with
+       no pause in front of it just reads as a bigger number. */
+    if (mv.kind === 'giant' || mv.kind === 'storm') this.hitStop = Math.max(this.hitStop, 0.10);
+    else if (mv.kind === 'blast' || mv.kind === 'triarc' || mv.kind === 'strike') this.hitStop = Math.max(this.hitStop, 0.06);
 
     const reach = hit ? Math.min(hit.distance, mv.range) : mv.range;
     const end = origin.clone().addScaledVector(aim, reach);
@@ -301,6 +316,10 @@ export class Combat {
   update(dt, ctrl) {
     for (const k in this.cd) if (this.cd[k] > 0) this.cd[k] = Math.max(0, this.cd[k] - dt);
     this.shake = Math.max(0, this.shake - dt * 2.6);
+    if (this.pose) {
+      this.pose.t += dt;
+      if (this.pose.t >= this.pose.dur) this.pose = null;
+    }
     if (this.gear2 > 0) this.gear2 = Math.max(0, this.gear2 - dt);
     if (this.haki > 0) this.haki = Math.max(0, this.haki - dt);
     if (this.skyFlash > 0) this.skyFlash = Math.max(0, this.skyFlash - dt * 2);

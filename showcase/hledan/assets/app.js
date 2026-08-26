@@ -704,6 +704,7 @@ function updatePlay(dt) {
   play.chr.root.position.set(c0.pos.x, c0.pos.y, c0.pos.z);
   play.chr.root.rotation.y = c0.facing;
   play.chr.setGait(c0.gait(), c0.speedXZ);
+  play.chr.setMove(play.combat.pose);
   play.chr.update(dt);
 
   play.cam.update(dt, camera, c0, play.nav, sprint && c0.speedXZ > 3 * WORLD_SCALE, occlusionGrid);
@@ -1129,16 +1130,28 @@ function loop(now) {
   if (!running) return;
   requestAnimationFrame(loop);
   const frameMs = now - last;
-  const dt = Math.min(frameMs / 1000, 0.1);
+  let dt = Math.min(frameMs / 1000, 0.1);
+  const realDt = dt;                       // unfrozen, for anything hit stop must not touch
   last = now;
+
+  /* Hit stop. A heavy move buys a few hundredths of a second in which the world
+     stops moving, which is most of why it lands heavy — a big effect with no
+     pause in front of it just reads as a bigger effect. Weather, sound and the
+     spin keep their real dt: freezing the rain and cutting the audio would give
+     the pause away as a stutter rather than an impact. */
+  if (play.on && play.combat && play.combat.hitStop > 0) {
+    const bite = Math.min(play.combat.hitStop, dt);
+    play.combat.hitStop -= bite;
+    dt = Math.max(0, dt - bite);
+  }
 
   if (play.on && play.ctrl && play.chr) updatePlay(dt);
   else if (walk.on) updateWalk(dt);
   else controls.update();
 
   if (play.on && play.combat) paintCombatHud();
-  if (weather) weather.update(dt, camera);
-  if (sound.enabled) sound.update(dt, camera.position, { rain: weather ? weather.cur.rain : 0, flash: weather ? weather.flash : 0,
+  if (weather) weather.update(realDt, camera);
+  if (sound.enabled) sound.update(realDt, camera.position, { rain: weather ? weather.cur.rain : 0, flash: weather ? weather.flash : 0,
       traffic: weather ? weather.cur.traffic : 1 });
   sky.position.copy(camera.position);
   skirt.position.x = camera.position.x;
