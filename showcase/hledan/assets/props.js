@@ -295,6 +295,59 @@ function poleGeo() {
   return merge(parts, 'pole');
 }
 
+/**
+ * The lamps a vehicle carries, as their own geometry so they can be driven to
+ * full brightness at night without the bodywork coming with them. Built on the
+ * same transform list as the vehicle, from an identically seeded PRNG.
+ *
+ * This is most of what makes the road read as alive after dark: 84 vehicles is
+ * 84 pairs of headlights and 84 pairs of tail lights, and at a junction this
+ * size that is the whole picture.
+ */
+function busLightsGeo() {
+  return merge([
+    paint(box(0.40, 0.24, 0.06, -0.80, 0.98, 5.86), 0xfff0c8),
+    paint(box(0.40, 0.24, 0.06,  0.80, 0.98, 5.86), 0xfff0c8),
+    paint(box(0.34, 0.22, 0.06, -0.80, 1.02, -5.86), 0xff5a3c),
+    paint(box(0.34, 0.22, 0.06,  0.80, 1.02, -5.86), 0xff5a3c),
+  ], 'bus lights');
+}
+
+function taxiLightsGeo() {
+  return merge([
+    paint(box(0.34, 0.18, 0.05, -0.62, 0.76, 2.31), 0xfff0c8),
+    paint(box(0.34, 0.18, 0.05,  0.62, 0.76, 2.31), 0xfff0c8),
+    paint(box(0.28, 0.22, 0.05, -0.64, 0.88, -2.31), 0xff5a3c),
+    paint(box(0.28, 0.22, 0.05,  0.64, 0.88, -2.31), 0xff5a3c),
+  ], 'taxi lights');
+}
+
+/**
+ * The bare bulb a tea shop runs off a length of flex, and the patch of
+ * pavement it lights. Same trick as the street lamp's pool — the falloff is
+ * baked into the vertex colours, because black adds nothing under additive
+ * blending and a flat disc would read as paint on the ground.
+ */
+function shopBulbGeo() {
+  const bulb = new THREE.SphereGeometry(m(0.10), 7, 5);
+  bulb.translate(0, m(2.05), 0);
+  paint(bulb, 0xffffff);
+
+  const pool = new THREE.CircleGeometry(m(1.35), 12);
+  pool.rotateX(-Math.PI / 2);
+  const pos = pool.attributes.position;
+  const col = new Float32Array(pos.count * 3);
+  let rMax = 0;
+  for (let i = 0; i < pos.count; i++) rMax = Math.max(rMax, Math.hypot(pos.getX(i), pos.getZ(i)));
+  for (let i = 0; i < pos.count; i++) {
+    const v = Math.pow(1 - Math.hypot(pos.getX(i), pos.getZ(i)) / (rMax || 1), 1.6);
+    col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = v;
+  }
+  pool.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  pool.translate(0, m(0.05), 0);
+  return merge([bulb, pool], 'shop bulb');
+}
+
 /** The lit parts, kept apart so they can be driven to full brightness without
     the pole going with them. Sodium-orange: Yangon's street lighting is still
     mostly warm, and it is half of why the city reads the way it does at dusk. */
@@ -312,7 +365,7 @@ function lampLensGeo() {
     no edge to give itself away. A flat-coloured disc reads as a circle of paint
     on the road, which is exactly what it looked like before. */
 function lampGlowGeo() {
-  const disc = new THREE.CircleGeometry(m(3.1), 20);
+  const disc = new THREE.CircleGeometry(m(2.4), 14);
   disc.rotateX(-Math.PI / 2);
   {
     const pos = disc.attributes.position;
@@ -391,6 +444,7 @@ export class StreetProps {
        and leave the other bumper to bumper, because the anchors were generated
        in scan order. */
     const cut = tier === 'hi' ? 1 : 0.55;
+    const BUS_SEED = 0x425553, TAXI_SEED = 0x545849;   // "BUS", "TXI"
     const every = (arr, n) => arr.filter((_, i) => i % n === 0);
     const take = (arr, n = 1) => {
       const thinned = every(arr, n);
@@ -405,9 +459,12 @@ export class StreetProps {
       instanced(b, mk(), rows, null,    mulberry32(seed), jitter),
     ];
 
+    const busRows = take(BUS);
+    const taxiRows = take(TAXI, 2);
+
     this.meshes = [
-      instanced(busGeo(),      mk(), take(BUS),     BUS_COLOURS,  rng, 0.05),
-      instanced(taxiGeo(),     mk(), take(TAXI, 2), TAXI_COLOURS, rng, 0.07),
+      instanced(busGeo(),      mk(), busRows,  BUS_COLOURS,  mulberry32(BUS_SEED),  0.05),
+      instanced(taxiGeo(),     mk(), taxiRows, TAXI_COLOURS, mulberry32(TAXI_SEED), 0.07),
       ...pair(teaTarpGeo(),    teaFrameGeo(),   TEA,   TARP_COLOURS, 0x54454, 0),
       ...pair(stallCanopyGeo(), stallFrameGeo(), STALL, TARP_COLOURS, 0x5741, 0),
       instanced(potStandGeo(), mk(), POT,         null,          rng, 0),
@@ -425,9 +482,38 @@ export class StreetProps {
     this.lampMat = lampMat;
     this.glowMat = glowMat;
     const lamp = instanced(lampLensGeo(), lampMat, POLE, null, mulberry32(0x504C45), 0);
-    const glow = instanced(lampGlowGeo(), glowMat, POLE, null, mulberry32(0x504C45), 0);
-    glow.renderOrder = 3;
-    this.meshes.push(lamp, glow);
+    this.meshes.push(lamp);
+    /* The pools are big additive discs, and additive discs are fill rate — the
+       one thing a phone GPU has least of. The lens and the vehicle lamps are a
+       few pixels each and stay; the pools are a high-tier luxury. */
+    let glow = null;
+    if (tier === 'hi') {
+      glow = instanced(lampGlowGeo(), glowMat, POLE, null, mulberry32(0x504C45), 0);
+      glow.renderOrder = 3;
+      this.meshes.push(glow);
+    }
+
+    /* Vehicle lamps and tea-shop bulbs, on the same transforms as the things
+       they belong to. Additive and unlit, like the street lamps, and driven by
+       the same preset value — after dark the road is mostly these. */
+    const vehMat = new THREE.MeshBasicMaterial({
+      vertexColors: true, transparent: true, opacity: 0,
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    const bulbMat = new THREE.MeshBasicMaterial({
+      vertexColors: true, color: 0xffcf8a, transparent: true, opacity: 0,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+    });
+    this.vehMat = vehMat;
+    this.bulbMat = bulbMat;
+    const busLights = instanced(busLightsGeo(), vehMat, busRows, null, mulberry32(BUS_SEED), 0.05);
+    const taxiLights = instanced(taxiLightsGeo(), vehMat, taxiRows, null, mulberry32(TAXI_SEED), 0.07);
+    const bulbs = instanced(shopBulbGeo(), bulbMat, TEA.concat(STALL), null, mulberry32(0x42554C), 0);
+    busLights.renderOrder = 3; taxiLights.renderOrder = 3; bulbs.renderOrder = 3;
+    this.meshes.push(busLights, taxiLights, bulbs);
+    /* Everything that can be switched off, so setGlow can stop drawing it when
+       the preset has it dark. */
+    this._lit = [lamp, glow, busLights, taxiLights, bulbs].filter(Boolean);
     for (const mesh of this.meshes) this.group.add(mesh);
 
     if (tier === 'hi') this.group.add(this._cables(rng));
@@ -476,10 +562,26 @@ export class StreetProps {
    * than switched, so walking from midday into the storm brings them up the way
    * a real photocell would.
    */
-  setGlow(amount) {
-    const a = Math.max(0, Math.min(1, amount));
+  /**
+   * @param lamps      street lamps and shop bulbs, 0..1 — these are on the grid
+   * @param headlights vehicle lamps, 0..1 — these are not. In a blackout the
+   *                   street is dark and the traffic is still lit, which is
+   *                   exactly what the junction looks like when the power goes.
+   */
+  setGlow(lamps, headlights = lamps) {
+    const a = Math.max(0, Math.min(1, lamps));
+    const h = Math.max(0, Math.min(1, headlights));
     this.lampMat.opacity = a;
     this.glowMat.opacity = a * 0.42;
+    this.bulbMat.opacity = a * 0.9;
+    this.vehMat.opacity = h * 0.95;
+
+    /* A transparent mesh at zero opacity still costs a draw call and, worse,
+       still rasterises every pixel it covers before blending nothing. At midday
+       that is the entire lighting rig drawn for no reason, so switch it off. */
+    for (const mesh of this._lit) {
+      mesh.visible = mesh.material.opacity > 0.012;
+    }
   }
 
   get count() { return this.meshes.reduce((n, mesh) => n + mesh.count, 0); }

@@ -27,7 +27,7 @@ export const PRESETS = {
     sun: 0xfff2d8, sunI: 1.05, sunDir: [-420, 560, 300],
     exposure: 1.0, tint: 0xffffff, skirt: 0xa9b4a2,
     cloud: 0xfdfdfb, cloudAmt: 0.42, cloudSharp: 0.13,
-    rain: 0, wind: 0, lamps: 0, traffic: 1,
+    rain: 0, wind: 0, lamps: 0, traffic: 1, headlights: 0.14,
   },
   evening: {
     label: 'Golden hour',
@@ -42,7 +42,7 @@ export const PRESETS = {
     // sunset light comes from underneath, so the deck lights up warm
     cloud: 0xffcf9a, cloudAmt: 0.60, cloudSharp: 0.17,
     // the lamps are already on before the sun is gone — they always are here
-    rain: 0, wind: 0, lamps: 0.85, traffic: 0.95,
+    rain: 0, wind: 0, lamps: 0.85, traffic: 0.95, headlights: 0.72,
   },
   rain: {
     label: 'Monsoon',
@@ -54,7 +54,7 @@ export const PRESETS = {
     exposure: 0.94, tint: 0x93a3b8, skirt: 0x6e7885,
     // monsoon overcast: near-total cover with soft edges, no blue left
     cloud: 0x6f7885, cloudAmt: 0.96, cloudSharp: 0.30,
-    rain: 1, wind: 0.32, lamps: 0.7, traffic: 0.85,
+    rain: 1, wind: 0.32, lamps: 0.7, traffic: 0.85, headlights: 0.92,
   },
 
   /* ---- the three that are here for memory rather than for weather ---- */
@@ -74,7 +74,7 @@ export const PRESETS = {
     sun: 0x7387b4, sunI: 0.20, sunDir: [-260, 780, 180],   // the moon, barely
     exposure: 1.16, tint: 0x8e9bb6, skirt: 0x161b25,
     cloud: 0x2b3448, cloudAmt: 0.34, cloudSharp: 0.22,
-    rain: 0, wind: 0, lamps: 1.0, traffic: 0.45,
+    rain: 0, wind: 0, lamps: 1.0, traffic: 0.45, headlights: 1.0,
   },
 
   blackout: {
@@ -91,7 +91,7 @@ export const PRESETS = {
     sun: 0x6b7ea8, sunI: 0.14, sunDir: [-260, 780, 180],
     exposure: 1.24, tint: 0x7c869a, skirt: 0x10141c,
     cloud: 0x1b2231, cloudAmt: 0.30, cloudSharp: 0.24,
-    rain: 0, wind: 0, lamps: 0.06, traffic: 0.30,
+    rain: 0, wind: 0, lamps: 0.06, traffic: 0.30, headlights: 1.0,
   },
 
   dawn: {
@@ -107,12 +107,12 @@ export const PRESETS = {
     sun: 0xffcb93, sunI: 1.00, sunDir: [640, 150, -280],   // low, and from the east
     exposure: 1.02, tint: 0xffeade, skirt: 0xa89a82,
     cloud: 0xf7dcc4, cloudAmt: 0.52, cloudSharp: 0.20,
-    rain: 0, wind: 0, lamps: 0.38, traffic: 0.35,
+    rain: 0, wind: 0, lamps: 0.38, traffic: 0.35, headlights: 0.55,
   },
 };
 
 const KEYS = ['zenith', 'horizon', 'nadir', 'fog', 'ambient', 'sun', 'tint', 'skirt', 'hemiSky', 'hemiGround', 'cloud'];
-const NUMS = ['fogNear', 'fogFar', 'hemi', 'ambientI', 'sunI', 'exposure', 'rain', 'wind', 'cloudAmt', 'cloudSharp', 'lamps', 'traffic'];
+const NUMS = ['fogNear', 'fogFar', 'hemi', 'ambientI', 'sunI', 'exposure', 'rain', 'wind', 'cloudAmt', 'cloudSharp', 'lamps', 'traffic', 'headlights'];
 
 export class Weather {
   /**
@@ -239,7 +239,8 @@ export class Weather {
 
     /* Street lamps come up on the same cross-fade as everything else, plus a
        kick from the lightning so a bolt reads on the lamps as well as the sky. */
-    if (r.props) r.props.setGlow((p.lamps || 0) * (1 + this.flash * 0.5));
+    if (r.props) r.props.setGlow((p.lamps || 0) * (1 + this.flash * 0.5),
+                                (p.headlights === undefined ? p.lamps : p.headlights) || 0);
   }
 
   update(dt, camera) {

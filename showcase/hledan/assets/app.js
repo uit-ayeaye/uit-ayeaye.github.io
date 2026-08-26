@@ -355,14 +355,18 @@ new GLTFLoader().load(
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.06;
-controls.rotateSpeed = 0.55;
+controls.rotateSpeed = 0.42;   // drag-to-look; the old rate overshot on a trackpad
 controls.zoomSpeed = 0.9;
 controls.panSpeed = 0.7;
 controls.screenSpacePanning = false;
 controls.minDistance = 40;
 controls.maxDistance = 2400;
 controls.maxPolarAngle = Math.PI * 0.495;   // never dip under the ground plane
-controls.autoRotateSpeed = 0.28;
+/* A full turn of the junction now takes about three and a half minutes rather
+   than a little over two. The point of the spin is to let the eye wander over
+   the map, and at the old rate the far side had moved before you had finished
+   looking at the near one. */
+controls.autoRotateSpeed = 0.17;
 
 function frameMap() {
   const c = mapBox.getCenter(new THREE.Vector3());
