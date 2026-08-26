@@ -460,6 +460,16 @@ export class CharacterController {
 
 /* ------------------------------------------------------------ chase camera */
 
+/* CAM_PAD has to clear the camera's near plane (0.6) or the wall the ray hit
+   slices through it anyway; 0.45 * 1.5 = 0.675 is just past that.
+   MIN_CAM_DIST is the floor on how far in we will pull. It only has to clear
+   the body — radius 0.25 * 1.5 = 0.375 — so 1.425 leaves plenty of room, and
+   dropping it from a more timid 1.95 recovers the near-wall cases where the
+   obstruction itself sits inside the old floor. */
+const CAM_PAD      = 0.45 * WORLD_SCALE;
+const MIN_CAM_DIST = 0.95 * WORLD_SCALE;
+const CAM_RETREAT  = 3.2;                  // 1/s — unscaled rate, how fast the camera eases back out
+
 export class ChaseCamera {
   constructor() {
     this.yaw = 0;
@@ -469,6 +479,8 @@ export class ChaseCamera {
     this.target = new THREE.Vector3();
     this._eye = new THREE.Vector3();
     this._look = new THREE.Vector3();
+    this._dir = new THREE.Vector3();
+    this._occl = 1;             // fraction of the desired distance we may use
   }
 
   look(dx, dy) {
@@ -480,8 +492,12 @@ export class ChaseCamera {
    * @param nav used to keep the camera from sinking through the street; there
    *            is no geometry query here, only the baked height field, which is
    *            enough because the camera never goes far from the character.
+   * @param occluders a TriGrid of geometry the camera may not sit behind. The
+   *            height field cannot help here: running under the flyover leaves
+   *            the deck *above* the street the camera is clamped to, so the eye
+   *            ends up inside the slab and the view fills with its underside.
    */
-  update(dt, camera, ctrl, nav, sprinting) {
+  update(dt, camera, ctrl, nav, sprinting, occluders) {
     const headY = ctrl.pos.y + BODY_HEIGHT * 0.72;
     this._look.set(ctrl.pos.x, headY, ctrl.pos.z);
 
@@ -495,9 +511,40 @@ export class ChaseCamera {
                   this._look.y - oy * this._dist + 1.15 * WORLD_SCALE,
                   this._look.z - oz * this._dist);
 
-    // never let the chase cam drop below the street it is flying over
+    /* Keep the eye above the street — but only a street on the character's own
+       level. The navmap is a single layer, so while you are on the lower road
+       beside the flyover it reports the *deck* as the ground beneath the
+       camera. Snapping to that lifts the eye ~19 u, straight into the slab,
+       and the frame fills with its underside. A surface more than a step above
+       the character's feet is a different deck, not their ground: leave the
+       camera where it is and let the occlusion pass below deal with it. */
     const g = nav.heightAt(this._eye.x, this._eye.z);
-    if (g !== null && this._eye.y < g + 0.6 * WORLD_SCALE) this._eye.y = g + 0.6 * WORLD_SCALE;
+    if (g !== null && g < ctrl.pos.y + STEP_UP && this._eye.y < g + 0.6 * WORLD_SCALE) {
+      this._eye.y = g + 0.6 * WORLD_SCALE;
+    }
+
+    /* Now pull in if anything solid still stands between the head and the eye.
+       This runs last, on the final eye position, because the height clamp
+       above moves the camera and would otherwise invalidate the test.
+
+       Going in is instant — one frame spent inside the deck is one frame of
+       flat grey — but coming back out is eased, or every railing post the ray
+       clips makes the camera lurch. Hence the asymmetric filter. */
+    this._dir.subVectors(this._eye, this._look);
+    const full = this._dir.length();
+    if (occluders && full > 1e-4) {
+      this._dir.multiplyScalar(1 / full);
+      const hit = occluders.raycast(this._look, this._dir, full);
+      let allow = 1;
+      if (hit >= 0) {
+        allow = Math.max(MIN_CAM_DIST / full, (hit - CAM_PAD) / full);
+        allow = Math.min(1, allow);
+      }
+      this._occl = allow < this._occl
+        ? allow
+        : this._occl + (allow - this._occl) * (1 - Math.exp(-CAM_RETREAT * dt));
+      this._eye.copy(this._look).addScaledVector(this._dir, full * this._occl);
+    }
 
     camera.position.lerp(this._eye, 1 - Math.exp(-16 * dt));
     camera.lookAt(this._look);

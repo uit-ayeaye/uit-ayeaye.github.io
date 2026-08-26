@@ -14,6 +14,7 @@
  */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { TriGrid } from './occlusion.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {
   CHARACTERS, NavMap, Character, CharacterController, ChaseCamera,
@@ -258,6 +259,8 @@ let weather = null;
    10.8k and is only consulted when the cheap pair misses. */
 const groundFast = [];
 const groundWide = [];
+const occluders = [];               // what the chase camera is not allowed to see through
+let occlusionGrid = null;           // built from `occluders` once the map is in
 let mapBox = new THREE.Box3();
 let groundBox = new THREE.Box3();   // walkable surface only — NOT the map bounds
 let coreBox = new THREE.Box3();     // the streets, without the terrain backdrop
@@ -279,9 +282,23 @@ new GLTFLoader().load(
       o.geometry.computeBoundingBox();
       if (name === 'Hledan_Center' || name === 'Road texture') groundFast.push(o);
       else if (o.name === 'Environment') groundWide.push(o);
+
+      /* Chase-camera occluders. Trees are excluded on purpose — the mesh is
+         named "no collider" and its canopies hang over most of the route, so
+         including them would yank the camera in every time a branch crossed
+         the sightline. The terrain backdrop is excluded too: it is ground, and
+         the chase cam already has a height clamp for that. What is left is the
+         geometry that actually swallows the camera — the flyover deck and the
+         building walls. ~19k triangles for one ray a frame.
+
+         Match the tree mesh on a pattern, not the authored string: GLTF import
+         rewrites names, so "Tree(No collider)" arrives as "Tree(No_collider)"
+         and an equality test against the .blend name silently lets it through. */
+      if (!/^Tree\(/.test(o.name) && o.name !== 'Environment') occluders.push(o);
     });
 
     scene.add(mapRoot);
+    occlusionGrid = new TriGrid(occluders, THREE);
     mapBox.setFromObject(mapRoot);
 
     /* The walkable surface is NOT mapBox. The tree mesh hangs 38 m below street
@@ -665,7 +682,7 @@ function updatePlay(dt) {
   play.chr.setGait(c0.gait(), c0.speedXZ);
   play.chr.update(dt);
 
-  play.cam.update(dt, camera, c0, play.nav, sprint && c0.speedXZ > 3 * WORLD_SCALE);
+  play.cam.update(dt, camera, c0, play.nav, sprint && c0.speedXZ > 3 * WORLD_SCALE, occlusionGrid);
 
   /* Screen shake, same shape as Elbaf's: amplitude falls with the square of a
      decaying scalar, driven by three out-of-phase sines so it never reads as a
