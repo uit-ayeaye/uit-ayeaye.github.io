@@ -16,6 +16,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TriGrid } from './occlusion.js';
 import { StreetProps } from './props.js';
+import { Soundscape } from './audio.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {
   CHARACTERS, NavMap, Character, CharacterController, ChaseCamera,
@@ -263,6 +264,10 @@ const groundWide = [];
 const occluders = [];               // what the chase camera is not allowed to see through
 let occlusionGrid = null;           // built from `occluders` once the map is in
 let props = null;                   // instanced street furniture
+
+/* Built now, silent now. The AudioContext inside is not constructed until the
+   sound button is pressed, so there is nothing here that could autoplay. */
+const sound = new Soundscape(DEVICE.tier);
 let mapBox = new THREE.Box3();
 let groundBox = new THREE.Box3();   // walkable surface only — NOT the map bounds
 let coreBox = new THREE.Box3();     // the streets, without the terrain backdrop
@@ -1020,6 +1025,25 @@ document.querySelectorAll('[data-sky]').forEach((b) =>
     syncSkyButtons();
   }));
 
+/* Sound. The click is the gesture that builds the AudioContext, which is both
+   what the autoplay policy wants and what we want anyway: nothing is allocated
+   for a visitor who never asks for it.
+
+   The preference is deliberately NOT remembered. Every visit starts silent, so
+   a page that made noise last time cannot make noise before you have asked it
+   to — which is the whole point, and worth one extra click to a returning
+   visitor. */
+const soundBtn = document.getElementById('soundBtn');
+if (soundBtn) {
+  const syncSound = () => {
+    soundBtn.classList.toggle('on', sound.enabled);
+    soundBtn.setAttribute('aria-pressed', sound.enabled ? 'true' : 'false');
+    soundBtn.textContent = sound.enabled ? '♪ Sound' : '♪ Muted';
+  };
+  soundBtn.addEventListener('click', () => { sound.toggle(); syncSound(); });
+  syncSound();
+}
+
 const spinBtn = document.getElementById('spin');
 spinBtn.addEventListener('click', () => {
   controls.autoRotate = !controls.autoRotate;
@@ -1067,7 +1091,8 @@ function paintCombatHud() {
 }
 
 /* Small inspection surface — handy from the console when tuning the scene. */
-window.__hledan = { THREE, scene, camera, renderer, controls, walk,
+window.__hledan = { THREE, scene, camera, renderer, controls, walk, sound,
+                    get props() { return props; }, get weather() { return weather; },
                     get box() { return mapBox; }, get ground() { return groundBox; },
                     get streetY() { return streetY; }, device: DEVICE,
                     get scale() { return renderScale; }, play, CHARACTERS, IS_TOUCH,
@@ -1094,6 +1119,7 @@ function loop(now) {
 
   if (play.on && play.combat) paintCombatHud();
   if (weather) weather.update(dt, camera);
+  if (sound.enabled) sound.update(dt, camera.position, { rain: weather ? weather.cur.rain : 0, flash: weather ? weather.flash : 0 });
   sky.position.copy(camera.position);
   skirt.position.x = camera.position.x;
   skirt.position.z = camera.position.z;
