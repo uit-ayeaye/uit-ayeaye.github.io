@@ -26,6 +26,7 @@ export const PRESETS = {
     ambient: 0xffffff, ambientI: 0.45,
     sun: 0xfff2d8, sunI: 1.05, sunDir: [-420, 560, 300],
     exposure: 1.0, tint: 0xffffff, skirt: 0xa9b4a2,
+    cloud: 0xfdfdfb, cloudAmt: 0.42, cloudSharp: 0.13,
     rain: 0, wind: 0,
   },
   evening: {
@@ -38,6 +39,8 @@ export const PRESETS = {
     ambient: 0xffd9b0, ambientI: 0.38,
     sun: 0xffb163, sunI: 1.9, sunDir: [-780, 190, 240],   // low and raking
     exposure: 1.06, tint: 0xffe2c4, skirt: 0xb09878,
+    // sunset light comes from underneath, so the deck lights up warm
+    cloud: 0xffcf9a, cloudAmt: 0.60, cloudSharp: 0.17,
     rain: 0, wind: 0,
   },
   rain: {
@@ -48,12 +51,14 @@ export const PRESETS = {
     ambient: 0xc8d4e4, ambientI: 0.5,
     sun: 0x9fb0c8, sunI: 0.35, sunDir: [-300, 700, 200],  // no real sun, just sky
     exposure: 0.94, tint: 0x93a3b8, skirt: 0x6e7885,
+    // monsoon overcast: near-total cover with soft edges, no blue left
+    cloud: 0x6f7885, cloudAmt: 0.96, cloudSharp: 0.30,
     rain: 1, wind: 0.32,
   },
 };
 
-const KEYS = ['zenith', 'horizon', 'nadir', 'fog', 'ambient', 'sun', 'tint', 'skirt', 'hemiSky', 'hemiGround'];
-const NUMS = ['fogNear', 'fogFar', 'hemi', 'ambientI', 'sunI', 'exposure', 'rain', 'wind'];
+const KEYS = ['zenith', 'horizon', 'nadir', 'fog', 'ambient', 'sun', 'tint', 'skirt', 'hemiSky', 'hemiGround', 'cloud'];
+const NUMS = ['fogNear', 'fogFar', 'hemi', 'ambientI', 'sunI', 'exposure', 'rain', 'wind', 'cloudAmt', 'cloudSharp'];
 
 export class Weather {
   /**
@@ -147,6 +152,13 @@ export class Weather {
     r.sky.material.uniforms.zenith.value.setHex(p.zenith);
     r.sky.material.uniforms.horizon.value.setHex(p.horizon);
     r.sky.material.uniforms.nadir.value.setHex(p.nadir);
+    const su = r.sky.material.uniforms;
+    if (su.cloud) {
+      su.cloud.value.setHex(p.cloud);
+      // lightning lights the underside of the deck, so brighten cover briefly
+      su.cloudAmt.value = p.cloudAmt;
+      su.cloudSharp.value = p.cloudSharp;
+    }
 
     r.scene.fog.color.setHex(p.fog);
     r.scene.fog.near = p.fogNear;
@@ -193,6 +205,9 @@ export class Weather {
     }
     if (this.flash > 0) this.flash = Math.max(0, this.flash - dt * 3.2);
 
+    this.clock = (this.clock || 0) + dt;
+    const su = this.refs.sky.material.uniforms;
+    if (su.t) su.t.value = this.clock;
     this.apply(this.cur, 1);
 
     // rain: fall, drift with the wind, and wrap inside the box around the camera

@@ -20,12 +20,17 @@ import {
   YAW_SENS, PITCH_SENS, WORLD_SCALE,
 } from './character.js';
 import { Weather, PRESETS } from './weather.js';
-import { Combat, MOVES } from './combat.js';
+import { Combat, MOVES, SLOTS } from './combat.js';
 
 /* ------------------------------------------------------------------ device */
 
 const UA = navigator.userAgent;
-const IS_TOUCH = matchMedia('(hover: none) and (pointer: coarse)').matches;
+/* Elbaf's own probe, including the ?touch escape hatch it ships so the mobile
+   UI can be exercised on a desktop. matchMedia('hover:none') misses hybrids
+   and anything with both a trackpad and a touchscreen. */
+const IS_TOUCH = new URLSearchParams(location.search).has('touch')
+  || 'ontouchstart' in window
+  || navigator.maxTouchPoints > 0;
 const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function probeDevice() {
@@ -59,6 +64,8 @@ function probeDevice() {
   const need = IS_TOUCH ? 7 : 4;
   return { tier: score >= need ? 'hi' : 'lo', cores, mem, gpu, score, need };
 }
+
+document.body.classList.toggle('touch', IS_TOUCH);
 
 const DEVICE = probeDevice();
 const TARGET_MS = DEVICE.tier === 'hi' ? 1000 / 60 : 1000 / 45;
@@ -104,15 +111,52 @@ const sky = new THREE.Mesh(
       zenith: { value: SKY_ZENITH },
       horizon: { value: SKY_HORIZON },
       nadir: { value: SKY_NADIR },
+      cloud: { value: new THREE.Color(0xffffff) },
+      cloudAmt: { value: 0 },
+      cloudSharp: { value: 0.16 },
+      t: { value: 0 },
     },
     vertexShader: `varying vec3 vW; void main(){ vW = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
     fragmentShader: `
-      uniform vec3 zenith; uniform vec3 horizon; uniform vec3 nadir; varying vec3 vW;
+      uniform vec3 zenith; uniform vec3 horizon; uniform vec3 nadir;
+      uniform vec3 cloud; uniform float cloudAmt; uniform float cloudSharp; uniform float t;
+      varying vec3 vW;
+
+      /* Value noise + 4 octaves of fbm. Clouds cost nothing but arithmetic:
+         they live in the sky sphere that was already being drawn, so there is
+         no extra geometry, no extra draw call and no texture to download. */
+      float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float vnoise(vec2 p){
+        vec2 i = floor(p), f = fract(p);
+        vec2 u = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1,0)), u.x),
+                   mix(hash(i + vec2(0,1)), hash(i + vec2(1,1)), u.x), u.y);
+      }
+      float fbm(vec2 p){
+        float v = 0.0, a = 0.5;
+        for (int k = 0; k < 4; k++) { v += a * vnoise(p); p *= 2.03; a *= 0.5; }
+        return v;
+      }
+
       void main(){
-        float h = normalize(vW).y;
+        vec3 d = normalize(vW);
+        float h = d.y;
         vec3 c = h > 0.0
           ? mix(horizon, zenith, pow(h, 0.42))     // haze hugs the horizon, blue climbs fast
           : mix(horizon, nadir,  pow(-h, 0.30));   // and falls away to slate below
+
+        if (cloudAmt > 0.001 && h > 0.02) {
+          /* Project onto a flat deck at a fixed height so the cloud sheet
+             stretches toward the horizon the way a real overcast does, instead
+             of wrapping evenly round the dome like a texture on a ball. */
+          vec2 uv = d.xz / max(h, 0.02) * 0.55;
+          float n = fbm(uv + vec2(t * 0.013, t * 0.007));
+          n = mix(n, fbm(uv * 1.9 - vec2(t * 0.021, 0.0)), 0.45);
+          float cover = smoothstep(0.52 - cloudSharp, 0.52 + cloudSharp, n);
+          // thin them out toward the horizon, where you would be seeing edge-on
+          cover *= smoothstep(0.02, 0.34, h) * cloudAmt;
+          c = mix(c, cloud, clamp(cover, 0.0, 1.0));
+        }
         gl_FragColor = vec4(c, 1.0);
       }`,
   })
@@ -145,7 +189,10 @@ scene.add(skirt);
 
 const TEX = new THREE.TextureLoader();
 const anisoMax = renderer.capabilities.getMaxAnisotropy();
-const ANISO = Math.min(DEVICE.tier === 'hi' ? 8 : 4, anisoMax);
+/* Anisotropy is what keeps the road readable when you look down it at a
+   glancing angle, which is most of the time at street level. 16 on desktop is
+   nearly free on any GPU that reports it; 4 is the mobile compromise. */
+const ANISO = Math.min(DEVICE.tier === 'hi' ? 16 : 4, anisoMax);
 const tierDir = `textures/${DEVICE.tier}/`;
 
 function colorMap(url) {
@@ -417,6 +464,7 @@ const play = {
   on: false, loading: false,
   nav: null, chr: null, ctrl: null, cam: new ChaseCamera(),
   index: 0, jump: false, sprintHeld: false,
+  held: new Set(), rollQueued: false,
   combat: null, queued: null,
   aimRay: new THREE.Raycaster(), aimDir: new THREE.Vector3(), chest: new THREE.Vector3(),
 };
@@ -484,6 +532,8 @@ async function enterPlay() {
 
 function exitPlay() {
   play.on = false;
+  play.held.clear();
+  if (play.combat) play.combat.holdSlow = 1;
   document.body.classList.remove('playing');
   if (play.chr) play.chr.root.visible = false;
   controls.enabled = true;
@@ -523,17 +573,20 @@ async function swapCharacter(delta) {
   }
 }
 
+const CHIP_SLOTS = ['strike', 'sustain', 'heavy', 'dash', 'ult', 'gear', 'guard'];
+
 function refreshMoveChips() {
   const def = (play.chr && play.chr.def) || CHARACTERS[play.index];
   const kit = MOVES[def.style] || {};
   document.querySelectorAll('.movechip[data-move]').forEach((b) => {
     const mv = kit[b.dataset.move];
     b.textContent = mv ? mv.name : '—';
-    b.disabled = !mv;
+    b.classList.toggle('absent', !mv);
   });
   // pad buttons keep their glyph but get the move name for screen readers
   document.querySelectorAll('.pad-btn[data-move]').forEach((b) => {
     const mv = kit[b.dataset.move];
+    b.classList.toggle('absent', !mv);
     if (mv) b.setAttribute('aria-label', mv.name);
   });
 }
@@ -562,19 +615,45 @@ function updatePlay(dt) {
   const def = play.chr.def;
   const c0 = play.ctrl;
 
-  play.ctrl.update(dt, { moveX: mx, moveZ: mz, sprint, jump: play.jump, yaw: play.cam.yaw }, def);
+  /* Gear Second multiplies speed and jump; a held Gatling divides speed. Both
+     are folded in here rather than inside the controller, which stays a pure
+     function of the stats it is handed. */
+  const scaled = {
+    speed: def.speed * play.combat.speedMul(),
+    jump: def.jump * play.combat.jumpMul(),
+  };
+  play.ctrl.update(dt, { moveX: mx, moveZ: mz, sprint, jump: play.jump, yaw: play.cam.yaw }, scaled);
   play.jump = false;
 
   /* Aim exactly the way Elbaf does: a ray straight down the camera's forward
      axis, and the move lands at the first thing it meets (or at max range in
      open air). Only the map is tested — 8 meshes, once per cast, never per
      frame — so this costs nothing while simply running around. */
+  // A held move (Gatling / Tatsumaki / Balloon) re-fires whenever its short
+  // cooldown clears, and drags move speed down while it does.
+  const kit = MOVES[def.style] || {};
+  let slow = 1;
+  for (const slot of play.held) {
+    const mv = kit[slot];
+    if (!mv) continue;
+    if (mv.slow) slow = Math.min(slow, mv.slow);
+    if (!play.queued && play.combat.ready(def, slot)) play.queued = slot;
+  }
+  play.combat.holdSlow = slow;
+
+  if (play.rollQueued) {
+    play.rollQueued = false;
+    const d = new THREE.Vector3(c0.vel.x, 0, c0.vel.z);
+    if (d.lengthSq() < 1e-4) d.set(Math.sin(c0.facing), 0, Math.cos(c0.facing));
+    play.combat.startRoll(d);
+  }
+
   if (play.queued) {
     const slot = play.queued; play.queued = null;
     camera.getWorldDirection(play.aimDir);
     play.chest.set(c0.pos.x, c0.pos.y + 1.05 * WORLD_SCALE, c0.pos.z);
     play.aimRay.set(play.chest, play.aimDir);
-    play.aimRay.far = MOVES[def.style][slot].range;
+    play.aimRay.far = Math.max(1, (MOVES[def.style][slot] || {}).range || 1);
     const hits = mapRoot ? play.aimRay.intersectObject(mapRoot, true) : [];
     play.combat.cast(def, slot, play.chest, play.aimDir, hits[0] || null, c0);
     refreshMoveChips();
@@ -629,11 +708,16 @@ addEventListener('keydown', (e) => {
   if (e.code === 'KeyP' && !e.repeat) setMode(play.on ? 'orbit' : 'play');
   if (e.code === 'Escape') { if (play.on) setMode('orbit'); else if (walk.on) setMode('orbit'); }
   if (play.on) {
-    if (!e.repeat) {
-      if (e.code === 'KeyQ') play.queued = 'light';                 // Elbaf: Q pistol
-      if (e.code === 'KeyF') play.queued = 'heavy';
-      if (e.code === 'KeyE') play.queued = 'dash';                  // Elbaf: E rocket
+    /* Bindings come from the move table itself rather than a second list, so
+       a character whose kit lacks a slot simply has no key for it. */
+    const kit = (play.chr && MOVES[play.chr.def.style]) || {};
+    for (const slot of SLOTS) {
+      const mv = kit[slot];
+      if (!mv || mv.key !== e.code) continue;
+      if (mv.hold) play.held.add(slot);
+      else if (!e.repeat) play.queued = slot;
     }
+    if (e.code === 'KeyC' && !e.repeat) play.rollQueued = true;     // Elbaf: C roll
     if (e.code === 'Space' && !e.repeat) play.jump = true;          // Elbaf: Space jumps
     if (e.code === 'Tab' || e.code === 'KeyZ') {                    // Elbaf: Tab/Z swaps
       if (!e.repeat) swapCharacter(1);
@@ -642,108 +726,123 @@ addEventListener('keydown', (e) => {
   }
   if ((walk.on || play.on) && (e.code.startsWith('Arrow') || e.code === 'Space')) e.preventDefault();
 });
-addEventListener('keyup', (e) => { walk.keys[e.code] = false; });
-
-/* Mouse look. Uses pointer lock where it is granted, and falls back to
-   press-and-drag where it is not (sandboxed frames, some embedded browsers). */
-let dragging = false;
-renderer.domElement.addEventListener('mousedown', (e) => {
-  if ((walk.on || play.on) && e.button === 0 && !document.pointerLockElement) dragging = true;
-});
-let dragFrom = null;
-renderer.domElement.addEventListener('mousedown', (e) => {
-  if (play.on && e.button === 0) dragFrom = { x: e.clientX, y: e.clientY, t: performance.now() };
-});
-addEventListener('mouseup', (e) => {
-  // a click that did not turn into a camera drag is an attack
-  if (play.on && dragFrom) {
-    const moved = Math.hypot(e.clientX - dragFrom.x, e.clientY - dragFrom.y);
-    const held = performance.now() - dragFrom.t;
-    if (moved < 6) play.queued = held > 380 ? 'heavy' : 'light';
-  }
-  dragFrom = null;
-  dragging = false;
+addEventListener('keyup', (e) => {
+  walk.keys[e.code] = false;
+  const kit = (play.chr && MOVES[play.chr.def.style]) || {};
+  for (const slot of SLOTS) if (kit[slot] && kit[slot].key === e.code) play.held.delete(slot);
 });
 
-addEventListener('mousemove', (e) => {
-  if (!walk.on && !play.on) return;
-  if (!document.pointerLockElement && !dragging) return;
-  if (play.on) { play.cam.look(e.movementX, e.movementY); return; }   // Elbaf sensitivities
-  walk.yaw -= e.movementX * 0.0022;
-  walk.pitch = THREE.MathUtils.clamp(walk.pitch - e.movementY * 0.0022, -1.35, 1.35);
-});
+/* ---------------------------------------------------------- input layer */
 
-/* Touch: left third of the screen is a thumbstick, everywhere else looks. */
+/**
+ * Ported from Elbaf so both builds control identically. Its shape:
+ *
+ *   - ONE pointer layer over the canvas using pointer events (not touch
+ *     events), so mouse, pen and finger all take the same path
+ *   - anything inside a [data-ui-button] is a button, not input
+ *   - on touch, a press in the LEFT HALF is the thumbstick; everything else
+ *     looks. A press in the bottom-right PAD_W x PAD_H corner never becomes
+ *     the stick, so a thumb that misses an action button cannot drag the
+ *     joystick out from under the pad (it still looks — that is Elbaf's
+ *     behaviour too)
+ *   - stick radius 58 px, deadzone 0.12, and SPRINT engages past 0.8
+ *     deflection rather than needing its own button
+ *   - a MOUSE press that drifts under 7 px and lasts under 240 ms is an attack
+ *
+ * The constants are Elbaf's verbatim — they are what make it feel the same.
+ */
+const STICK_R = 58, STICK_DEAD = 0.12, STICK_SPRINT = 0.8;
+const PAD_W = 250, PAD_H = 265;
+
 const stickEl = document.getElementById('stick');
 const knobEl = document.getElementById('knob');
+const inputLayer = document.getElementById('input-layer');
 
-renderer.domElement.addEventListener('touchstart', (e) => {
-  if (!walk.on && !play.on) return;
-  for (const t of e.changedTouches) {
-    if (t.clientX < innerWidth * 0.42 && walk.stick.id === -1) {
-      walk.stick.id = t.identifier; walk.stick.active = true;
-      walk.stick.ox = t.clientX; walk.stick.oy = t.clientY;
-      stickEl.style.left = t.clientX + 'px';
-      stickEl.style.top = t.clientY + 'px';
-      stickEl.classList.add('on');
-    } else if (walk.look.id === -1) {
-      walk.look.id = t.identifier; walk.look.x = t.clientX; walk.look.y = t.clientY;
-      walk.look.sx = t.clientX; walk.look.sy = t.clientY;
-      walk.look.t0 = performance.now(); walk.look.moved = 0;
-    } else if (play.on) {
-      // a second finger down while already looking = dash, no button needed
-      play.queued = 'dash';
-    }
-  }
-}, { passive: true });
+const pointers = new Map();
+let stickId = null;
+const stickOrigin = { x: 0, y: 0 };
 
-renderer.domElement.addEventListener('touchmove', (e) => {
-  if (!walk.on && !play.on) return;
-  for (const t of e.changedTouches) {
-    if (t.identifier === walk.stick.id) {
-      const dx = t.clientX - walk.stick.ox, dy = t.clientY - walk.stick.oy;
-      const d = Math.min(Math.hypot(dx, dy), 52) || 0;
-      const a = Math.atan2(dy, dx);
-      walk.stick.x = (Math.cos(a) * d) / 52;
-      walk.stick.y = (Math.sin(a) * d) / 52;
-      knobEl.style.transform = `translate(${Math.cos(a) * d}px, ${Math.sin(a) * d}px)`;
-    } else if (t.identifier === walk.look.id) {
-      const dx = t.clientX - walk.look.x, dy = t.clientY - walk.look.y;
-      if (play.on) {
-        // touch drags cover far fewer pixels than a mouse, so scale up
-        play.cam.look(dx * 2.4, dy * 2.4);
-      } else {
-        walk.yaw -= dx * 0.005;
-        walk.pitch = THREE.MathUtils.clamp(walk.pitch - dy * 0.005, -1.35, 1.35);
-      }
-      walk.look.moved = Math.max(walk.look.moved || 0,
-        Math.hypot(t.clientX - (walk.look.sx || t.clientX), t.clientY - (walk.look.sy || t.clientY)));
-      walk.look.x = t.clientX; walk.look.y = t.clientY;
-    }
-  }
-}, { passive: true });
+function inputActive() { return play.on || walk.on; }
 
-function endTouch(e) {
-  for (const t of e.changedTouches) {
-    if (t.identifier === walk.stick.id) {
-      walk.stick.id = -1; walk.stick.active = false; walk.stick.x = walk.stick.y = 0;
-      stickEl.classList.remove('on'); knobEl.style.transform = '';
-    }
-    if (t.identifier === walk.look.id) {
-      /* Tap-to-attack. The look finger doubles as the attack button: if it
-         never travelled far it was a tap, not a camera drag. Long press picks
-         the heavy move, which is the only gesture people reliably discover
-         without being told. */
-      if (play.on && (walk.look.moved || 0) < 12) {
-        const held = performance.now() - (walk.look.t0 || 0);
-        play.queued = held > 380 ? 'heavy' : 'light';
-      }
-      walk.look.id = -1; walk.look.moved = 0;
-    }
-  }
+function applyLook(dx, dy) {
+  if (play.on) { play.cam.look(dx, dy); return; }
+  walk.yaw -= dx * YAW_SENS;
+  walk.pitch = THREE.MathUtils.clamp(walk.pitch - dy * PITCH_SENS, -1.35, 1.35);
 }
-renderer.domElement.addEventListener('touchend', endTouch, { passive: true });
-renderer.domElement.addEventListener('touchcancel', endTouch, { passive: true });
+
+function clearStick() {
+  stickId = null;
+  walk.stick.active = false;
+  walk.stick.x = walk.stick.y = 0;
+  play.sprintHeld = false;
+  stickEl.classList.remove('on');
+  knobEl.style.transform = '';
+}
+
+inputLayer.addEventListener('pointerdown', (e) => {
+  if (!inputActive()) return;
+  if (e.target.closest && e.target.closest('[data-ui-button]')) return;
+  // Capture keeps a drag alive when the finger leaves the layer. It throws
+  // NotFoundError for a pointer that is already gone, and that must not take
+  // the rest of this handler down with it or the press registers as nothing.
+  try { inputLayer.setPointerCapture(e.pointerId); } catch (err) { /* not capturable */ }
+
+  const inPad = e.clientX > innerWidth - PAD_W && e.clientY > innerHeight - PAD_H;
+  const isStick = IS_TOUCH && e.clientX < innerWidth * 0.5 && !inPad;
+
+  pointers.set(e.pointerId, {
+    mode: isStick ? 'stick' : 'look',
+    lastX: e.clientX, lastY: e.clientY,
+    startT: performance.now(), drift: 0,
+    mouse: e.pointerType === 'mouse',
+  });
+
+  if (isStick && stickId === null) {
+    stickId = e.pointerId;
+    stickOrigin.x = e.clientX; stickOrigin.y = e.clientY;
+    walk.stick.active = true;
+    stickEl.style.left = e.clientX + 'px';
+    stickEl.style.top = e.clientY + 'px';
+    stickEl.classList.add('on');
+  }
+});
+
+inputLayer.addEventListener('pointermove', (e) => {
+  const p = pointers.get(e.pointerId);
+  if (!p) return;
+
+  if (p.mode === 'look') {
+    applyLook(e.clientX - p.lastX, e.clientY - p.lastY);
+    p.drift += Math.abs(e.clientX - p.lastX) + Math.abs(e.clientY - p.lastY);
+    p.lastX = e.clientX; p.lastY = e.clientY;
+    return;
+  }
+  if (e.pointerId !== stickId) return;
+
+  let dx = e.clientX - stickOrigin.x, dy = e.clientY - stickOrigin.y;
+  const d = Math.hypot(dx, dy);
+  if (d > STICK_R) { dx = dx / d * STICK_R; dy = dy / d * STICK_R; }
+  const nx = dx / STICK_R, ny = dy / STICK_R;
+  const mag = Math.hypot(nx, ny);
+  if (mag < STICK_DEAD) {
+    walk.stick.x = 0; walk.stick.y = 0; play.sprintHeld = false;
+  } else {
+    walk.stick.x = nx; walk.stick.y = ny;
+    play.sprintHeld = mag > STICK_SPRINT;      // push far = run, no extra button
+  }
+  knobEl.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+});
+
+function endPointer(e) {
+  const p = pointers.get(e.pointerId);
+  if (p && p.mode === 'look' && p.mouse && p.drift < 7 && performance.now() - p.startT < 240) {
+    if (play.on) play.queued = 'light';        // Elbaf: a mouse tap is a pistol
+  }
+  pointers.delete(e.pointerId);
+  if (e.pointerId === stickId) clearStick();
+}
+inputLayer.addEventListener('pointerup', endPointer);
+inputLayer.addEventListener('pointercancel', endPointer);
 
 function updateWalk(dt) {
   const k = walk.keys;
@@ -842,7 +941,6 @@ document.querySelectorAll('[data-char]').forEach((b) =>
    and RUN can be held; both also cancel on pointercancel, which iOS fires
    whenever the gesture is stolen by a scroll or a system edge swipe. */
 const jumpBtn = document.getElementById('jumpBtn');
-const sprintBtn = document.getElementById('sprintBtn');
 if (jumpBtn) {
   jumpBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault(); play.jump = true; jumpBtn.classList.add('held');
@@ -852,20 +950,39 @@ if (jumpBtn) {
   jumpBtn.addEventListener('pointercancel', releaseJump);
   jumpBtn.addEventListener('pointerleave', releaseJump);
 }
-document.querySelectorAll('[data-move]').forEach((b) =>
-  b.addEventListener('pointerdown', (e) => { e.preventDefault(); play.queued = b.dataset.move; }));
-
-if (sprintBtn) {
-  const hold = (on) => (e) => {
-    if (e) e.preventDefault();
-    play.sprintHeld = on;
-    sprintBtn.classList.toggle('held', on);
+/* Elbaf's mobile rule for the strike button: a tap fires the strike, holding
+   it past HOLD_MS switches to the sustained version (Gatling / Tatsumaki) and
+   keeps firing until release. Buttons without data-hold are plain taps. */
+const HOLD_MS = 260;
+document.querySelectorAll('[data-move]').forEach((b) => {
+  let timer = null;
+  const down = (e) => {
+    e.preventDefault();
+    b.classList.add('held');
+    const holdSlot = b.dataset.hold;
+    if (holdSlot) {
+      timer = setTimeout(() => { timer = null; play.held.add(holdSlot); }, HOLD_MS);
+    }
+    play.queued = b.dataset.move;
   };
-  sprintBtn.addEventListener('pointerdown', hold(true));
-  sprintBtn.addEventListener('pointerup', hold(false));
-  sprintBtn.addEventListener('pointercancel', hold(false));
-  sprintBtn.addEventListener('pointerleave', hold(false));
-}
+  const up = () => {
+    b.classList.remove('held');
+    if (timer) { clearTimeout(timer); timer = null; }
+    if (b.dataset.hold) play.held.delete(b.dataset.hold);
+  };
+  b.addEventListener('pointerdown', down);
+  b.addEventListener('pointerup', up);
+  b.addEventListener('pointercancel', up);
+  b.addEventListener('pointerleave', up);
+});
+
+const rollBtn = document.querySelector('[data-roll]');
+if (rollBtn) rollBtn.addEventListener('pointerdown', (e) => {
+  e.preventDefault(); play.rollQueued = true;
+  rollBtn.classList.add('held');
+  setTimeout(() => rollBtn.classList.remove('held'), 160);
+});
+
 
 document.getElementById('reset').addEventListener('click', () => {
   if (walk.on) setMode('orbit');
@@ -933,7 +1050,8 @@ function paintCombatHud() {
 window.__hledan = { THREE, scene, camera, renderer, controls, walk,
                     get box() { return mapBox; }, get ground() { return groundBox; },
                     get streetY() { return streetY; }, device: DEVICE,
-                    get scale() { return renderScale; }, play, CHARACTERS,
+                    get scale() { return renderScale; }, play, CHARACTERS, IS_TOUCH,
+                    get stickOn() { return walk.stick.active; }, get stickVec() { return {x: walk.stick.x, y: walk.stick.y}; },
                     /* drive N frames by hand — the render loop is rAF-driven and
                        rAF does not fire in a hidden tab, which makes headless
                        verification of the character controller impossible. */

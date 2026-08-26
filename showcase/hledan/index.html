@@ -50,7 +50,9 @@
         -webkit-font-smoothing: antialiased;
         -webkit-tap-highlight-color: transparent;
       }
-      canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+      canvas { display: block; width: 100%; height: 100%; touch-action: none;
+               position: fixed; inset: 0; z-index: 0; }
+      #input-layer { position: fixed; inset: 0; z-index: 10; touch-action: none; }
 
       /* ---------------------------------------------------------- loader */
       #load {
@@ -167,7 +169,7 @@
       #playHint { opacity: 0; }
       body.playing #playHint { opacity: 1; }
       body.playing .hint#hintWalk { opacity: 0; }
-      @media (max-width: 560px) { #playHint { display: none; } }
+      body.touch #playHint { display: none; }   /* it describes a keyboard */
 
       #crew {
         position: absolute; left: 14px; top: calc(78px + env(safe-area-inset-top));
@@ -193,7 +195,12 @@
         display: none; flex-direction: column; gap: 10px; align-items: center;
       }
       body.playing #pad { display: flex; }
-      @media (hover: hover) { #pad { display: none !important; } }
+      /* Driven by a body class the script sets from the same IS_TOUCH probe the
+         input layer uses, NOT by @media (hover: hover). The media query and the
+         probe disagree on two real cases: ?touch (forced mobile UI on a desktop
+         for testing) and a hybrid laptop with a touchscreen, which reports
+         hover:hover and so never got the pad at all. */
+      body:not(.touch) #pad { display: none !important; }
       .pad-btn {
         appearance: none; border: 1.5px solid #ffffff2e; cursor: pointer;
         width: 68px; height: 68px; border-radius: 50%;
@@ -208,10 +215,8 @@
       /* The action pad lands exactly where the info button sits. Reading the
          about panel is not something anyone does mid-run, so on touch the
          button steps aside while playing rather than fighting for the corner. */
-      @media (hover: none) and (pointer: coarse) {
-        body.playing #infoBtn { opacity: 0; visibility: hidden; pointer-events: none; }
-        body.playing #info { visibility: hidden; opacity: 0; }
-      }
+      body.touch.playing #infoBtn { opacity: 0; visibility: hidden; pointer-events: none; }
+      body.touch.playing #info { visibility: hidden; opacity: 0; }
       @media (max-width: 560px) {
         #crew { top: calc(66px + env(safe-area-inset-top)); }
         #who { font-size: 11.5px; margin-bottom: 6px; }
@@ -235,8 +240,22 @@
 
       /* ------------------------------------------------------------ combat */
       .pad-row { display: flex; gap: 10px; align-items: center; }
-      .pad-btn.sm { width: 50px; height: 50px; font-size: 17px; }
-      .pad-btn.wide { width: 128px; height: 40px; border-radius: 999px; font-size: 11px; }
+      .pad-btn.sm { width: 46px; height: 46px; font-size: 16px; }
+      .pad-btn.pill { width: 60px; height: 46px; border-radius: 999px; font-size: 10px; }
+      #pad { gap: 9px; align-items: flex-end; }
+      .pad-row { gap: 8px; }
+      @media (max-width: 380px) {
+        .pad-btn { width: 62px; height: 62px; font-size: 12px; }
+        .pad-btn.sm { width: 42px; height: 42px; font-size: 15px; }
+        .pad-btn.pill { width: 54px; height: 42px; font-size: 9px; }
+        #pad { right: 10px; gap: 7px; }
+        .pad-row { gap: 6px; }
+      }
+      /* Auto-spin is an orbit-mode nicety; it is the first thing to go when the
+         dock has to compete with a thumb pad for the bottom of a phone. */
+      @media (max-width: 560px) { #spin { display: none; } }
+      /* A slot the current character does not have is hidden, not dead. */
+      .pad-btn[data-move].absent, .movechip.absent { display: none; }
 
       #moveBanner {
         position: absolute; left: 50%; transform: translateX(-50%);
@@ -266,9 +285,7 @@
         background: #0a0e1acc; pointer-events: none; transition: none;
       }
       .movechip.cooling { color: #6d80a0; }
-      @media (max-width: 560px) {
-        #kit { display: none !important; }        /* the pad already shows them */
-      }
+      body.touch #kit { display: none !important; }   /* the pad already shows them */
 
       #playStatus {
         position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
@@ -287,7 +304,7 @@
       #knob { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px;
               margin: -23px 0 0 -23px; border-radius: 50%;
               background: #f0c66bcc; box-shadow: 0 2px 14px #0007; }
-      @media (hover: hover) { #stick { display: none; } }
+      body:not(.touch) #stick { display: none; }
     </style>
 
     <script type="importmap">
@@ -302,24 +319,28 @@
 
   <body>
     <canvas id="view"></canvas>
+    <!-- Every look, drag and thumbstick press goes through this one layer, the
+         way Elbaf does it: above the canvas, below the HUD, so real buttons
+         keep receiving their own events. -->
+    <div id="input-layer"></div>
 
     <div id="stick"><span id="knob"></span></div>
 
     <div id="ui">
       <div class="topbar">
-        <a class="back" href="../" aria-label="Back to the showcase">← Showcase</a>
+        <a data-ui-button class="back" href="../" aria-label="Back to the showcase">← Showcase</a>
         <div class="title">Hledan Junction<small>Yangon · Myanmar</small></div>
         <span class="spacer"></span>
         <span id="fps">—</span>
       </div>
 
-      <div class="dock" role="group" aria-label="View controls">
-        <button class="btn on" data-mode="orbit">Orbit</button>
-        <button class="btn" data-mode="walk">Walk</button>
-        <button class="btn" data-mode="play">Play</button>
-        <button class="btn" id="spin"><span class="wide">Auto-spin</span><span class="narrow">Spin</span></button>
-        <button class="btn" id="reset">Reset</button>
-        <button class="btn" id="full" aria-label="Fullscreen"><span class="wide">Fullscreen</span><span class="narrow" aria-hidden="true">⛶</span></button>
+      <div data-ui-button class="dock" role="group" aria-label="View controls">
+        <button data-ui-button class="btn on" data-mode="orbit">Orbit</button>
+        <button data-ui-button class="btn" data-mode="walk">Walk</button>
+        <button data-ui-button class="btn" data-mode="play">Play</button>
+        <button data-ui-button class="btn" id="spin"><span class="wide">Auto-spin</span><span class="narrow">Spin</span></button>
+        <button data-ui-button class="btn" id="reset">Reset</button>
+        <button data-ui-button class="btn" id="full" aria-label="Fullscreen"><span class="wide">Fullscreen</span><span class="narrow" aria-hidden="true">⛶</span></button>
       </div>
 
       <div class="hint" id="hintWalk">
@@ -327,50 +348,60 @@
       </div>
 
       <div class="hint" id="playHint">
-        Drag to look · <kbd>W A S D</kbd> to move · <kbd>Space</kbd> jump · <kbd>Shift</kbd> sprint · <kbd>Tab</kbd> swap crew
+        Drag to look · <kbd>W A S D</kbd> move · <kbd>Space</kbd> jump · <kbd>Shift</kbd> sprint · click to attack · <kbd>Tab</kbd> swap
       </div>
 
-      <div id="crew">
+      <div data-ui-button id="crew">
         <div id="who"></div>
         <div class="chips">
-          <button class="chip on" data-char="luffy">Luffy</button>
-          <button class="chip" data-char="zoro">Zoro</button>
-          <button class="chip" data-char="nami">Nami</button>
+          <button data-ui-button class="chip on" data-char="luffy">Luffy</button>
+          <button data-ui-button class="chip" data-char="zoro">Zoro</button>
+          <button data-ui-button class="chip" data-char="nami">Nami</button>
         </div>
       </div>
 
-      <div id="pad">
+      <div data-ui-button id="pad">
+        <!-- Two rows, not four. A four-row column is ~220 px tall, which on a
+             640 px phone pushed the last row underneath the mode dock. -->
         <div class="pad-row">
-          <button class="pad-btn sm" data-move="dash" aria-label="Dash move">↯</button>
-          <button class="pad-btn sm" data-move="heavy" aria-label="Heavy move">★</button>
+          <button data-ui-button class="pad-btn sm" data-move="guard" aria-label="Guard">✦</button>
+          <button data-ui-button class="pad-btn sm" data-move="ult" aria-label="Ultimate">★</button>
+          <button data-ui-button class="pad-btn sm" data-move="heavy" aria-label="Heavy">◆</button>
+          <button data-ui-button class="pad-btn sm" data-move="dash" aria-label="Dash">↯</button>
+          <button data-ui-button class="pad-btn sm" data-move="gear" aria-label="Gear">⚡</button>
         </div>
         <div class="pad-row">
-          <button class="pad-btn" data-move="light" aria-label="Attack">ATK</button>
-          <button class="pad-btn primary" id="jumpBtn" aria-label="Jump">JUMP</button>
+          <button data-ui-button class="pad-btn pill" data-roll aria-label="Roll">ROLL</button>
+          <!-- Elbaf's mobile rule: tap to strike, hold for the sustained version -->
+          <button data-ui-button class="pad-btn" data-move="strike" data-hold="sustain" aria-label="Strike">ATK</button>
+          <button data-ui-button class="pad-btn primary" id="jumpBtn" aria-label="Jump">JUMP</button>
         </div>
-        <button class="pad-btn wide" id="sprintBtn" aria-label="Sprint">RUN</button>
       </div>
 
       <div id="moveBanner" aria-live="polite"></div>
 
-      <div id="kit">
-        <button class="movechip" data-move="light">—</button>
-        <button class="movechip" data-move="heavy">—</button>
-        <button class="movechip" data-move="dash">—</button>
+      <div data-ui-button id="kit">
+        <button data-ui-button class="movechip" data-move="strike">—</button>
+        <button data-ui-button class="movechip" data-move="sustain">—</button>
+        <button data-ui-button class="movechip" data-move="heavy">—</button>
+        <button data-ui-button class="movechip" data-move="dash">—</button>
+        <button data-ui-button class="movechip" data-move="ult">—</button>
+        <button data-ui-button class="movechip" data-move="gear">—</button>
+        <button data-ui-button class="movechip" data-move="guard">—</button>
       </div>
 
       <div id="playStatus"></div>
 
-      <div id="sky" role="group" aria-label="Weather">
-        <button class="chip on" data-sky="noon">☀︎ Midday</button>
-        <button class="chip" data-sky="evening">◐ Golden</button>
-        <button class="chip" data-sky="rain">☂ Monsoon</button>
+      <div data-ui-button id="sky" role="group" aria-label="Weather">
+        <button data-ui-button class="chip on" data-sky="noon">☀︎ Midday</button>
+        <button data-ui-button class="chip" data-sky="evening">◐ Golden</button>
+        <button data-ui-button class="chip" data-sky="rain">☂ Monsoon</button>
       </div>
 
-      <button class="btn" id="infoBtn" aria-label="About this map">i</button>
+      <button data-ui-button class="btn" id="infoBtn" aria-label="About this map">i</button>
 
-      <aside id="info">
-        <button class="btn" id="infoClose" aria-label="Close">×</button>
+      <aside data-ui-button id="info">
+        <button data-ui-button class="btn" id="infoClose" aria-label="Close">×</button>
         <h2>Hledan Junction</h2>
         <p class="where">Kamayut Township, Yangon</p>
         <p>

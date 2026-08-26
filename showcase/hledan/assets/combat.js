@@ -17,23 +17,56 @@ import { WORLD_SCALE } from './character.js';
 
 const S = WORLD_SCALE;
 
+/**
+ * Elbaf's full kit, with its own key bindings and its own tuning constants:
+ *
+ *   Gear Second   8 s duration, 5 s cooldown, x1.4 speed, x1.12 jump
+ *   Gatling       held; holds you to 35% move speed while firing
+ *   Balloon       held; 55% move speed
+ *   Roll          13 u burst over 0.5 s
+ *
+ * Luffy   click/Q Pistol · hold F Gatling · R Bazooka · E Rocket · T Gigant
+ *         · G Gear Second · hold V Balloon · H Haki · C roll
+ * Zoro    click/Q Oni Giri · hold F Tatsumaki · R Yakkodori · E Flash Step
+ *         · T Sanzen Sekai · H Asura · C roll
+ * Nami    has no Elbaf moveset (she is an NPC there), so her staff kit is new
+ *         work mapped onto the same slots.
+ */
+export const GEAR2_DUR = 8, GEAR2_CD = 5, GEAR2_SPEED = 1.4, GEAR2_JUMP = 1.12;
+export const GATLING_SLOW = 0.35, BALLOON_SLOW = 0.55;
+export const ROLL_DUR = 0.5, ROLL_SPEED = 13;
+
 export const MOVES = {
   rubber: {
-    light: { id: 'pistol',   name: 'Gum-Gum Pistol',  cd: 0.42, range: 34 * S, kind: 'beam',  color: 0xffd9a0, shake: 0.16 },
-    heavy: { id: 'bazooka',  name: 'Gum-Gum Bazooka', cd: 2.10, range: 40 * S, kind: 'blast', color: 0xffb56b, shake: 0.55 },
-    dash:  { id: 'rocket',   name: 'Gum-Gum Rocket',  cd: 1.30, range: 60 * S, kind: 'pull',  color: 0xfff0c0, shake: 0.22 },
+    strike:  { id: 'pistol',  name: 'Gum-Gum Pistol',   key: 'KeyQ', cd: 0.42, range: 34 * S, kind: 'beam',   color: 0xffd9a0, shake: 0.16 },
+    sustain: { id: 'gatling', name: 'Gum-Gum Gatling',  key: 'KeyF', cd: 0.10, range: 22 * S, kind: 'beam',   color: 0xffe0b0, shake: 0.06, hold: true, slow: GATLING_SLOW },
+    heavy:   { id: 'bazooka', name: 'Gum-Gum Bazooka',  key: 'KeyR', cd: 2.10, range: 40 * S, kind: 'blast',  color: 0xffb56b, shake: 0.55 },
+    dash:    { id: 'rocket',  name: 'Gum-Gum Rocket',   key: 'KeyE', cd: 1.30, range: 60 * S, kind: 'pull',   color: 0xfff0c0, shake: 0.22 },
+    ult:     { id: 'gigant',  name: 'Gum-Gum Gigant',   key: 'KeyT', cd: 6.00, range: 46 * S, kind: 'giant',  color: 0xffc27a, shake: 0.85 },
+    gear:    { id: 'gear2',   name: 'Gear Second',      key: 'KeyG', cd: GEAR2_CD, range: 0,   kind: 'gear2',  color: 0xff6a4a, shake: 0.30, dur: GEAR2_DUR },
+    guard:   { id: 'haki',    name: 'Armament Haki',    key: 'KeyH', cd: 9.00, range: 0,       kind: 'haki',   color: 0x2b2f3a, shake: 0.25, dur: 6 },
+    float:   { id: 'balloon', name: 'Gum-Gum Balloon',  key: 'KeyV', cd: 0.10, range: 0,       kind: 'balloon',color: 0xffd9a0, shake: 0,    hold: true, slow: BALLOON_SLOW },
   },
   sword: {
-    light: { id: 'onigiri',  name: 'Oni Giri',        cd: 0.46, range: 12 * S, kind: 'arc',   color: 0x9fe8ff, shake: 0.18 },
-    heavy: { id: 'sanzen',   name: 'Sanzen Sekai',    cd: 2.30, range: 16 * S, kind: 'triarc', color: 0xc9f4ff, shake: 0.60 },
-    dash:  { id: 'wavecast', name: 'Flying Slash',    cd: 1.15, range: 70 * S, kind: 'wave',  color: 0xbdf0ff, shake: 0.20 },
+    strike:  { id: 'onigiri',   name: 'Oni Giri',       key: 'KeyQ', cd: 0.46, range: 12 * S, kind: 'arc',    color: 0x9fe8ff, shake: 0.18 },
+    sustain: { id: 'tatsumaki', name: 'Tatsumaki',      key: 'KeyF', cd: 0.12, range: 14 * S, kind: 'spin',   color: 0xbdf0ff, shake: 0.08, hold: true, slow: GATLING_SLOW },
+    heavy:   { id: 'yakkodori', name: 'Yakkodori',      key: 'KeyR', cd: 1.60, range: 52 * S, kind: 'wave',   color: 0xd6f6ff, shake: 0.34 },
+    dash:    { id: 'flashstep', name: 'Flash Step',     key: 'KeyE', cd: 1.15, range: 30 * S, kind: 'blink',  color: 0xe8fbff, shake: 0.18 },
+    ult:     { id: 'sanzen',    name: 'Sanzen Sekai',   key: 'KeyT', cd: 2.30, range: 16 * S, kind: 'triarc', color: 0xc9f4ff, shake: 0.60 },
+    guard:   { id: 'asura',     name: 'Asura',          key: 'KeyH', cd: 9.00, range: 0,      kind: 'haki',   color: 0x1d2430, shake: 0.35, dur: 6 },
   },
   staff: {
-    light: { id: 'zap',      name: 'Thunder Ball',    cd: 0.50, range: 40 * S, kind: 'bolt',  color: 0xbfe4ff, shake: 0.12 },
-    heavy: { id: 'tempo',    name: 'Thunderbolt Tempo', cd: 2.60, range: 55 * S, kind: 'strike', color: 0xdff2ff, shake: 0.70 },
-    dash:  { id: 'gust',     name: 'Cyclone Tempo',   cd: 1.20, range: 26 * S, kind: 'gust',  color: 0xd8f0e8, shake: 0.18 },
+    strike:  { id: 'zap',    name: 'Thunder Ball',      key: 'KeyQ', cd: 0.50, range: 40 * S, kind: 'bolt',   color: 0xbfe4ff, shake: 0.12 },
+    sustain: { id: 'sizzle', name: 'Thunder Lance',     key: 'KeyF', cd: 0.14, range: 30 * S, kind: 'bolt',   color: 0xd8f0ff, shake: 0.05, hold: true, slow: GATLING_SLOW },
+    heavy:   { id: 'tempo',  name: 'Thunderbolt Tempo', key: 'KeyR', cd: 2.60, range: 55 * S, kind: 'strike', color: 0xdff2ff, shake: 0.70 },
+    dash:    { id: 'gust',   name: 'Cyclone Tempo',     key: 'KeyE', cd: 1.20, range: 26 * S, kind: 'gust',   color: 0xd8f0e8, shake: 0.18 },
+    ult:     { id: 'storm',  name: 'Thunder Tempo',     key: 'KeyT', cd: 6.00, range: 55 * S, kind: 'storm',  color: 0xeaf6ff, shake: 0.80 },
+    guard:   { id: 'mirage', name: 'Mirage Tempo',      key: 'KeyH', cd: 9.00, range: 0,      kind: 'haki',   color: 0x4a5a70, shake: 0.20, dur: 6 },
   },
 };
+
+/** Every slot the HUD and the key handler know about, in pad order. */
+export const SLOTS = ['strike', 'sustain', 'heavy', 'dash', 'ult', 'gear', 'guard', 'float'];
 
 /* ------------------------------------------------------------------- pools */
 
@@ -54,6 +87,13 @@ export class Combat {
     this.pull = null;              // set when a Rocket is yanking the player
     this.banner = '';
     this.bannerT = 0;
+    /* Timed states, Elbaf's shape: a duration that ticks down, and a separate
+       cooldown that only starts when the state ends. */
+    this.gear2 = 0;                // seconds of Gear Second left
+    this.haki = 0;                 // seconds of armament left
+    this.holdSlow = 1;             // move-speed multiplier while a hold move fires
+    this.roll = null;              // {t, dir}
+    this.blink = null;             // Flash Step target
 
     const g = new THREE.Group();
     g.frustumCulled = false;
@@ -85,6 +125,18 @@ export class Combat {
       this.arcs.push(a);
     }
   }
+
+  /** C — a dodge roll along current heading, or facing if standing still. */
+  startRoll(dir) {
+    if (this.roll || (this.cd.roll || 0) > 0) return false;
+    this.roll = { t: 0, dir: dir.clone().normalize() };
+    this.cd.roll = 0.85;
+    return true;
+  }
+
+  /** Speed and jump scalars the controller should apply this frame. */
+  speedMul() { return (this.gear2 > 0 ? GEAR2_SPEED : 1) * this.holdSlow; }
+  jumpMul()  { return this.gear2 > 0 ? GEAR2_JUMP : 1; }
 
   ready(def, slot) {
     const mv = MOVES[def.style] && MOVES[def.style][slot];
@@ -135,6 +187,28 @@ export class Combat {
                        ctrl.vel.z += aim.z * 26 * S;
                      }
                      break;
+      case 'spin':   for (let i = 0; i < 2; i++)       // Tatsumaki: a rising twin cyclone
+                       this._arc(origin, aim, mv.color, i, 3.0 * S, 0.22, i * 0.05);
+                     break;
+      case 'giant':  this._beam(origin, end, mv.color, 0.55, 1.5);
+                     this._ring(end, mv.color, 15 * S, 0.7);
+                     this._ring(origin, mv.color, 11 * S, 0.55);
+                     break;
+      case 'storm':  this._bolt(end, mv.color, 0.7, 2.4);
+                     this._ring(end, mv.color, 14 * S, 0.7);
+                     this.skyFlash = 1;                // the weather driver reads this
+                     break;
+      case 'blink':  this._ring(origin, mv.color, 6 * S, 0.3);
+                     this.blink = { to: end.clone(), t: 0, dur: 0.16 };
+                     this._ring(end, mv.color, 6 * S, 0.42);
+                     break;
+      case 'gear2':  this.gear2 = mv.dur;
+                     this._ring(origin, mv.color, 9 * S, 0.6);
+                     break;
+      case 'haki':   this.haki = mv.dur;
+                     this._ring(origin, mv.color, 8 * S, 0.55);
+                     break;
+      case 'balloon': break;                            // pure state, see holdSlow
     }
     return true;
   }
@@ -227,6 +301,26 @@ export class Combat {
   update(dt, ctrl) {
     for (const k in this.cd) if (this.cd[k] > 0) this.cd[k] = Math.max(0, this.cd[k] - dt);
     this.shake = Math.max(0, this.shake - dt * 2.6);
+    if (this.gear2 > 0) this.gear2 = Math.max(0, this.gear2 - dt);
+    if (this.haki > 0) this.haki = Math.max(0, this.haki - dt);
+    if (this.skyFlash > 0) this.skyFlash = Math.max(0, this.skyFlash - dt * 2);
+
+    // Roll: a decelerating burst along a fixed heading, Elbaf's 13 u over 0.5 s
+    if (this.roll && ctrl) {
+      this.roll.t += dt;
+      const k = Math.min(1, this.roll.t / ROLL_DUR);
+      const v = ROLL_SPEED * S * (1 - k * k);
+      ctrl.vel.x = this.roll.dir.x * v;
+      ctrl.vel.z = this.roll.dir.z * v;
+      if (k >= 1) this.roll = null;
+    }
+    // Flash Step: a short instant translate rather than a pull
+    if (this.blink && ctrl) {
+      this.blink.t += dt;
+      const k = Math.min(1, this.blink.t / this.blink.dur);
+      ctrl.pos.lerp(this.blink.to, 1 - Math.pow(1 - k, 3));
+      if (k >= 1) { this.blink = null; ctrl.vel.set(0, ctrl.vel.y, 0); }
+    }
     if (this.bannerT > 0) this.bannerT = Math.max(0, this.bannerT - dt);
 
     for (let i = this.active.length - 1; i >= 0; i--) {

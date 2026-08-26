@@ -25,13 +25,24 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { clone as skeletonClone } from 'three/addons/utils/SkeletonUtils.js';
 
 /**
- * The map is not in metres. It was assembled from a photogrammetry capture plus
- * a Nagoya city mesh scaled 2.06x, and measuring it against things whose real
- * size is known puts it about 3x over life size:
+ * The map is not in metres — it is about 1.5x life size.
  *
- *   flyover clearance   18.1 u   (real 5.0-5.5 m)
- *   deck parapet         3.4 u   (real ~1.15 m)
- *   street kerb          0.55 u  (real ~0.18 m)
+ * Vehicles settle this. Scanning the baked height field for elongated bumps
+ * sitting on the road finds 29 of them, median 17.0 u long by 4.7 u tall. That
+ * length/height ratio is 3.6, which is a bus (a real one is ~11.5 m by ~3.2 m,
+ * ratio 3.6). Two dimensions of the same object agree independently:
+ *
+ *   bus length   17.0 u / 11.5 m = 1.48
+ *   bus height    4.7 u /  3.2 m = 1.47
+ *
+ * and the shophouse blocks corroborate it: Buildings.001 is 9.3 u, which at
+ * 1.47 is 6.3 m — two storeys, which is what they look like.
+ *
+ * An earlier pass here read 3.0 from a "parapet" and a "kerb". Both were
+ * mismeasured: the 3.4 u feature is the tall anti-throw fence on the flyover
+ * (really ~2.3 m), not a jersey barrier, and the 0.55 u one was road camber
+ * rather than a kerb face. Ambiguous features on a photogrammetry mesh are not
+ * worth trusting; an object whose two dimensions agree is.
  *
  * Rescaling the map itself would invalidate the baked navmap, the fog range and
  * every camera framing, so the character is scaled into the map's units instead.
@@ -39,7 +50,7 @@ import { clone as skeletonClone } from 'three/addons/utils/SkeletonUtils.js';
  * apex = v^2/2g scales as k, hang time 2v/g is unchanged, and crossing a k-times
  * larger world takes exactly as long as before. Rates (1/time) must NOT scale.
  */
-export const WORLD_SCALE = 3.0;
+export const WORLD_SCALE = 1.5;
 
 const GRAVITY      = -18 * WORLD_SCALE;
 const SPRINT_MULT  = 1.75;                    // ratio — unscaled
