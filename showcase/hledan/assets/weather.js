@@ -27,7 +27,7 @@ export const PRESETS = {
     sun: 0xfff2d8, sunI: 1.05, sunDir: [-420, 560, 300],
     exposure: 1.0, tint: 0xffffff, skirt: 0xa9b4a2,
     cloud: 0xfdfdfb, cloudAmt: 0.42, cloudSharp: 0.13,
-    rain: 0, wind: 0, lamps: 0, traffic: 1, headlights: 0.14,
+    rain: 0, wind: 0, lamps: 0, traffic: 1, headlights: 0.14, selfLit: 0,
   },
   evening: {
     label: 'Golden hour',
@@ -41,8 +41,9 @@ export const PRESETS = {
     exposure: 1.06, tint: 0xffe2c4, skirt: 0xb09878,
     // sunset light comes from underneath, so the deck lights up warm
     cloud: 0xffcf9a, cloudAmt: 0.60, cloudSharp: 0.17,
-    // the lamps are already on before the sun is gone — they always are here
-    rain: 0, wind: 0, lamps: 0.85, traffic: 0.95, headlights: 0.72,
+    // the lamps are already on before the sun is gone — they always are here,
+    // and so are the shop windows, competing with what is left of the daylight
+    rain: 0, wind: 0, lamps: 0.85, traffic: 0.95, headlights: 0.72, windows: 0.7, selfLit: 0.035,
   },
   rain: {
     label: 'Monsoon',
@@ -54,7 +55,7 @@ export const PRESETS = {
     exposure: 0.94, tint: 0x93a3b8, skirt: 0x6e7885,
     // monsoon overcast: near-total cover with soft edges, no blue left
     cloud: 0x6f7885, cloudAmt: 0.96, cloudSharp: 0.30,
-    rain: 1, wind: 0.32, lamps: 0.7, traffic: 0.85, headlights: 0.92,
+    rain: 1, wind: 0.32, lamps: 0.7, traffic: 0.85, headlights: 0.92, selfLit: 0.025,
   },
 
   /* ---- the three that are here for memory rather than for weather ---- */
@@ -69,14 +70,16 @@ export const PRESETS = {
        the moonlight itself is strong enough to rim the rooflines without
        flattening the pools of lamp light. Exposure sits above 1 on purpose —
        what the eye remembers of this street at night is the glow. */
-    zenith: 0x0a1226, horizon: 0x25304c, nadir: 0x05080f,
-    fog: 0x1f2940, fogNear: 520, fogFar: 2700,
-    hemiSky: 0x31456b, hemiGround: 0x30231a, hemi: 1.1,
-    ambient: 0x9cabc8, ambientI: 0.27,
-    sun: 0x9db8e8, sunI: 0.5, sunDir: [-260, 780, 180],    // the moon, properly
-    exposure: 1.22, tint: 0x9fa3ae, skirt: 0x161a24,
-    cloud: 0x2b3448, cloudAmt: 0.34, cloudSharp: 0.22,
-    rain: 0, wind: 0, lamps: 1.0, traffic: 0.45, headlights: 1.0, moon: 1,
+    zenith: 0x080f22, horizon: 0x1e2a46, nadir: 0x05080f,
+    fog: 0x22293c, fogNear: 620, fogFar: 3000,
+    hemiSky: 0x31456b, hemiGround: 0x3d2a1a, hemi: 1.15,
+    ambient: 0xa8adc0, ambientI: 0.26,
+    sun: 0xaecbf5, sunI: 0.85, sunDir: [-260, 780, 180],   // the moon, properly
+    exposure: 1.24, tint: 0xa39a90, skirt: 0x171a22,
+    cloud: 0x2f3a52, cloudAmt: 0.34, cloudSharp: 0.22,
+    /* the sodium dome the city throws up off its own streets */
+    glow: 0xff8c3c, glowAmt: 0.20,
+    rain: 0, wind: 0, lamps: 1.0, traffic: 0.45, headlights: 1.0, moon: 1, windows: 1, selfLit: 0.035,
   },
 
   blackout: {
@@ -93,8 +96,10 @@ export const PRESETS = {
     sun: 0x6b7ea8, sunI: 0.14, sunDir: [-260, 780, 180],
     exposure: 1.24, tint: 0x7c869a, skirt: 0x10141c,
     cloud: 0x1b2231, cloudAmt: 0.30, cloudSharp: 0.24,
-    /* with the grid down the moon owns the street */
-    rain: 0, wind: 0, lamps: 0.06, traffic: 0.30, headlights: 1.0, moon: 0.9,
+    /* with the grid down the moon owns the street, and the only windows still
+       lit are the ones on a generator */
+    glow: 0xff8c3c, glowAmt: 0.04,
+    rain: 0, wind: 0, lamps: 0.06, traffic: 0.30, headlights: 1.0, moon: 0.9, windows: 0.16, selfLit: 0.03,
   },
 
   dawn: {
@@ -110,16 +115,22 @@ export const PRESETS = {
     sun: 0xffcb93, sunI: 1.00, sunDir: [640, 150, -280],   // low, and from the east
     exposure: 1.02, tint: 0xffeade, skirt: 0xa89a82,
     cloud: 0xf7dcc4, cloudAmt: 0.52, cloudSharp: 0.20,
-    rain: 0, wind: 0, lamps: 0.38, traffic: 0.35, headlights: 0.55,
+    rain: 0, wind: 0, lamps: 0.38, traffic: 0.35, headlights: 0.55, selfLit: 0.03,
   },
 };
 
-const KEYS = ['zenith', 'horizon', 'nadir', 'fog', 'ambient', 'sun', 'tint', 'skirt', 'hemiSky', 'hemiGround', 'cloud'];
-const NUMS = ['fogNear', 'fogFar', 'hemi', 'ambientI', 'sunI', 'exposure', 'rain', 'wind', 'cloudAmt', 'cloudSharp', 'lamps', 'traffic', 'headlights', 'moon'];
+const KEYS = ['zenith', 'horizon', 'nadir', 'fog', 'ambient', 'sun', 'tint', 'skirt', 'hemiSky', 'hemiGround', 'cloud', 'glow'];
+const NUMS = ['fogNear', 'fogFar', 'hemi', 'ambientI', 'sunI', 'exposure', 'rain', 'wind', 'cloudAmt', 'cloudSharp', 'lamps', 'traffic', 'headlights', 'moon', 'glowAmt', 'windows', 'selfLit'];
 
-/* Presets that predate the moon simply do not carry the key; a fade toward
-   them treats it as zero, which is exactly the intent. */
-for (const p of Object.values(PRESETS)) if (p.moon === undefined) p.moon = 0;
+/* A preset that predates a key simply does not carry it; a fade toward such a
+   preset treats it as off, which is exactly the intent. */
+for (const p of Object.values(PRESETS)) {
+  if (p.moon === undefined) p.moon = 0;
+  if (p.glowAmt === undefined) p.glowAmt = 0;
+  if (p.glow === undefined) p.glow = 0xff9a4a;
+  if (p.windows === undefined) p.windows = 0;
+  if (p.selfLit === undefined) p.selfLit = 0;
+}
 
 export class Weather {
   /**
@@ -268,6 +279,10 @@ export class Weather {
       su.cloudAmt.value = p.cloudAmt;
       su.cloudSharp.value = p.cloudSharp;
     }
+    if (su.glow) {
+      su.glow.value.setHex(p.glow);
+      su.glowAmt.value = p.glowAmt || 0;
+    }
 
     r.scene.fog.color.setHex(p.fog);
     r.scene.fog.near = p.fogNear;
@@ -287,7 +302,12 @@ export class Weather {
 
     // wet streets: multiply the existing albedo rather than swapping materials
     this._c.setHex(p.tint);
-    for (const [m, base] of this._baseTint) m.color.copy(base).multiply(this._c);
+    for (const [m, base] of this._baseTint) {
+      m.color.copy(base).multiply(this._c);
+      /* and the surface's own faint glow after dark — each material carries
+         how much of it it is entitled to, so the fields stay fields */
+      m.emissiveIntensity = (p.selfLit || 0) * (m.userData.selfLit || 0);
+    }
 
     this.rain.mat.uniforms.uOpacity.value = p.rain * 0.55;
     this.rain.points.visible = p.rain > 0.01;
@@ -299,9 +319,14 @@ export class Weather {
     }
 
     /* Street lamps come up on the same cross-fade as everything else, plus a
-       kick from the lightning so a bolt reads on the lamps as well as the sky. */
-    if (r.props) r.props.setGlow((p.lamps || 0) * (1 + this.flash * 0.5),
-                                (p.headlights === undefined ? p.lamps : p.headlights) || 0);
+       kick from the lightning so a bolt reads on the lamps as well as the sky.
+       Windows carry their own floor, because they are not on the street grid:
+       in a blackout the lamps go and a scatter of generator-lit rooms stays. */
+    if (r.props) {
+      r.props.windowFloor = p.windows || 0;
+      r.props.setGlow((p.lamps || 0) * (1 + this.flash * 0.5),
+                      (p.headlights === undefined ? p.lamps : p.headlights) || 0);
+    }
   }
 
   update(dt, camera) {

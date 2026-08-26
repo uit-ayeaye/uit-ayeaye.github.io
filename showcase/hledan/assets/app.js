@@ -122,12 +122,15 @@ const sky = new THREE.Mesh(
       cloud: { value: new THREE.Color(0xffffff) },
       cloudAmt: { value: 0 },
       cloudSharp: { value: 0.16 },
+      glow: { value: new THREE.Color(0xff9a4a) },
+      glowAmt: { value: 0 },
       t: { value: 0 },
     },
     vertexShader: `varying vec3 vW; void main(){ vW = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
     fragmentShader: `
       uniform vec3 zenith; uniform vec3 horizon; uniform vec3 nadir;
       uniform vec3 cloud; uniform float cloudAmt; uniform float cloudSharp; uniform float t;
+      uniform vec3 glow; uniform float glowAmt;
       varying vec3 vW;
 
       /* Value noise + 4 octaves of fbm. Clouds cost nothing but arithmetic:
@@ -152,6 +155,14 @@ const sky = new THREE.Mesh(
         vec3 c = h > 0.0
           ? mix(horizon, zenith, pow(h, 0.42))     // haze hugs the horizon, blue climbs fast
           : mix(horizon, nadir,  pow(-h, 0.30));   // and falls away to slate below
+
+        /* Light pollution. A city throws a warm dome up off its own streets,
+           strongest just over the rooftops and gone by halfway up the sky —
+           which is why a real night horizon is orange-brown rather than the
+           deep blue directly overhead. Added, not mixed: it is light. */
+        if (glowAmt > 0.001) {
+          c += glow * glowAmt * pow(max(0.0, 1.0 - abs(h) * 2.6), 2.4);
+        }
 
         if (cloudAmt > 0.001 && h > 0.02) {
           /* Project onto a flat deck at a fixed height so the cloud sheet
@@ -224,33 +235,52 @@ function dataMap(url) {
  * `rough` is only honoured on the high tier — Lambert has no roughness input,
  * and on a mid-range mobile GPU the PBR BRDF costs more than it shows.
  */
+/**
+ * `selfLit` is how much of its own albedo a surface gives back after dark.
+ *
+ * A city at night is not a dark city with bright lamps in it — every wall is
+ * throwing back some fraction of the light falling on it from a hundred
+ * sources too small to model. Binding each material's own colour map as its
+ * emissive map and letting the weather drive the intensity buys exactly that
+ * for one multiply in the shader: at night the buildings carry a warm wash of
+ * their own texture, and the whole map reads as lit rather than as geometry
+ * standing in the dark. The terrain backdrop barely participates — it is
+ * fields, and fields do not glow.
+ */
 const RECIPES = {
-  'Building':      { map: tierDir + 'building_basecolor.webp',    rough: 'textures/building_roughness.webp', cutout: true },
-  'Environment':   { map: tierDir + 'environment_basecolor.webp', roughness: 0.96,                           cutout: true },
-  'Hledan_Center': { map: tierDir + 'hledan_basecolor.webp',      rough: 'textures/hledan_roughness.webp',   cutout: true },
-  'Road texture':  { map: 'textures/road_basecolor.webp',         roughness: 0.85,                           cutout: false },
+  'Building':      { map: tierDir + 'building_basecolor.webp',    rough: 'textures/building_roughness.webp', cutout: true, selfLit: 1.0 },
+  'Environment':   { map: tierDir + 'environment_basecolor.webp', roughness: 0.96,                           cutout: true, selfLit: 0.16 },
+  'Hledan_Center': { map: tierDir + 'hledan_basecolor.webp',      rough: 'textures/hledan_roughness.webp',   cutout: true, selfLit: 1.0 },
+  'Road texture':  { map: 'textures/road_basecolor.webp',         roughness: 0.85,                           cutout: false, selfLit: 0.6 },
 };
 
 function buildMaterial(name) {
   const r = RECIPES[name];
   if (!r) return new THREE.MeshLambertMaterial({ color: 0x9aa6b8 });
 
+  const map = colorMap(r.map);
   const common = {
-    map: colorMap(r.map),
+    map,
     side: THREE.DoubleSide,
     alphaTest: r.cutout ? 0.5 : 0,   // test, not blend: no sorting, no blend overdraw
     transparent: false,
     name,
+    /* Bound at construction, not on the first night, so the preset switch is a
+       uniform write rather than a shader recompile mid-fade. */
+    emissiveMap: map,
+    emissive: new THREE.Color(0xffd9b0),
+    emissiveIntensity: 0,
   };
-  if (DEVICE.tier === 'hi') {
-    return new THREE.MeshStandardMaterial({
-      ...common,
-      metalness: 0.0,
-      roughness: r.roughness ?? 1.0,
-      roughnessMap: r.rough ? dataMap(r.rough) : null,
-    });
-  }
-  return new THREE.MeshLambertMaterial(common);
+  const mat = DEVICE.tier === 'hi'
+    ? new THREE.MeshStandardMaterial({
+        ...common,
+        metalness: 0.0,
+        roughness: r.roughness ?? 1.0,
+        roughnessMap: r.rough ? dataMap(r.rough) : null,
+      })
+    : new THREE.MeshLambertMaterial(common);
+  mat.userData.selfLit = r.selfLit ?? 0;
+  return mat;
 }
 
 /* -------------------------------------------------------------------- load */
@@ -267,6 +297,7 @@ let weather = null;
 const groundFast = [];
 const groundWide = [];
 const occluders = [];               // what the chase camera is not allowed to see through
+const buildings = [];               // walls, for the lit-window pass
 let occlusionGrid = null;           // built from `occluders` once the map is in
 let props = null;                   // instanced street furniture
 
@@ -294,6 +325,13 @@ new GLTFLoader().load(
       o.geometry.computeBoundingBox();
       if (name === 'Hledan_Center' || name === 'Road texture') groundFast.push(o);
       else if (o.name === 'Environment') groundWide.push(o);
+
+      /* Anything with walls the window pass can hang lights on. The two
+         building materials cover the shophouses and the towers; the trees and
+         the terrain backdrop are excluded for the obvious reason. */
+      if ((name === 'Building' || name === 'Hledan_Center') && !/^Tree\(/.test(o.name)) {
+        buildings.push(o);
+      }
 
       /* Chase-camera occluders. Trees are excluded on purpose — the mesh is
          named "no collider" and its canopies hang over most of the route, so
@@ -339,6 +377,13 @@ new GLTFLoader().load(
     for (const m of groundFast) coreBox.expandByObject(m);   // streets, not backdrop
     streetY = groundBox.min.y;
     skirt.position.y = streetY - 2;
+
+    /* Light the city's windows. Needs streetY, so it runs here rather than in
+       the StreetProps constructor; one pass over the building geometry. */
+    mapRoot.updateMatrixWorld(true);
+    const t0 = performance.now();
+    const lit = props.buildWindows(buildings, streetY, DEVICE.tier);
+    console.info(`hledan: ${lit} lit windows in ${(performance.now() - t0).toFixed(0)} ms`);
 
     weather = new Weather({
       scene, renderer, sky, hemi, ambient, sun, skirt, props,
@@ -1201,6 +1246,9 @@ function loop(now) {
 
   if (play.on && play.combat) paintCombatHud();
   if (weather) weather.update(realDt, camera);
+  /* The handful of real point lights migrate to whichever lamps are nearest,
+     so wherever you are on the map is the part that is properly lit. */
+  if (props) props.update(camera);
   if (sound.enabled) sound.update(realDt, camera.position, { rain: weather ? weather.cur.rain : 0, flash: weather ? weather.flash : 0,
       traffic: weather ? weather.cur.traffic : 1 });
   sky.position.copy(camera.position);

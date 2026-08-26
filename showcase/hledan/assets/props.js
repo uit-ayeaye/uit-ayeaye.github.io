@@ -312,29 +312,94 @@ function poleGeo() {
 
 /**
  * The lamps a vehicle carries, as their own geometry so they can be driven to
- * full brightness at night without the bodywork coming with them. Built on the
- * same transform list as the vehicle, from an identically seeded PRNG.
+ * full brightness at night without the bodywork coming with them. They ride the
+ * vehicle's own transform list — the SAME array object, not a replayed PRNG —
+ * so they cannot drift off the bodywork. See `layout()`.
+ *
+ * Offsets are measured against the real normalised dimensions the downloaded
+ * models are scaled to (bus 2.50 x 3.20 x 11.5, car 1.78 x 1.52 x 4.40), which
+ * is why they sit just INSIDE each nose. The earlier figures were authored
+ * against the procedural bodies these replaced and hung a few centimetres off
+ * the front of every vehicle on the map.
  *
  * This is most of what makes the road read as alive after dark: 84 vehicles is
  * 84 pairs of headlights and 84 pairs of tail lights, and at a junction this
  * size that is the whole picture.
  */
+const BUS_LAMPS = { hx: 0.80, hy: 0.95, hz: 5.58, ty: 1.02, tz: -5.58 };
+const TAXI_LAMPS = { hx: 0.60, hy: 0.66, hz: 2.06, ty: 0.78, tz: -2.06 };
+
 function busLightsGeo() {
+  const L = BUS_LAMPS;
   return merge([
-    paint(box(0.40, 0.24, 0.06, -0.80, 0.98, 5.86), 0xfff0c8),
-    paint(box(0.40, 0.24, 0.06,  0.80, 0.98, 5.86), 0xfff0c8),
-    paint(box(0.34, 0.22, 0.06, -0.80, 1.02, -5.86), 0xff5a3c),
-    paint(box(0.34, 0.22, 0.06,  0.80, 1.02, -5.86), 0xff5a3c),
+    paint(box(0.40, 0.24, 0.06, -L.hx, L.hy, L.hz), 0xfff0c8),
+    paint(box(0.40, 0.24, 0.06,  L.hx, L.hy, L.hz), 0xfff0c8),
+    paint(box(0.34, 0.22, 0.06, -L.hx, L.ty, L.tz), 0xff5a3c),
+    paint(box(0.34, 0.22, 0.06,  L.hx, L.ty, L.tz), 0xff5a3c),
   ], 'bus lights');
 }
 
 function taxiLightsGeo() {
+  const L = TAXI_LAMPS;
   return merge([
-    paint(box(0.34, 0.18, 0.05, -0.62, 0.76, 2.31), 0xfff0c8),
-    paint(box(0.34, 0.18, 0.05,  0.62, 0.76, 2.31), 0xfff0c8),
-    paint(box(0.28, 0.22, 0.05, -0.64, 0.88, -2.31), 0xff5a3c),
-    paint(box(0.28, 0.22, 0.05,  0.64, 0.88, -2.31), 0xff5a3c),
+    paint(box(0.34, 0.18, 0.05, -L.hx, L.hy, L.hz), 0xfff0c8),
+    paint(box(0.34, 0.18, 0.05,  L.hx, L.hy, L.hz), 0xfff0c8),
+    paint(box(0.28, 0.22, 0.05, -L.hx, L.ty, L.tz), 0xff5a3c),
+    paint(box(0.28, 0.22, 0.05,  L.hx, L.ty, L.tz), 0xff5a3c),
   ], 'taxi lights');
+}
+
+/**
+ * The pool of light a vehicle throws onto the tarmac in front of it.
+ *
+ * A quad lying flat on the road, widening away from the nose, with the falloff
+ * baked into its vertex colours — bright at the bumper, nothing at the far end,
+ * and tapering at the sides so it reads as a beam and not as a painted
+ * rectangle. Additive, so the dark end genuinely adds nothing.
+ *
+ * @param len   how far the beam reaches, metres
+ * @param w0/w1 width at the bumper and at the far end
+ * @param z0    where the bumper is
+ */
+function beamGeo(len, w0, w1, z0, tail = false) {
+  /* Five columns across, not three. The outer pair sit at zero so the beam
+     fades into the tarmac instead of ending on a hard line — with only an edge
+     and a centre the interpolation leaves a visible boundary, and the whole
+     thing reads as a triangle painted on the road rather than as light. */
+  const SEG = 6;
+  const ACROSS = [-1, -0.55, 0, 0.55, 1];
+  const BRIGHT = [0, 0.62, 1, 0.62, 0];
+  /* The beam has to climb as it goes.
+     Vehicle anchors were baked at each vehicle's own spot, but the road has
+     camber and gradient, so ten metres ahead the tarmac can sit a third of a
+     unit ABOVE the anchor — and a beam laid flat at anchor height is buried
+     under it and never draws a pixel. Lifting the far end clear costs nothing
+     visually (an additive wash a few centimetres off the road reads exactly
+     the same) and guarantees the whole length stays above the surface. */
+  const Y0 = 0.10, Y1 = 0.62;
+  const pos = [], col = [], idx = [];
+  const push = (x, y, z, v) => { pos.push(m(x), m(y), m(z)); col.push(v, v, v); };
+  for (let i = 0; i <= SEG; i++) {
+    const t = i / SEG;
+    const z = z0 + len * t;
+    const y = Y0 + (Y1 - Y0) * t;
+    const hw = (w0 + (w1 - w0) * t) / 2;
+    const v = Math.pow(1 - t, 2.0);          // falls off with the square of range
+    for (let k = 0; k < ACROSS.length; k++) push(ACROSS[k] * hw, y, z, v * BRIGHT[k]);
+  }
+  const N = ACROSS.length;
+  for (let i = 0; i < SEG; i++) {
+    for (let k = 0; k < N - 1; k++) {
+      const a = i * N + k, b = a + N;
+      idx.push(a, a + 1, b,  a + 1, b + 1, b);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pos), 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(col), 3));
+  geo.setIndex(idx);
+  if (tail) geo.scale(1, 1, -1);             // the red wash behind the vehicle
+  return geo.toNonIndexed();
 }
 
 /**
@@ -372,8 +437,8 @@ function lampLensGeo() {
 
 /** A standalone pool for the baked posts — same vertex-colour falloff as the
     street-lamp pool, centred on the origin so it can sit under any post. */
-function bakedPoolGeo() {
-  const disc = new THREE.CircleGeometry(m(3.8), 16);
+function bakedPoolGeo(radius = 3.8) {
+  const disc = new THREE.CircleGeometry(m(radius), 16);
   disc.rotateX(-Math.PI / 2);
   const pos = disc.attributes.position;
   const col = new Float32Array(pos.count * 3);
@@ -397,8 +462,8 @@ function bakedPoolGeo() {
     nothing, so a disc that runs from white at the hub to black at the rim has
     no edge to give itself away. A flat-coloured disc reads as a circle of paint
     on the road, which is exactly what it looked like before. */
-function lampGlowGeo() {
-  const disc = new THREE.CircleGeometry(m(3.4), 14);
+function lampGlowGeo(radius = 3.4) {
+  const disc = new THREE.CircleGeometry(m(radius), 14);
   disc.rotateX(-Math.PI / 2);
   {
     const pos = disc.attributes.position;
@@ -542,16 +607,38 @@ function makeLivery(srcTex, bodyHex) {
 
 /* ----------------------------------------------------------------- build */
 
-function instanced(geo, mat, rows, colours, rng, jitterYaw) {
-  const mesh = new THREE.InstancedMesh(geo, mat, rows.length);
+/**
+ * Resolve a set of anchor rows into concrete transforms, ONCE.
+ *
+ * Everything that has to sit on a prop — its bodywork, its lamps, its halo
+ * sprites, its light beam — is then built from this same array, so nothing can
+ * drift off anything else. Replaying a seeded PRNG per layer used to do the
+ * same job and mostly worked, until the bus fleet was split across four livery
+ * meshes: each slice re-seeded the generator from zero, so the bodies took
+ * yaws that the lamp layer (still running the original unbroken sequence) knew
+ * nothing about, and every headlight on the map ended up on a different bus
+ * from the one it belonged to. A resolved list has no sequence to get out of
+ * step with.
+ */
+function layout(rows, seed, jitterYaw = 0) {
+  const rng = mulberry32(seed);
+  return rows.map((r) => {
+    let yaw = r.length > 3 ? r[3] + (rng() < 0.5 ? 0 : Math.PI) : rng() * Math.PI * 2;
+    if (jitterYaw) yaw += (rng() - 0.5) * jitterYaw;
+    const s = 0.94 + rng() * 0.12;
+    return { x: r[0], y: r[1], z: r[2], yaw, s };
+  });
+}
+
+/** Build an InstancedMesh from a resolved layout. */
+function instancedFrom(geo, mat, place, colours) {
+  const mesh = new THREE.InstancedMesh(geo, mat, place.length);
   const dummy = new THREE.Object3D();
   const col = new THREE.Color();
-  rows.forEach((r, i) => {
-    dummy.position.set(r[0], r[1], r[2]);
-    dummy.rotation.y = r.length > 3 ? r[3] + (rng() < 0.5 ? 0 : Math.PI) : rng() * Math.PI * 2;
-    if (jitterYaw) dummy.rotation.y += (rng() - 0.5) * jitterYaw;
-    const s = 0.94 + rng() * 0.12;
-    dummy.scale.set(s, s, s);
+  place.forEach((p, i) => {
+    dummy.position.set(p.x, p.y, p.z);
+    dummy.rotation.set(0, p.yaw, 0);
+    dummy.scale.set(p.s, p.s, p.s);
     dummy.updateMatrix();
     mesh.setMatrixAt(i, dummy.matrix);
     if (colours) mesh.setColorAt(i, col.set(colours[(i * 7 + 3) % colours.length]));
@@ -560,7 +647,20 @@ function instanced(geo, mat, rows, colours, rng, jitterYaw) {
   if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
   mesh.castShadow = mesh.receiveShadow = false;
   mesh.matrixAutoUpdate = false;
+  mesh.userData.place = place;
   return mesh;
+}
+
+/** Convenience for the props that still want anchors-plus-seed at the call site. */
+function instanced(geo, mat, rows, colours, seed, jitterYaw) {
+  return instancedFrom(geo, mat, layout(rows, seed, jitterYaw), colours);
+}
+
+/** A point in a prop's local frame, lifted into world space. */
+function localToWorld(p, lx, ly, lz) {
+  const cos = Math.cos(p.yaw), sin = Math.sin(p.yaw);
+  const x = lx * p.s, y = ly * p.s, z = lz * p.s;
+  return { x: p.x + x * cos + z * sin, y: p.y + y, z: p.z - x * sin + z * cos };
 }
 
 /* Deterministic PRNG, so the street looks the same on every visit. */
@@ -678,26 +778,30 @@ export class StreetProps {
     };
 
     /* A prop whose tint must not spread over its whole body is built as two
-       meshes sharing one transform list. Both are laid out from a PRNG seeded
-       identically, so the tarp lands on its own poles. */
-    const pair = (a, b, rows, colours, seed, jitter) => [
-      instanced(a, mk(), rows, colours, mulberry32(seed), jitter),
-      instanced(b, mk(), rows, null,    mulberry32(seed), jitter),
-    ];
+       meshes sharing one resolved transform list, so the tarp lands on its own
+       poles. */
+    const pair = (a, b, rows, colours, seed, jitter) => {
+      const place = layout(rows, seed, jitter);
+      return [instancedFrom(a, mk(), place, colours), instancedFrom(b, mk(), place, null)];
+    };
 
     const busRows = take(BUS);
     const taxiRows = take(TAXI, 2);
-    this._busRows = busRows;
-    this._busSeed = BUS_SEED;
+    /* Resolved once, shared by the bodywork, the lamps, the beams and the
+       halos — and by replaceVehicle() when the downloaded models land. */
+    const busPlace = layout(busRows, BUS_SEED, 0.05);
+    const taxiPlace = layout(taxiRows, TAXI_SEED, 0.07);
+    const polePlace = layout(POLE, 0x504C45, 0);
+    this._busPlace = busPlace;
     this._mk = mk;
 
     this.meshes = [
-      instanced(busGeo(),      mk(), busRows,  BUS_COLOURS,  mulberry32(BUS_SEED),  0.05),
-      instanced(taxiGeo(),     mk(), taxiRows, TAXI_COLOURS, mulberry32(TAXI_SEED), 0.07),
+      instancedFrom(busGeo(),  mk(), busPlace,  BUS_COLOURS),
+      instancedFrom(taxiGeo(), mk(), taxiPlace, TAXI_COLOURS),
       ...pair(teaTarpGeo(),    teaFrameGeo(),   TEA,   TARP_COLOURS, 0x54454, 0),
       ...pair(stallCanopyGeo(), stallFrameGeo(), STALL, TARP_COLOURS, 0x5741, 0),
-      instanced(potStandGeo(), mk(), POT,         null,          rng, 0),
-      instanced(poleGeo(),     mk(), POLE,   null,          mulberry32(0x504C45), 0),
+      instanced(potStandGeo(), mk(), POT,       null, 0x504F54, 0),
+      instancedFrom(poleGeo(), mk(), polePlace, null),
     ];
 
     /* Lamps ride the pole transforms, so they are laid out from a PRNG seeded
@@ -710,17 +814,16 @@ export class StreetProps {
     });
     this.lampMat = lampMat;
     this.glowMat = glowMat;
-    const lamp = instanced(lampLensGeo(), lampMat, POLE, null, mulberry32(0x504C45), 0);
+    const lamp = instancedFrom(lampLensGeo(), lampMat, polePlace, null);
     this.meshes.push(lamp);
     /* The pools are big additive discs, and additive discs are fill rate — the
-       one thing a phone GPU has least of. The lens and the vehicle lamps are a
-       few pixels each and stay; the pools are a high-tier luxury. */
-    let glow = null;
-    if (tier === 'hi') {
-      glow = instanced(lampGlowGeo(), glowMat, POLE, null, mulberry32(0x504C45), 0);
-      glow.renderOrder = 3;
-      this.meshes.push(glow);
-    }
+       one thing a phone GPU has least of. They are also the single thing that
+       makes a street read as LIT rather than as a row of glowing dots, so the
+       low tier gets them too, just smaller: the cost of an additive disc is its
+       area, and 0.62 of the radius is 0.38 of the fragments. */
+    const glow = instancedFrom(lampGlowGeo(tier === 'hi' ? 3.4 : 2.1), glowMat, polePlace, null);
+    glow.renderOrder = 3;
+    this.meshes.push(glow);
 
     /* Vehicle lamps and tea-shop bulbs, on the same transforms as the things
        they belong to. Additive and unlit, like the street lamps, and driven by
@@ -735,35 +838,54 @@ export class StreetProps {
     });
     this.vehMat = vehMat;
     this.bulbMat = bulbMat;
-    const busLights = instanced(busLightsGeo(), vehMat, busRows, null, mulberry32(BUS_SEED), 0.05);
-    const taxiLights = instanced(taxiLightsGeo(), vehMat, taxiRows, null, mulberry32(TAXI_SEED), 0.07);
-    const bulbs = instanced(shopBulbGeo(), bulbMat, TEA.concat(STALL), null, mulberry32(0x42554C), 0);
+    const bulbPlace = layout(TEA.concat(STALL), 0x42554C, 0);
+    const busLights = instancedFrom(busLightsGeo(), vehMat, busPlace, null);
+    const taxiLights = instancedFrom(taxiLightsGeo(), vehMat, taxiPlace, null);
+    const bulbs = instancedFrom(shopBulbGeo(), bulbMat, bulbPlace, null);
     busLights.renderOrder = 3; taxiLights.renderOrder = 3; bulbs.renderOrder = 3;
     this.meshes.push(busLights, taxiLights, bulbs);
 
+    /* The beam each vehicle throws on the tarmac. Parked traffic with lit
+       headlights but no light ON THE ROAD reads as a row of glowing dots; the
+       pools are what make the carriageway itself look lit. High tier only —
+       they are broad additive quads, and fill rate is what a phone has least
+       of. Same transform lists as the bodies, so a beam cannot come adrift. */
+    this.beamMat = new THREE.MeshBasicMaterial({
+      vertexColors: true, color: 0xfff2dc, transparent: true, opacity: 0,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+    });
+    this.tailMat = new THREE.MeshBasicMaterial({
+      vertexColors: true, color: 0xff4a30, transparent: true, opacity: 0,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+    });
+    const beamLen = tier === 'hi' ? 1 : 0.62;
+    const busBeam = instancedFrom(beamGeo(15 * beamLen, 2.4, 7.0 * beamLen, BUS_LAMPS.hz), this.beamMat, busPlace, null);
+    const taxiBeam = instancedFrom(beamGeo(11 * beamLen, 1.7, 5.0 * beamLen, TAXI_LAMPS.hz), this.beamMat, taxiPlace, null);
+    /* The red wash behind a vehicle is a nicety rather than a read, and it is
+       the same fill cost as the beam. Desktop only. */
+    let busTail = null, taxiTail = null;
+    if (tier === 'hi') {
+      busTail = instancedFrom(beamGeo(5, 2.2, 3.6, -BUS_LAMPS.tz, true), this.tailMat, busPlace, null);
+      taxiTail = instancedFrom(beamGeo(3.6, 1.6, 2.6, -TAXI_LAMPS.tz, true), this.tailMat, taxiPlace, null);
+    }
+    for (const b of [busBeam, taxiBeam, busTail, taxiTail]) {
+      if (!b) continue;
+      b.renderOrder = 2;
+      this.meshes.push(b);
+    }
+
     /* ---- the warm layer: halo sprites on every source, in two draw calls.
-       Positions replay the exact PRNG sequences the instanced meshes used, so
-       each halo sits on its own bulb whatever yaw the pole rolled. ---- */
+       Positions come from the same resolved transform lists the meshes were
+       built from, so each halo sits on its own bulb. ---- */
     const tex = haloTexture();
     const gridHalos = [];
-    {
-      const r = mulberry32(0x504C45);
-      for (const row of POLE) {
-        const yaw = r() * Math.PI * 2;
-        const sc = 0.94 + r() * 0.12;
-        gridHalos.push({
-          x: row[0] + Math.cos(yaw) * m(1.20) * sc,
-          y: row[1] + m(5.96) * sc,
-          z: row[2] - Math.sin(yaw) * m(1.20) * sc,
-          size: m(2.6), color: 0xffb45e,
-        });
-      }
-      const rb = mulberry32(0x42554C);
-      for (const row of TEA.concat(STALL)) {
-        rb();                                   // yaw — the bulb is on the axis
-        const sc = 0.94 + rb() * 0.12;
-        gridHalos.push({ x: row[0], y: row[1] + m(2.05) * sc, z: row[2], size: m(1.6), color: 0xffcf8a });
-      }
+    for (const p of polePlace) {
+      const at = localToWorld(p, m(1.20), m(5.96), 0);
+      gridHalos.push({ x: at.x, y: at.y, z: at.z, size: m(2.6), color: 0xffb45e });
+    }
+    for (const p of bulbPlace) {
+      const at = localToWorld(p, 0, m(2.05), 0);
+      gridHalos.push({ x: at.x, y: at.y, z: at.z, size: m(1.6), color: 0xffcf8a });
     }
 
     /* Neon. Yangon shopfronts run LED sign strips in saturated colour, and
@@ -778,11 +900,13 @@ export class StreetProps {
       vertexColors: true, transparent: true, opacity: 0,
       blending: THREE.AdditiveBlending, depthWrite: false,
     });
-    const neon = instanced(neonGeo, this.neonMat, neonRows, NEON, mulberry32(0x4E454F), 0);
+    const neonPlace = layout(neonRows, 0x4E454F, 0);
+    const neon = instancedFrom(neonGeo, this.neonMat, neonPlace, NEON);
     neon.renderOrder = 3;
     this.meshes.push(neon);
-    neonRows.forEach((row, i) => {
-      gridHalos.push({ x: row[0], y: row[1] + m(2.95), z: row[2], size: m(1.5), color: NEON[(i * 7 + 3) % NEON.length] });
+    neonPlace.forEach((p, i) => {
+      const at = localToWorld(p, 0, m(2.95), 0);
+      gridHalos.push({ x: at.x, y: at.y, z: at.z, size: m(1.5), color: NEON[(i * 7 + 3) % NEON.length] });
     });
     this._neon = neon;
 
@@ -795,73 +919,66 @@ export class StreetProps {
     });
     const headRows = BAKED_LAMPS.map((r) => [r[0], r[1] - m(0.12), r[2]]);
     const heads = instanced(paint(new THREE.SphereGeometry(m(0.34), 8, 6), 0xffffff),
-      this.bakedMat, headRows, null, mulberry32(0x4C414D), 0);
+      this.bakedMat, headRows, null, 0x4C414D, 0);
     heads.renderOrder = 3;
     this.meshes.push(heads);
-    let bakedPools = null;
-    if (tier === 'hi') {
-      const poolRows = BAKED_LAMPS.map((r) => [r[0], r[3] + m(0.06), r[2]]);
-      bakedPools = instanced(bakedPoolGeo(), this.glowMat, poolRows, null, mulberry32(0x4C414D), 0);
-      bakedPools.renderOrder = 3;
-      this.meshes.push(bakedPools);
-    }
+    const poolRows = BAKED_LAMPS.map((r) => [r[0], r[3] + m(0.06), r[2]]);
+    const bakedPools = instanced(bakedPoolGeo(tier === 'hi' ? 3.8 : 2.4), this.glowMat, poolRows, null, 0x4C414D, 0);
+    bakedPools.renderOrder = 3;
+    this.meshes.push(bakedPools);
     for (const r of BAKED_LAMPS) {
       gridHalos.push({ x: r[0], y: r[1], z: r[2], size: r[3] > 50 ? m(3.4) : m(3.0), color: 0xffb45e });
     }
     this._bakedHeads = heads;
     this._bakedPools = bakedPools;
+    /* Vehicle lamp halos, off the same resolved transforms as the lamp
+       geometry — literally the same numbers, so a halo cannot sit on a
+       different bus from its own headlight. */
     const vehHalos = [];
-    const vehLampPoints = (rows, seed, jitter, lampsLocal) => {
-      const r = mulberry32(seed);
-      for (const row of rows) {
-        let yaw = (row.length > 3 ? row[3] : 0) + (r() < 0.5 ? 0 : Math.PI);
-        yaw += (r() - 0.5) * jitter;
-        const sc = 0.94 + r() * 0.12;
-        const cos = Math.cos(yaw), sin = Math.sin(yaw);
-        for (const [lx, ly, lz, size, color] of lampsLocal) {
-          const x = lx * sc, z = lz * sc;
-          vehHalos.push({
-            x: row[0] + x * cos + z * sin,
-            y: row[1] + ly * sc,
-            z: row[2] - x * sin + z * cos,
-            size, color,
-          });
+    const B = BUS_LAMPS, T = TAXI_LAMPS;
+    const vehLampHalos = (place, L, headSize, tailSize) => {
+      for (const p of place) {
+        for (const [lx, ly, lz, size, color] of [
+          [-L.hx, L.hy, L.hz, headSize, 0xfff0c8], [L.hx, L.hy, L.hz, headSize, 0xfff0c8],
+          [-L.hx, L.ty, L.tz, tailSize, 0xff5a3c], [L.hx, L.ty, L.tz, tailSize, 0xff5a3c],
+        ]) {
+          const at = localToWorld(p, m(lx), m(ly), m(lz));
+          vehHalos.push({ x: at.x, y: at.y, z: at.z, size, color });
         }
       }
     };
-    vehLampPoints(busRows, BUS_SEED, 0.05, [
-      [m(-0.80), m(0.98), m(5.90), m(1.05), 0xfff0c8], [m(0.80), m(0.98), m(5.90), m(1.05), 0xfff0c8],
-      [m(-0.80), m(1.02), m(-5.90), m(0.75), 0xff5a3c], [m(0.80), m(1.02), m(-5.90), m(0.75), 0xff5a3c],
-    ]);
-    vehLampPoints(taxiRows, TAXI_SEED, 0.07, [
-      [m(-0.62), m(0.76), m(2.34), m(0.85), 0xfff0c8], [m(0.62), m(0.76), m(2.34), m(0.85), 0xfff0c8],
-      [m(-0.64), m(0.88), m(-2.34), m(0.62), 0xff5a3c], [m(0.64), m(0.88), m(-2.34), m(0.62), 0xff5a3c],
-    ]);
+    vehLampHalos(busPlace, B, m(1.05), m(0.75));
+    vehLampHalos(taxiPlace, T, m(0.85), m(0.62));
+
+    /* ---- the city itself. Every wall on the map gets its windows lit; see
+       buildWindows(), which app.js calls once the map geometry is in. ---- */
+    this._winTex = tex;
     this._haloGrid = haloPoints(gridHalos, tex);
     this._haloVeh = haloPoints(vehHalos, tex);
     this.group.add(this._haloGrid.points, this._haloVeh.points);
 
-    /* Six real point lights over the heart of the junction, high tier only —
-       the sodium pools that actually light the road and anyone standing on
-       it. Everything further out lives on halos and the baked pool discs. */
+    /* Real point lights. These are the only lights on the map that put actual
+       shading on the character and the props, so rather than pinning them to
+       six fixed poles they MIGRATE: every frame the nearest lamp heads to the
+       camera claim them (see update()). Eight lights therefore light the whole
+       city instead of one corner of it, at the cost of eight lights. */
     this._lampLights = [];
-    if (tier === 'hi') {
-      const LIT_POLES = [[34, 43.4, -30], [-98, 43.4, -34], [114, 43.6, 18],
-                         [14, 43.4, 38], [-90, 43.4, 74], [6, 43.4, 74],
-                         /* two of the flyover's real posts light the deck */
-                         [30.6, 61.7, 75.9], [14.6, 61.7, 138.9]];
-      for (const [x, y, z] of LIT_POLES) {
-        const l = new THREE.PointLight(0xffa14f, 0, m(34), 2);
-        l.position.set(x, y + m(5.9), z);
-        l.visible = false;
-        this.group.add(l);
-        this._lampLights.push(l);
-      }
+    this._litCount = tier === 'hi' ? 8 : 3;
+    for (let i = 0; i < this._litCount; i++) {
+      const l = new THREE.PointLight(0xffa14f, 0, m(36), 2);
+      l.visible = false;
+      this.group.add(l);
+      this._lampLights.push(l);
     }
+    /* Where those lights may go: every lamp head on the map, street and deck. */
+    this._lampHeads = [];
+    for (const p of polePlace) this._lampHeads.push(localToWorld(p, m(1.20), m(5.9), 0));
+    for (const r of BAKED_LAMPS) this._lampHeads.push({ x: r[0], y: r[1] - m(0.3), z: r[2] });
 
     /* Everything that can be switched off, so setGlow can stop drawing it when
        the preset has it dark. */
-    this._lit = [lamp, glow, busLights, taxiLights, bulbs, neon, heads, bakedPools].filter(Boolean);
+    this._lit = [lamp, glow, busLights, taxiLights, bulbs, neon, heads, bakedPools,
+                 busBeam, taxiBeam, busTail, taxiTail].filter(Boolean);
     for (const mesh of this.meshes) this.group.add(mesh);
 
     if (tier === 'hi') this.group.add(this._cables(rng));
@@ -949,10 +1066,13 @@ export class StreetProps {
        green would take its windows and indicators with it. Splitting the fleet
        costs a draw call each and keeps every other colour on the bus intact. */
     if (liveries && liveries.length > 1 && loaded.material && loaded.material.map) {
-      const rows = this._busRows || [];
-      const per = Math.ceil(rows.length / liveries.length);
+      /* Split by SLICING THE RESOLVED LAYOUT, never by re-running a PRNG: each
+         bus keeps the exact transform its lamps, beam and halos were built
+         against, whichever livery mesh ends up drawing it. */
+      const place = this._busPlace || [];
+      const per = Math.ceil(place.length / liveries.length);
       liveries.forEach((hex, i) => {
-        const slice = rows.slice(i * per, (i + 1) * per);
+        const slice = place.slice(i * per, (i + 1) * per);
         if (!slice.length) return;
         const mat = loaded.material.clone();
         mat.map = makeLivery(loaded.material.map, hex);
@@ -968,21 +1088,136 @@ export class StreetProps {
     return true;
   }
 
-  /** Rewrite an InstancedMesh's transforms from a slice of anchor rows. */
-  _reseat(mesh, rows) {
+  /** Rewrite an InstancedMesh's transforms from a slice of a resolved layout. */
+  _reseat(mesh, place) {
     const dummy = new THREE.Object3D();
-    const rng = mulberry32(this._busSeed || 1);
-    mesh.count = rows.length;
-    rows.forEach((r, i) => {
-      dummy.position.set(r[0], r[1], r[2]);
-      dummy.rotation.y = (r.length > 3 ? r[3] : 0) + (rng() < 0.5 ? 0 : Math.PI) + (rng() - 0.5) * 0.05;
-      const sc = 0.94 + rng() * 0.12;
-      dummy.scale.set(sc, sc, sc);
+    mesh.count = place.length;
+    place.forEach((p, i) => {
+      dummy.position.set(p.x, p.y, p.z);
+      dummy.rotation.set(0, p.yaw, 0);
+      dummy.scale.set(p.s, p.s, p.s);
       dummy.updateMatrix();
       mesh.setMatrixAt(i, dummy.matrix);
     });
     mesh.instanceMatrix.needsUpdate = true;
     mesh.computeBoundingSphere();
+  }
+
+  /**
+   * Light every window in the city.
+   *
+   * The map has no building objects — it is one merged photogrammetry mesh —
+   * but it does have walls, and a wall is findable: a triangle whose normal is
+   * near-horizontal, standing above the street. Walking the building meshes
+   * once at load and dropping a warm point on every few square metres of
+   * facade gives the whole skyline lit windows for one Points draw, with no
+   * baked data to go stale if the model is ever re-exported.
+   *
+   * Deterministic throughout — the same geometry gives the same windows every
+   * visit, so the city can be art-directed rather than re-rolled.
+   *
+   * @param meshes the map meshes whose material is building-ish
+   * @param streetY the road level; anything below this is kerb, not facade
+   */
+  buildWindows(meshes, streetY, tier = 'hi') {
+    if (!meshes || !meshes.length) return 0;
+    const GX = 5.5, GY = 4.2;            // one window per ~3.7 x 2.8 m of wall
+    const MIN_Y = streetY + m(2.6);      // above the shopfront awnings
+    const MAX_Y = streetY + m(95);
+    const seen = new Set();
+    const rows = [];
+    const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+    const ab = new THREE.Vector3(), ac = new THREE.Vector3(), n = new THREE.Vector3();
+
+    for (const mesh of meshes) {
+      const geo = mesh.geometry;
+      const pos = geo && geo.attributes && geo.attributes.position;
+      if (!pos) continue;
+      const index = geo.index;
+      const count = index ? index.count : pos.count;
+      const mw = mesh.matrixWorld;
+      for (let i = 0; i + 2 < count; i += 3) {
+        const i0 = index ? index.getX(i) : i;
+        const i1 = index ? index.getX(i + 1) : i + 1;
+        const i2 = index ? index.getX(i + 2) : i + 2;
+        a.fromBufferAttribute(pos, i0).applyMatrix4(mw);
+        if (a.y < MIN_Y || a.y > MAX_Y) continue;      // cheap reject before the rest
+        b.fromBufferAttribute(pos, i1).applyMatrix4(mw);
+        c.fromBufferAttribute(pos, i2).applyMatrix4(mw);
+        ab.subVectors(b, a); ac.subVectors(c, a);
+        n.crossVectors(ab, ac);
+        const len = n.length();
+        if (len < 1e-6) continue;
+        n.multiplyScalar(1 / len);
+        if (Math.abs(n.y) > 0.35) continue;            // roof or floor, not a wall
+        if (len * 0.5 < 1.2) continue;                 // slivers carry no window
+        const cx = (a.x + b.x + c.x) / 3;
+        const cy = (a.y + b.y + c.y) / 3;
+        const cz = (a.z + b.z + c.z) / 3;
+        if (cy < MIN_Y) continue;
+        const key = `${Math.floor(cx / GX)},${Math.floor(cy / GY)},${Math.floor(cz / GX)}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        /* A deterministic hash decides whether this window is on tonight and
+           what is behind it — warm bulb, fluorescent tube, or a sign. Yangon
+           runs a lot of cheap fluorescent, which is why the cool ones matter:
+           an all-amber city reads as a film set. */
+        const h = Math.abs(Math.imul(Math.floor(cx * 7) ^ Math.floor(cz * 13), 0x27d4eb2d)
+                           ^ Math.imul(Math.floor(cy * 11), 0x85ebca6b)) % 1000;
+        if (h < 380) continue;                         // dark window
+        const kind = h > 960 ? 2 : (h > 800 ? 1 : 0);
+        rows.push({
+          x: cx + n.x * m(0.35), y: cy, z: cz + n.z * m(0.35),
+          size: kind === 2 ? m(1.5) : m(1.15),
+          color: kind === 2 ? 0x5fe0ff : (kind === 1 ? 0xdcecff : 0xffc98a),
+        });
+      }
+    }
+    if (!rows.length) return 0;
+    /* A phone does not need every window in the city, and the layer is one
+       draw either way — but the fragments are real, so thin it. */
+    const keep = tier === 'hi' ? rows : rows.filter((_, i) => i % 3 === 0);
+    this._haloWin = haloPoints(keep, this._winTex);
+    this._haloWin.points.renderOrder = 4;
+    this.group.add(this._haloWin.points);
+    this.windowCount = keep.length;
+    return keep.length;
+  }
+
+  /**
+   * Move the real point lights to whichever lamp heads are nearest the camera.
+   *
+   * Called every frame; costs a pass over ~94 lamp positions and a partial
+   * selection, which is nothing, and means the eight lights the scene can
+   * afford are always the eight that matter. Lights are only moved when the
+   * street is actually lit, so nothing happens at midday.
+   */
+  update(camera) {
+    const lights = this._lampLights;
+    if (!lights.length || !lights[0].visible) return;
+    const heads = this._lampHeads;
+    const cx = camera.position.x, cy = camera.position.y, cz = camera.position.z;
+    /* Partial selection: walk the list keeping the N nearest. N is 8, so an
+       insertion pass beats sorting 94 entries every frame. */
+    const N = lights.length;
+    const bestI = this._bestI || (this._bestI = new Int32Array(N));
+    const bestD = this._bestD || (this._bestD = new Float32Array(N));
+    bestD.fill(Infinity); bestI.fill(-1);
+    for (let i = 0; i < heads.length; i++) {
+      const h = heads[i];
+      const dx = h.x - cx, dy = h.y - cy, dz = h.z - cz;
+      const d = dx * dx + dy * dy + dz * dz;
+      if (d >= bestD[N - 1]) continue;
+      let k = N - 1;
+      while (k > 0 && bestD[k - 1] > d) { bestD[k] = bestD[k - 1]; bestI[k] = bestI[k - 1]; k--; }
+      bestD[k] = d; bestI[k] = i;
+    }
+    for (let i = 0; i < N; i++) {
+      const src = bestI[i] >= 0 ? heads[bestI[i]] : null;
+      if (!src) { lights[i].visible = false; continue; }
+      lights[i].visible = true;
+      lights[i].position.set(src.x, src.y, src.z);
+    }
   }
 
   /**
@@ -1001,12 +1236,32 @@ export class StreetProps {
     if (this.neonMat) this.neonMat.opacity = a * 0.85;
     if (this.bakedMat) this.bakedMat.opacity = a * 0.95;
 
+    /* The beams belong to the traffic, not the grid — in a blackout the road is
+       dark and the buses still light it — but a headlight beam laid on sunlit
+       tarmac is invisible in life and should be absent here. Midday still runs
+       the lamps at 0.14 for daytime running lights, which is a lit bulb and not
+       a beam, so the wash is gated on the headlights being genuinely ON rather
+       than merely non-zero. */
+    const beamK = THREE.MathUtils.smoothstep(h, 0.3, 0.8);
+    if (this.beamMat) this.beamMat.opacity = beamK * 0.11;
+    if (this.tailMat) this.tailMat.opacity = beamK * 0.10;
+
     // the halo layer and the sodium pools ride the same photocell
     if (this._haloGrid) {
       this._haloGrid.mat.uniforms.uOpacity.value = a;
       this._haloGrid.points.visible = a > 0.012;
-      this._haloVeh.mat.uniforms.uOpacity.value = h * 0.85;
-      this._haloVeh.points.visible = h > 0.012;
+      /* Same for the lamp halos: a bloom around a bulb is something you only
+         see against a dark street, so they come up with the beams. */
+      this._haloVeh.mat.uniforms.uOpacity.value = beamK * 0.85;
+      this._haloVeh.points.visible = beamK > 0.012;
+    }
+    /* Windows are on somebody's own meter. They dim with the grid but never go
+       all the way out — a blackout street still has generators and candles,
+       and a city with every window black looks abandoned rather than dark. */
+    if (this._haloWin) {
+      const w = Math.max(a, this.windowFloor || 0) * 0.9;
+      this._haloWin.mat.uniforms.uOpacity.value = w;
+      this._haloWin.points.visible = w > 0.012;
     }
     if (this._lampLights) {
       for (const l of this._lampLights) {
