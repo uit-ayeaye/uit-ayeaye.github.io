@@ -695,12 +695,14 @@ function bindBones(root) {
  * guesswork, so these reproduce the *shape* of each move — which arm leads,
  * how far the chest turns — against Elbaf's move list and timings.
  *
- * `stretch` is the rubber term: Gum-Gum moves scale the arm along its own
- * length, which is the one thing that makes Luffy read as Luffy.
+ * `stretch` is the rubber term. Elbaf applies it to exactly four moves — its
+ * source carries `new Set(["rocket","pistol","bazooka","gigant"])` — so Gatling
+ * does not stretch here either, however tempting it looks: it is a flurry of
+ * short punches, not one long one.
  */
 const MOVE_POSES = {
   pistol:   { armR: [-1.45, 0, -0.25], foreArmR: [-0.30, 0, 0], chest: [0, -0.45, 0], stretch: 2.6 },
-  gatling:  { armR: [-1.50, 0, -0.20], armL: [-1.35, 0, 0.20], chest: [0, -0.18, 0], stretch: 1.5 },
+  gatling:  { armR: [-1.50, 0, -0.20], armL: [-1.35, 0, 0.20], chest: [0, -0.18, 0] },
   bazooka:  { armR: [-1.55, 0, -0.32], armL: [-1.55, 0, 0.32], chest: [-0.22, 0, 0], stretch: 2.2 },
   rocket:   { armR: [-1.90, 0, -0.15], chest: [-0.30, -0.20, 0], stretch: 3.0 },
   gigant:   { armR: [-2.05, 0, -0.40], armL: [-2.05, 0, 0.40], chest: [-0.40, 0, 0], spine: [-0.20, 0, 0], stretch: 1.8 },
