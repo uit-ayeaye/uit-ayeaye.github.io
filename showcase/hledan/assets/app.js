@@ -15,6 +15,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TriGrid } from './occlusion.js';
+import { StreetProps } from './props.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {
   CHARACTERS, NavMap, Character, CharacterController, ChaseCamera,
@@ -261,6 +262,7 @@ const groundFast = [];
 const groundWide = [];
 const occluders = [];               // what the chase camera is not allowed to see through
 let occlusionGrid = null;           // built from `occluders` once the map is in
+let props = null;                   // instanced street furniture
 let mapBox = new THREE.Box3();
 let groundBox = new THREE.Box3();   // walkable surface only — NOT the map bounds
 let coreBox = new THREE.Box3();     // the streets, without the terrain backdrop
@@ -299,6 +301,7 @@ new GLTFLoader().load(
 
     scene.add(mapRoot);
     occlusionGrid = new TriGrid(occluders, THREE);
+    props = new StreetProps({ scene, tier: DEVICE.tier });
     mapBox.setFromObject(mapRoot);
 
     /* The walkable surface is NOT mapBox. The tree mesh hangs 38 m below street
