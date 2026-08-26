@@ -128,6 +128,22 @@ body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
     transition: transform .6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .showcase-card:hover .showcase-card__kanji { transform: scale(1.07); }
+
+/* Burmese variant of the decorative glyph. Myanmar script stacks its vowel
+   signs and medials above and below the consonant, so the stroke-only outline
+   and the .06em tracking used for kanji turn it into unreadable confetti:
+   the tracking is applied between combining marks, not between clusters.
+   Solid fill, no tracking, and a size that leaves room for the stack. */
+.showcase-card__kanji.mm {
+    font-family: 'Noto Sans Myanmar', 'Myanmar Text', 'Myanmar MN', 'Padauk', sans-serif;
+    font-size: clamp(30px, 4.2vw, 50px);
+    font-weight: 600;
+    line-height: 1.6;
+    letter-spacing: normal;
+    color: var(--show-c);
+    -webkit-text-stroke: 0;
+    text-shadow: 0 0 34px color-mix(in srgb, var(--show-a) 55%, transparent);
+}
 .showcase-card__romaji {
     position: absolute;
     z-index: 2;
@@ -226,6 +242,7 @@ body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
 .showcase-card.onepiece  { --show-a: #c9a227; --show-b: #e07a5f; --show-c: #f5d67a; --show-void: #0b0e14; }
 .showcase-card.elbaf     { --show-a: #8fb8ec; --show-b: #e8c04a; --show-c: #c8202a; --show-void: #080c16; }
 .showcase-card.onigashima{ --show-a: #a855f7; --show-b: #ff9c2e; --show-c: #d63420; --show-void: #0a0714; }
+.showcase-card.hledan    { --show-a: #7fc47a; --show-b: #f0c66b; --show-c: #d94f3d; --show-void: #0a121a; }
 
 /* ---- Springy staggered entrance ---- */
 @keyframes cardPop {
