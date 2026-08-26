@@ -269,6 +269,9 @@
       #kit {
         position: absolute; left: 14px; bottom: calc(max(16px, env(safe-area-inset-bottom)) + 96px);
         display: none; gap: 6px;
+        /* Seven moves is wider than a narrow desktop window; wrap upward rather
+           than running off the right edge. */
+        flex-wrap: wrap-reverse; max-width: calc(100vw - 28px);
       }
       body.playing #kit { display: flex; }
       .movechip {
