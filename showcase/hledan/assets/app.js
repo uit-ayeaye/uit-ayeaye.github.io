@@ -316,7 +316,7 @@ new GLTFLoader().load(
     skirt.position.y = streetY - 2;
 
     weather = new Weather({
-      scene, renderer, sky, hemi, ambient, sun, skirt,
+      scene, renderer, sky, hemi, ambient, sun, skirt, props,
       mapMaterials: [...cache.values()],
     }, DEVICE.tier);
     const savedSky = (() => { try { return localStorage.getItem('hledan-sky'); } catch (e) { return null; } })();

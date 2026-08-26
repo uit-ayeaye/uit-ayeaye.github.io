@@ -171,16 +171,60 @@ function potStandGeo() {
   return mergeGeometries(parts, false);
 }
 
-/** Utility pole with crossarms. The cables between them are drawn separately,
-    as line segments, because catenaries do not instance. */
+/** Utility pole with crossarms and a lamp on an outstretched arm. The cables
+    between poles are drawn separately, as line segments, because catenaries do
+    not instance. */
 function poleGeo() {
   const parts = [
     paint(cyl(0.09, 0.13, 8.0, 6, 0, 4.0, 0), 0x9a938a),
     paint(box(1.70, 0.09, 0.09, 0, 7.25, 0), 0x8a8178),
     paint(box(1.30, 0.08, 0.08, 0, 6.70, 0), 0x8a8178),
     paint(box(0.34, 0.44, 0.30, 0.34, 5.55, 0), 0x6f6a63),     // transformer box
+    paint(box(1.25, 0.07, 0.07, 0.62, 6.15, 0), 0x8a8178),     // lamp arm
+    paint(box(0.46, 0.14, 0.22, 1.20, 6.05, 0), 0x6f6a63),     // lamp housing
   ];
   return mergeGeometries(parts, false);
+}
+
+/** The lit parts, kept apart so they can be driven to full brightness without
+    the pole going with them. Sodium-orange: Yangon's street lighting is still
+    mostly warm, and it is half of why the city reads the way it does at dusk. */
+function lampLensGeo() {
+  return paint(box(0.40, 0.05, 0.18, 1.20, 5.96, 0), 0xffffff);
+}
+
+/** A cheap stand-in for a light cone: a pool on the pavement under the lamp and
+    a small bloom at the bulb. Additive, unlit, depth-write off — two instanced
+    draws and no shadow work at all.
+
+    The pool's softness is baked into its vertex colours rather than painted
+    into a texture or faded with alpha: under additive blending black adds
+    nothing, so a disc that runs from white at the hub to black at the rim has
+    no edge to give itself away. A flat-coloured disc reads as a circle of paint
+    on the road, which is exactly what it looked like before. */
+function lampGlowGeo() {
+  const disc = new THREE.CircleGeometry(m(3.1), 20);
+  disc.rotateX(-Math.PI / 2);
+  {
+    const pos = disc.attributes.position;
+    const n = pos.count;
+    const col = new Float32Array(n * 3);
+    let rMax = 0;
+    for (let i = 0; i < n; i++) rMax = Math.max(rMax, Math.hypot(pos.getX(i), pos.getZ(i)));
+    for (let i = 0; i < n; i++) {
+      const r = Math.hypot(pos.getX(i), pos.getZ(i)) / (rMax || 1);
+      const v = Math.pow(1 - r, 1.7);          // bright hub, long soft tail
+      col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = v;
+    }
+    disc.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  }
+  disc.translate(m(1.20), m(0.05), 0);
+
+  const bulb = new THREE.SphereGeometry(m(0.34), 8, 6);
+  bulb.translate(m(1.20), m(5.96), 0);
+  paint(bulb, 0xffffff);
+
+  return mergeGeometries([disc, bulb], false);
 }
 
 /* ----------------------------------------------------------------- build */
@@ -247,8 +291,23 @@ export class StreetProps {
       ...pair(teaTarpGeo(),    teaFrameGeo(),   TEA,   TARP_COLOURS, 0x54454, 0),
       ...pair(stallCanopyGeo(), stallFrameGeo(), STALL, TARP_COLOURS, 0x5741, 0),
       instanced(potStandGeo(), mk(), POT,         null,          rng, 0),
-      instanced(poleGeo(),     mk(), POLE,        null,          rng, 0),
+      instanced(poleGeo(),     mk(), POLE,        null,          mulberry32(0x504C45), 0),
     ];
+
+    /* Lamps ride the pole transforms, so they are laid out from a PRNG seeded
+       exactly as the poles were. Both are unlit materials — a street lamp that
+       obeys the scene's own lighting goes out at dusk, which is backwards. */
+    const lampMat = new THREE.MeshBasicMaterial({ vertexColors: true, color: 0xffc074, transparent: true, opacity: 0 });
+    const glowMat = new THREE.MeshBasicMaterial({
+      vertexColors: true, color: 0xffb45e, transparent: true, opacity: 0,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+    });
+    this.lampMat = lampMat;
+    this.glowMat = glowMat;
+    const lamp = instanced(lampLensGeo(), lampMat, POLE, null, mulberry32(0x504C45), 0);
+    const glow = instanced(lampGlowGeo(), glowMat, POLE, null, mulberry32(0x504C45), 0);
+    glow.renderOrder = 3;
+    this.meshes.push(lamp, glow);
     for (const mesh of this.meshes) this.group.add(mesh);
 
     if (tier === 'hi') this.group.add(this._cables(rng));
@@ -292,8 +351,16 @@ export class StreetProps {
     return mesh;
   }
 
-  /** Tint the props to match the weather preset. */
-  setLighting(_preset) { /* materials pick up scene lights directly */ }
+  /**
+   * How lit the street lamps are, 0..1. Driven by the weather cross-fade rather
+   * than switched, so walking from midday into the storm brings them up the way
+   * a real photocell would.
+   */
+  setGlow(amount) {
+    const a = Math.max(0, Math.min(1, amount));
+    this.lampMat.opacity = a;
+    this.glowMat.opacity = a * 0.42;
+  }
 
   get count() { return this.meshes.reduce((n, mesh) => n + mesh.count, 0); }
 }

@@ -27,7 +27,7 @@ export const PRESETS = {
     sun: 0xfff2d8, sunI: 1.05, sunDir: [-420, 560, 300],
     exposure: 1.0, tint: 0xffffff, skirt: 0xa9b4a2,
     cloud: 0xfdfdfb, cloudAmt: 0.42, cloudSharp: 0.13,
-    rain: 0, wind: 0,
+    rain: 0, wind: 0, lamps: 0,
   },
   evening: {
     label: 'Golden hour',
@@ -41,7 +41,8 @@ export const PRESETS = {
     exposure: 1.06, tint: 0xffe2c4, skirt: 0xb09878,
     // sunset light comes from underneath, so the deck lights up warm
     cloud: 0xffcf9a, cloudAmt: 0.60, cloudSharp: 0.17,
-    rain: 0, wind: 0,
+    // the lamps are already on before the sun is gone — they always are here
+    rain: 0, wind: 0, lamps: 0.85,
   },
   rain: {
     label: 'Monsoon',
@@ -53,12 +54,12 @@ export const PRESETS = {
     exposure: 0.94, tint: 0x93a3b8, skirt: 0x6e7885,
     // monsoon overcast: near-total cover with soft edges, no blue left
     cloud: 0x6f7885, cloudAmt: 0.96, cloudSharp: 0.30,
-    rain: 1, wind: 0.32,
+    rain: 1, wind: 0.32, lamps: 0.7,
   },
 };
 
 const KEYS = ['zenith', 'horizon', 'nadir', 'fog', 'ambient', 'sun', 'tint', 'skirt', 'hemiSky', 'hemiGround', 'cloud'];
-const NUMS = ['fogNear', 'fogFar', 'hemi', 'ambientI', 'sunI', 'exposure', 'rain', 'wind', 'cloudAmt', 'cloudSharp'];
+const NUMS = ['fogNear', 'fogFar', 'hemi', 'ambientI', 'sunI', 'exposure', 'rain', 'wind', 'cloudAmt', 'cloudSharp', 'lamps'];
 
 export class Weather {
   /**
@@ -182,6 +183,10 @@ export class Weather {
 
     this.rain.mat.uniforms.uOpacity.value = p.rain * 0.55;
     this.rain.points.visible = p.rain > 0.01;
+
+    /* Street lamps come up on the same cross-fade as everything else, plus a
+       kick from the lightning so a bolt reads on the lamps as well as the sky. */
+    if (r.props) r.props.setGlow((p.lamps || 0) * (1 + this.flash * 0.5));
   }
 
   update(dt, camera) {
