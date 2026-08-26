@@ -62,6 +62,22 @@ const TARP_COLOURS  = [0x2f7fbf, 0x3f9a5c, 0xc85a3c, 0xd8b23e];
 
 const m = (x) => x * S;                       // metres -> map units
 
+/**
+ * Merge sub-parts into one geometry.
+ *
+ * mergeGeometries returns **null**, not an error, when the inputs disagree on
+ * whether they are indexed — and BoxGeometry and CylinderGeometry are indexed
+ * while ExtrudeGeometry is not. A null geometry then reaches the renderer and
+ * throws once per frame, from a stack that says nothing about geometry. So:
+ * flatten everything to non-indexed first, and refuse loudly if it still fails.
+ */
+function merge(parts, what) {
+  const flat = parts.map((g) => (g.index ? g.toNonIndexed() : g));
+  const out = mergeGeometries(flat, false);
+  if (!out) throw new Error(`props: could not merge geometry for ${what}`);
+  return out;
+}
+
 function box(w, h, d, x = 0, y = 0, z = 0) {
   const g = new THREE.BoxGeometry(m(w), m(h), m(d));
   g.translate(m(x), m(y), m(z));
@@ -90,32 +106,121 @@ function paint(geo, hex) {
 
 /** YBS bus: 11.5 x 2.5 x 3.2 m, the real thing. Body colour is left white so
     the per-instance colour supplies it; glass and wheels are baked dark. */
-function busGeo() {
-  const parts = [
-    paint(box(2.5, 2.35, 11.5, 0, 1.55, 0), 0xffffff),        // body
-    paint(box(2.54, 0.95, 10.2, 0, 2.35, -0.2), 0x2a3038),    // window band
-    paint(box(2.3, 0.30, 11.0, 0, 2.90, 0), 0xf2f2f2),        // roof cap
-    paint(box(2.42, 0.55, 0.30, 0, 1.05, 5.75), 0x263041),    // windscreen surround
-    paint(cyl(0.50, 0.50, 0.28, 10, -1.20, 0.50, 3.6, Math.PI / 2), 0x1a1a1c),
-    paint(cyl(0.50, 0.50, 0.28, 10,  1.20, 0.50, 3.6, Math.PI / 2), 0x1a1a1c),
-    paint(cyl(0.50, 0.50, 0.28, 10, -1.20, 0.50, -3.9, Math.PI / 2), 0x1a1a1c),
-    paint(cyl(0.50, 0.50, 0.28, 10,  1.20, 0.50, -3.9, Math.PI / 2), 0x1a1a1c),
-  ];
-  return mergeGeometries(parts, false);
+/* A rounded slab, extruded along its length. This is what stops the vehicles
+   reading as boxes: a real bus is a rounded-corner extrusion with a strong
+   horizontal glass band, and the bevel doing the corner work is what the eye
+   reads first — long before it counts polygons. Bevelled extrusion buys that
+   silhouette for a couple of hundred triangles. */
+function shellGeo(w, h, len, radius, bevel = 0.06) {
+  const hw = w / 2, r = Math.min(radius, hw - 0.001, h / 2 - 0.001);
+  const sh = new THREE.Shape();
+  sh.moveTo(-hw + r, -h / 2);
+  sh.lineTo(hw - r, -h / 2);
+  sh.quadraticCurveTo(hw, -h / 2, hw, -h / 2 + r);
+  sh.lineTo(hw, h / 2 - r);
+  sh.quadraticCurveTo(hw, h / 2, hw - r, h / 2);
+  sh.lineTo(-hw + r, h / 2);
+  sh.quadraticCurveTo(-hw, h / 2, -hw, h / 2 - r);
+  sh.lineTo(-hw, -h / 2 + r);
+  sh.quadraticCurveTo(-hw, -h / 2, -hw + r, -h / 2);
+  const g = new THREE.ExtrudeGeometry(sh, {
+    depth: len - bevel * 2, bevelEnabled: bevel > 0, bevelSize: bevel,
+    bevelThickness: bevel, bevelSegments: 1, curveSegments: 3, steps: 1,
+  });
+  g.translate(0, 0, -(len - bevel * 2) / 2);
+  g.scale(S, S, S);
+  return g;
 }
 
-/** Taxi: a 4.4 m hatchback, the Probox/Fielder shape that dominates the city. */
-function taxiGeo() {
-  const parts = [
-    paint(box(1.70, 0.85, 4.40, 0, 0.62, 0), 0xffffff),
-    paint(box(1.58, 0.70, 2.45, 0, 1.35, -0.15), 0xffffff),   // cabin
-    paint(box(1.60, 0.44, 2.30, 0, 1.42, -0.15), 0x27303c),   // glass
-    paint(cyl(0.31, 0.31, 0.20, 8, -0.85, 0.31, 1.45, Math.PI / 2), 0x171719),
-    paint(cyl(0.31, 0.31, 0.20, 8,  0.85, 0.31, 1.45, Math.PI / 2), 0x171719),
-    paint(cyl(0.31, 0.31, 0.20, 8, -0.85, 0.31, -1.45, Math.PI / 2), 0x171719),
-    paint(cyl(0.31, 0.31, 0.20, 8,  0.85, 0.31, -1.45, Math.PI / 2), 0x171719),
+/**
+ * A road wheel: tyre plus a paler hub.
+ *
+ * Rotated about **Z**, not X. A cylinder's axis starts along Y, so rotateX
+ * swings it to Z — pointing the axle down the length of the vehicle, which
+ * mounts every wheel like a barrel facing forward and throws its diameter out
+ * sideways. That alone made the bus measure 3.35 m across instead of 2.50.
+ * The axle has to run along X, which is a Z rotation.
+ */
+function wheelGeo(x, y, z, r = 0.32, width = 0.20) {
+  const tyre = new THREE.CylinderGeometry(m(r), m(r), m(width), 10);
+  tyre.rotateZ(Math.PI / 2); tyre.translate(m(x), m(y), m(z));
+  const hub = new THREE.CylinderGeometry(m(r * 0.46), m(r * 0.46), m(width * 1.10), 8);
+  hub.rotateZ(Math.PI / 2); hub.translate(m(x), m(y), m(z));
+  return [paint(tyre, 0x141416), paint(hub, 0x6a6f77)];
+}
+
+/**
+ * YBS bus: 11.5 x 2.5 x 3.2 m.
+ *
+ * The body is left white so the per-instance colour supplies the livery — YBS
+ * runs flat single colours, which is why a Yangon bus reads as one strong slab
+ * of hue. Everything that must stay dark whatever colour the bus is (glass,
+ * tyres, grille) is painted here and comes through tinted only slightly, which
+ * is what happens to real glass on a coloured bus anyway.
+ */
+function busGeo() {
+  /* bevelSize offsets the shape outline *outward*, so a 2.50 m body drawn with
+     a 0.10 bevel is really 2.70 m across. Any band meant to sit proud of it has
+     to clear that, or it is swallowed and the bus goes back to being a slab.
+     These widths are all derived from BODY_W rather than guessed. */
+  const BODY_W = 2.30, BODY_BEVEL = 0.10;
+  const OUTER = BODY_W + BODY_BEVEL * 2;              // 2.50, the real width
+  const body = paint(shellGeo(BODY_W, 2.55, 11.5, 0.34, BODY_BEVEL), 0xffffff);
+  body.translate(0, m(1.62), 0);
+
+  const roof = paint(shellGeo(BODY_W - 0.24, 0.34, 11.1, 0.14, 0.04), 0xf4f4f2);
+  roof.translate(0, m(2.86), 0);
+
+  // glass band: proud of OUTER, and up where a bus's windows actually are
+  const glass = paint(shellGeo(OUTER + 0.02, 1.05, 9.70, 0.18, 0.02), 0x222833);
+  glass.translate(0, m(1.98), m(-0.30));
+
+  const parts = [body, roof, glass,
+    paint(box(OUTER + 0.06, 0.10, 9.72, 0, 1.98, -0.30), 0x2f3742),   // window divider
+    paint(box(2.10, 0.94, 0.14, 0, 1.98, 5.76), 0x1d222c),            // windscreen
+    paint(box(2.16, 0.30, 0.12, 0, 2.62, 5.75), 0xf0efe8),            // destination board
+    paint(box(2.46, 0.26, 0.14, 0, 0.66, 5.76), 0x3a3f47),            // bumpers
+    paint(box(2.46, 0.26, 0.14, 0, 0.66, -5.76), 0x3a3f47),
+    paint(box(0.36, 0.20, 0.10, -0.80, 0.98, 5.80), 0xfff3d0),        // head lamps
+    paint(box(0.36, 0.20, 0.10,  0.80, 0.98, 5.80), 0xfff3d0),
+    paint(box(0.30, 0.18, 0.10, -0.80, 1.02, -5.80), 0x8e2b22),       // tail lamps
+    paint(box(0.30, 0.18, 0.10,  0.80, 1.02, -5.80), 0x8e2b22),
+    ...wheelGeo(-1.06, 0.52, 3.65, 0.52, 0.26), ...wheelGeo(1.06, 0.52, 3.65, 0.52, 0.26),
+    ...wheelGeo(-1.06, 0.52, -3.60, 0.52, 0.26), ...wheelGeo(1.06, 0.52, -3.60, 0.52, 0.26),
   ];
-  return mergeGeometries(parts, false);
+  return merge(parts, 'bus');
+}
+
+/**
+ * Taxi: the 4.4 m Probox/Fielder wagon most of Yangon's fleet actually is. Two
+ * stacked shells — a lower body, and a narrower greenhouse set back over the
+ * rear axle — which is the whole reason it reads as a car and not a brick.
+ */
+function taxiGeo() {
+  const LOWER_W = 1.58, LOWER_BEVEL = 0.07;            // outer 1.72, the real width
+  const CABIN_W = 1.42, CABIN_BEVEL = 0.07;
+  const CABIN_OUTER = CABIN_W + CABIN_BEVEL * 2;      // 1.56 — narrower than the body
+
+  const lower = paint(shellGeo(LOWER_W, 0.86, 4.40, 0.26, LOWER_BEVEL), 0xffffff);
+  lower.translate(0, m(0.70), 0);
+  const cabin = paint(shellGeo(CABIN_W, 0.78, 2.60, 0.30, CABIN_BEVEL), 0xffffff);
+  cabin.translate(0, m(1.48), m(-0.22));
+  const glass = paint(shellGeo(CABIN_OUTER + 0.02, 0.44, 2.42, 0.16, 0.02), 0x232a35);
+  glass.translate(0, m(1.54), m(-0.22));
+
+  const parts = [lower, cabin, glass,
+    paint(box(1.70, 0.16, 0.10, 0, 0.44, 2.24), 0x3c414a),           // bumpers
+    paint(box(1.70, 0.16, 0.10, 0, 0.44, -2.24), 0x3c414a),
+    paint(box(0.30, 0.14, 0.08, -0.62, 0.76, 2.26), 0xfff3d0),       // head lamps
+    paint(box(0.30, 0.14, 0.08,  0.62, 0.76, 2.26), 0xfff3d0),
+    paint(box(0.24, 0.18, 0.08, -0.64, 0.88, -2.26), 0x8e2b22),      // tail lamps
+    paint(box(0.24, 0.18, 0.08,  0.64, 0.88, -2.26), 0x8e2b22),
+    paint(box(0.16, 0.10, 0.14, -0.86, 1.38, 1.02), 0x2b2f36),       // mirrors
+    paint(box(0.16, 0.10, 0.14,  0.86, 1.38, 1.02), 0x2b2f36),
+    ...wheelGeo(-0.76, 0.33, 1.42, 0.33, 0.20), ...wheelGeo(0.76, 0.33, 1.42, 0.33, 0.20),
+    ...wheelGeo(-0.76, 0.33, -1.44, 0.33, 0.20), ...wheelGeo(0.76, 0.33, -1.44, 0.33, 0.20),
+  ];
+  return merge(parts, 'taxi');
 }
 
 /** Tea shop: a tarpaulin on four poles over a low table and four stools.
@@ -142,7 +247,7 @@ function teaFrameGeo() {
     parts.push(paint(cyl(0.14, 0.12, 0.04, 8, sx, 0.30, sz), STOOL_COLOURS[i % STOOL_COLOURS.length]));
     parts.push(paint(cyl(0.10, 0.12, 0.28, 6, sx, 0.15, sz), STOOL_COLOURS[i % STOOL_COLOURS.length]));
   });
-  return mergeGeometries(parts, false);
+  return merge(parts, 'prop');
 }
 
 /** Vendor stall: a big umbrella over a crate table. */
@@ -156,7 +261,7 @@ function stallFrameGeo() {
     paint(box(1.10, 0.62, 0.66, 0, 0.31, 0), 0xb99c74),       // crate
     paint(box(1.16, 0.06, 0.72, 0, 0.65, 0), 0xd8c9a8),
   ];
-  return mergeGeometries(parts, false);
+  return merge(parts, 'stall frame');
 }
 
 /** Roadside water-pot stand — the ye-o-sin. Two glazed pots on a timber frame,
@@ -172,7 +277,7 @@ function potStandGeo() {
     paint(cyl(0.10, 0.10, 0.03, 9, -0.26, 1.50, 0), 0x3f2e22), // lids
     paint(cyl(0.10, 0.10, 0.03, 9,  0.26, 1.50, 0), 0x3f2e22),
   ];
-  return mergeGeometries(parts, false);
+  return merge(parts, 'pot stand');
 }
 
 /** Utility pole with crossarms and a lamp on an outstretched arm. The cables
@@ -187,7 +292,7 @@ function poleGeo() {
     paint(box(1.25, 0.07, 0.07, 0.62, 6.15, 0), 0x8a8178),     // lamp arm
     paint(box(0.46, 0.14, 0.22, 1.20, 6.05, 0), 0x6f6a63),     // lamp housing
   ];
-  return mergeGeometries(parts, false);
+  return merge(parts, 'pole');
 }
 
 /** The lit parts, kept apart so they can be driven to full brightness without
@@ -228,7 +333,7 @@ function lampGlowGeo() {
   bulb.translate(m(1.20), m(5.96), 0);
   paint(bulb, 0xffffff);
 
-  return mergeGeometries([disc, bulb], false);
+  return merge([disc, bulb], 'lamp glow');
 }
 
 /* ----------------------------------------------------------------- build */
@@ -278,8 +383,19 @@ export class StreetProps {
     const mk = (extra = {}) => new Mat(Object.assign({ vertexColors: true }, extra,
       tier === 'hi' ? { roughness: 0.85, metalness: 0.0 } : {}));
 
-    const cut = tier === 'hi' ? 1 : 0.55;         // fraction of the fleet kept
-    const take = (arr) => arr.slice(0, Math.max(1, Math.round(arr.length * cut)));
+    /* Vehicles are now ~760 triangles each rather than ~170, which is what buys
+       the rounded body and the glass band. At that price the full 108-strong
+       taxi list is 82k triangles on its own — more than the entire map — so the
+       fleet is thinned by taking every Nth anchor. Every Nth rather than the
+       first N: slicing the head of the list would empty one end of the junction
+       and leave the other bumper to bumper, because the anchors were generated
+       in scan order. */
+    const cut = tier === 'hi' ? 1 : 0.55;
+    const every = (arr, n) => arr.filter((_, i) => i % n === 0);
+    const take = (arr, n = 1) => {
+      const thinned = every(arr, n);
+      return thinned.slice(0, Math.max(1, Math.round(thinned.length * cut)));
+    };
 
     /* A prop whose tint must not spread over its whole body is built as two
        meshes sharing one transform list. Both are laid out from a PRNG seeded
@@ -290,8 +406,8 @@ export class StreetProps {
     ];
 
     this.meshes = [
-      instanced(busGeo(),      mk(), take(BUS),   BUS_COLOURS,   rng, 0.05),
-      instanced(taxiGeo(),     mk(), take(TAXI),  TAXI_COLOURS,  rng, 0.07),
+      instanced(busGeo(),      mk(), take(BUS),     BUS_COLOURS,  rng, 0.05),
+      instanced(taxiGeo(),     mk(), take(TAXI, 2), TAXI_COLOURS, rng, 0.07),
       ...pair(teaTarpGeo(),    teaFrameGeo(),   TEA,   TARP_COLOURS, 0x54454, 0),
       ...pair(stallCanopyGeo(), stallFrameGeo(), STALL, TARP_COLOURS, 0x5741, 0),
       instanced(potStandGeo(), mk(), POT,         null,          rng, 0),
