@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title>Hledan Junction — Real-Time 3D Yangon</title>
-    <meta name="description" content="Hledan Junction, Yangon — rebuilt as a real-time WebGL map. Orbit it from above, walk it in first person, or run the streets as Luffy, Zoro or Nami. Pure three.js, no game engine, about two megabytes." />
+    <meta name="description" content="Hledan Junction, Yangon — rebuilt as a real-time WebGL map. Orbit it, walk it, or run the streets as Luffy, Zoro or Nami with the full Elbaf moveset. Midday, golden hour or monsoon. Pure three.js, no game engine." />
     <meta name="author" content="Thomas D. Lynn" />
     <link rel="canonical" href="https://thomasdlynn.dev/showcase/hledan/" />
     <meta name="robots" content="index,follow" />
@@ -17,7 +17,7 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://thomasdlynn.dev/showcase/hledan/" />
     <meta property="og:title" content="Hledan Junction — run Yangon as Luffy" />
-    <meta property="og:description" content="A real-time 3D map of Hledan Junction, Yangon. Orbit it from above, or drop in as Luffy, Zoro or Nami and run the flyover yourself. Pure three.js, no game engine." />
+    <meta property="og:description" content="A real-time 3D map of Hledan Junction, Yangon. Drop in as Luffy, Zoro or Nami, fight up the flyover, and watch the monsoon come in. Pure three.js, no game engine." />
     <meta property="og:image" content="https://thomasdlynn.dev/showcase/hledan/social-hledan.jpg" />
     <meta property="og:image:secure_url" content="https://thomasdlynn.dev/showcase/hledan/social-hledan.jpg" />
     <meta property="og:image:type" content="image/jpeg" />
@@ -157,6 +157,7 @@
                    color: #7f93b3; background: #ffffff10; }
       .hint { position: absolute; left: 50%; transform: translateX(-50%);
               bottom: calc(max(16px, env(safe-area-inset-bottom)) + 62px);
+              max-width: min(760px, calc(100vw - 32px));
               font-size: 11.5px; color: #6d80a0; letter-spacing: .05em;
               text-align: center; white-space: nowrap; pointer-events: none;
               opacity: 0; transition: opacity .3s; }
@@ -202,6 +203,7 @@
       }
       .pad-btn.primary { background: #f0c66bd9; color: #17233a; border-color: #ffffff40; }
       .pad-btn.held { transform: scale(.93); filter: brightness(1.25); }
+      .pad-btn.cooling { opacity: .38; }
 
       /* The action pad lands exactly where the info button sits. Reading the
          about panel is not something anyone does mid-run, so on touch the
@@ -215,6 +217,57 @@
         #who { font-size: 11.5px; margin-bottom: 6px; }
         #who span { font-size: 10.5px; }
         .chip { font-size: 11px; padding: 5px 10px; }
+      }
+
+      #sky {
+        position: absolute; right: 14px; top: calc(56px + env(safe-area-inset-top));
+        display: flex; flex-direction: column; gap: 5px; align-items: flex-end;
+      }
+      #sky .chip { min-width: 96px; text-align: center; }
+      @media (max-width: 560px) {
+        /* Keep the weather stack top-right. Along the bottom it lands under the
+           action pad, and the pad has to own that corner — it is the only part
+           of the UI a thumb uses continuously. */
+        #sky { right: 12px; left: auto; top: calc(52px + env(safe-area-inset-top));
+               flex-direction: column; align-items: flex-end; gap: 4px; }
+        #sky .chip { min-width: 0; font-size: 10px; padding: 4px 8px; }
+      }
+
+      /* ------------------------------------------------------------ combat */
+      .pad-row { display: flex; gap: 10px; align-items: center; }
+      .pad-btn.sm { width: 50px; height: 50px; font-size: 17px; }
+      .pad-btn.wide { width: 128px; height: 40px; border-radius: 999px; font-size: 11px; }
+
+      #moveBanner {
+        position: absolute; left: 50%; transform: translateX(-50%);
+        top: calc(96px + env(safe-area-inset-top));
+        font-family: "Cinzel", Georgia, serif; font-size: clamp(15px, 3.4vw, 24px);
+        letter-spacing: .16em; text-transform: uppercase; color: #f0c66b;
+        text-shadow: 0 0 22px #f0c66b66, 0 2px 10px #000a;
+        opacity: 0; transition: opacity .12s linear; pointer-events: none; white-space: nowrap;
+      }
+
+      #kit {
+        position: absolute; left: 14px; bottom: calc(max(16px, env(safe-area-inset-bottom)) + 96px);
+        display: none; gap: 6px;
+      }
+      body.playing #kit { display: flex; }
+      .movechip {
+        position: relative; overflow: hidden;
+        appearance: none; border: 1px solid #ffffff1f; cursor: pointer;
+        font: inherit; font-size: 11px; font-weight: 600; letter-spacing: .02em;
+        color: #dbe6f6; background: #101a2ecc; backdrop-filter: blur(10px);
+        padding: 6px 11px; border-radius: 8px; white-space: nowrap;
+      }
+      /* cooldown drains left-to-right using a single custom property the loop
+         writes; no extra element, no layout thrash */
+      .movechip::after {
+        content: ''; position: absolute; inset: 0; width: var(--cd, 0%);
+        background: #0a0e1acc; pointer-events: none; transition: none;
+      }
+      .movechip.cooling { color: #6d80a0; }
+      @media (max-width: 560px) {
+        #kit { display: none !important; }        /* the pad already shows them */
       }
 
       #playStatus {
@@ -287,11 +340,32 @@
       </div>
 
       <div id="pad">
-        <button class="pad-btn" id="sprintBtn" aria-label="Sprint">RUN</button>
-        <button class="pad-btn primary" id="jumpBtn" aria-label="Jump">JUMP</button>
+        <div class="pad-row">
+          <button class="pad-btn sm" data-move="dash" aria-label="Dash move">↯</button>
+          <button class="pad-btn sm" data-move="heavy" aria-label="Heavy move">★</button>
+        </div>
+        <div class="pad-row">
+          <button class="pad-btn" data-move="light" aria-label="Attack">ATK</button>
+          <button class="pad-btn primary" id="jumpBtn" aria-label="Jump">JUMP</button>
+        </div>
+        <button class="pad-btn wide" id="sprintBtn" aria-label="Sprint">RUN</button>
+      </div>
+
+      <div id="moveBanner" aria-live="polite"></div>
+
+      <div id="kit">
+        <button class="movechip" data-move="light">—</button>
+        <button class="movechip" data-move="heavy">—</button>
+        <button class="movechip" data-move="dash">—</button>
       </div>
 
       <div id="playStatus"></div>
+
+      <div id="sky" role="group" aria-label="Weather">
+        <button class="chip on" data-sky="noon">☀︎ Midday</button>
+        <button class="chip" data-sky="evening">◐ Golden</button>
+        <button class="chip" data-sky="rain">☂ Monsoon</button>
+      </div>
 
       <button class="btn" id="infoBtn" aria-label="About this map">i</button>
 
@@ -310,11 +384,24 @@
           left is the city.
         </p>
         <p>
-          <b>Play</b> drops a Straw Hat onto the street. The movement is the same
-          model as the <a href="../elbaf/">Elbaf</a> build — 5.6 m/s, sprint at
-          1.75x, gravity at −18, coyote time and one air jump — running on a
-          ground-height and collision map baked into a 171 KB PNG instead of a
-          physics engine.
+          <b>Play</b> drops a Straw Hat onto the street. Movement, kit and
+          cooldowns are the same model as the <a href="../elbaf/">Elbaf</a>
+          build — 5.6 m/s, sprint at 1.75x, gravity −18, coyote time, one air
+          jump — running on a ground-height and collision map baked into a
+          171 KB PNG instead of a physics engine.
+        </p>
+        <p>
+          The map is not in metres: measured against a real flyover clearance and
+          kerb it runs about <b>3x life size</b>, so the character and every one
+          of its motion constants are scaled by the same factor. That keeps the
+          proportions honest without breaking the baked navmap.
+        </p>
+        <p>
+          <b>Controls</b> — <kbd>WASD</kbd> move, <kbd>Space</kbd> jump,
+          <kbd>Shift</kbd> sprint, <kbd>Q</kbd> attack, <kbd>F</kbd> special,
+          <kbd>E</kbd> dash, <kbd>Tab</kbd> swap. On a phone: left thumb steers,
+          right thumb looks, <b>tap to attack</b>, <b>hold to special</b>,
+          second finger to dash.
         </p>
         <dl>
           <dt>Triangles</dt><dd>59,533</dd>
@@ -324,6 +411,8 @@
           <dt>Geometry</dt><dd>3.1 MB → 1.3 MB gz</dd>
           <dt>Quality</dt><dd id="tier">—</dd>
           <dt>Crew</dt><dd>Luffy · Zoro · Nami</dd>
+          <dt>Scale</dt><dd>map ≈ 3× life size</dd>
+          <dt>Weather</dt><dd>Midday · Golden · Monsoon</dd>
         </dl>
         <p style="margin-top:12px;font-size:11.5px;color:#6d80a0">
           Fan-made and non-commercial. One Piece characters belong to Eiichiro

@@ -17,8 +17,10 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {
   CHARACTERS, NavMap, Character, CharacterController, ChaseCamera,
-  YAW_SENS, PITCH_SENS,
+  YAW_SENS, PITCH_SENS, WORLD_SCALE,
 } from './character.js';
+import { Weather, PRESETS } from './weather.js';
+import { Combat, MOVES } from './combat.js';
 
 /* ------------------------------------------------------------------ device */
 
@@ -122,11 +124,11 @@ scene.add(sky);
    deliberately flat: a strong hemisphere for fill and a weak sun for shape.
    Crank the directional up instead and street canyons go black, because there
    is no bounce and no shadow term to sell the contrast. */
-scene.add(new THREE.HemisphereLight(0xdcebff, 0x9a8b74, 2.7));
-scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+const hemi = new THREE.HemisphereLight(0xdcebff, 0x9a8b74, 2.7);
+const ambient = new THREE.AmbientLight(0xffffff, 0.45);
 const sun = new THREE.DirectionalLight(0xfff2d8, 1.05);
 sun.position.set(-420, 560, 300);
-scene.add(sun);
+scene.add(hemi, ambient, sun);
 
 /* A haze-coloured disc under the map so it stops reading as a slab floating in
    the void. It rides the camera in XZ (see the loop) so its rim is always well
@@ -203,6 +205,7 @@ const loadMsg = document.getElementById('loadMsg');
 const loadScreen = document.getElementById('load');
 
 let mapRoot = null;
+let weather = null;
 /* Raycast targets are split by cost. The road plane and the map plate together
    are 8.4k triangles and cover the junction; the terrain backdrop is another
    10.8k and is only consulted when the cheap pair misses. */
@@ -244,6 +247,14 @@ new GLTFLoader().load(
     for (const m of groundFast) coreBox.expandByObject(m);   // streets, not backdrop
     streetY = groundBox.min.y;
     skirt.position.y = streetY - 2;
+
+    weather = new Weather({
+      scene, renderer, sky, hemi, ambient, sun, skirt,
+      mapMaterials: [...cache.values()],
+    }, DEVICE.tier);
+    const savedSky = (() => { try { return localStorage.getItem('hledan-sky'); } catch (e) { return null; } })();
+    if (savedSky && PRESETS[savedSky] && savedSky !== 'noon') weather.set(savedSky);
+    syncSkyButtons();
 
     frameMap();
 
@@ -406,6 +417,8 @@ const play = {
   on: false, loading: false,
   nav: null, chr: null, ctrl: null, cam: new ChaseCamera(),
   index: 0, jump: false, sprintHeld: false,
+  combat: null, queued: null,
+  aimRay: new THREE.Raycaster(), aimDir: new THREE.Vector3(), chest: new THREE.Vector3(),
 };
 
 function syncModeButtons(active) {
@@ -421,7 +434,7 @@ async function ensurePlayAssets(defIndex) {
   }
   if (!play.chr || play.chr.def.id !== def.id) {
     setPlayStatus(`Waking ${def.name}…`);
-    const next = await Character.load(def);
+    const next = await Character.load(def, 'models/chars/', DEVICE.tier);
     if (play.chr) { scene.remove(play.chr.root); play.chr.dispose(); }
     play.chr = next;
     scene.add(next.root);
@@ -456,6 +469,7 @@ async function enterPlay() {
   controls.autoRotate = false;
 
   if (!play.ctrl) play.ctrl = new CharacterController(play.nav);
+  if (!play.combat) play.combat = new Combat(scene, DEVICE.tier);
   const c = coreBox.getCenter(new THREE.Vector3());
   play.ctrl.placeAt(c.x, c.z);
   play.cam.yaw = Math.PI * 0.15;
@@ -480,23 +494,54 @@ function exitPlay() {
   }
 }
 
-/** Swap character without losing position or momentum. */
+/**
+ * Swap character without losing position or momentum.
+ *
+ * Requests that land while a previous swap is still fetching are remembered
+ * rather than dropped — tapping Luffy -> Zoro -> Nami quickly used to leave you
+ * on Zoro, because the second tap hit the `loading` guard and vanished with no
+ * feedback at all.
+ */
 async function swapCharacter(delta) {
-  if (!play.on || play.loading) return;
+  if (!play.on) return;
   play.index = (play.index + delta + CHARACTERS.length) % CHARACTERS.length;
+  refreshCharChips();
+  if (play.loading) return;          // the in-flight loop below will catch up
+
   play.loading = true;
   try {
-    await ensurePlayAssets(play.index);
-    play.chr.root.visible = true;
+    // Keep loading until what is on screen is what was last asked for. Taps
+    // that arrive mid-download just move the target; they are never dropped.
+    while (!play.chr || play.chr.def.id !== CHARACTERS[play.index].id) {
+      await ensurePlayAssets(play.index);
+      play.chr.root.visible = true;
+      refreshCharChips();
+    }
   } finally {
     play.loading = false;
     refreshCharChips();
   }
 }
 
+function refreshMoveChips() {
+  const def = (play.chr && play.chr.def) || CHARACTERS[play.index];
+  const kit = MOVES[def.style] || {};
+  document.querySelectorAll('.movechip[data-move]').forEach((b) => {
+    const mv = kit[b.dataset.move];
+    b.textContent = mv ? mv.name : '—';
+    b.disabled = !mv;
+  });
+  // pad buttons keep their glyph but get the move name for screen readers
+  document.querySelectorAll('.pad-btn[data-move]').forEach((b) => {
+    const mv = kit[b.dataset.move];
+    if (mv) b.setAttribute('aria-label', mv.name);
+  });
+}
+
 function refreshCharChips() {
   document.querySelectorAll('[data-char]').forEach((b) =>
     b.classList.toggle('on', b.dataset.char === CHARACTERS[play.index].id));
+  refreshMoveChips();
   const who = document.getElementById('who');
   if (who) {
     const d = CHARACTERS[play.index];
@@ -511,18 +556,49 @@ function updatePlay(dt) {
   if (walk.stick.active) { mx += walk.stick.x; mz -= walk.stick.y; }
 
   const sprint = !!(k.ShiftLeft || k.ShiftRight || play.sprintHeld);
-  const def = CHARACTERS[play.index];
+  /* The LOADED character, not CHARACTERS[play.index]. The index flips the
+     instant a chip is tapped but the rig takes a second to arrive, and using
+     the index here meant firing Zoro's sword kit out of Luffy's body. */
+  const def = play.chr.def;
+  const c0 = play.ctrl;
 
   play.ctrl.update(dt, { moveX: mx, moveZ: mz, sprint, jump: play.jump, yaw: play.cam.yaw }, def);
   play.jump = false;
 
-  const c = play.ctrl;
-  play.chr.root.position.set(c.pos.x, c.pos.y, c.pos.z);
-  play.chr.root.rotation.y = c.facing;
-  play.chr.setGait(c.gait(), c.speedXZ);
+  /* Aim exactly the way Elbaf does: a ray straight down the camera's forward
+     axis, and the move lands at the first thing it meets (or at max range in
+     open air). Only the map is tested — 8 meshes, once per cast, never per
+     frame — so this costs nothing while simply running around. */
+  if (play.queued) {
+    const slot = play.queued; play.queued = null;
+    camera.getWorldDirection(play.aimDir);
+    play.chest.set(c0.pos.x, c0.pos.y + 1.05 * WORLD_SCALE, c0.pos.z);
+    play.aimRay.set(play.chest, play.aimDir);
+    play.aimRay.far = MOVES[def.style][slot].range;
+    const hits = mapRoot ? play.aimRay.intersectObject(mapRoot, true) : [];
+    play.combat.cast(def, slot, play.chest, play.aimDir, hits[0] || null, c0);
+    refreshMoveChips();
+  }
+  play.combat.update(dt, c0);
+
+  play.chr.root.position.set(c0.pos.x, c0.pos.y, c0.pos.z);
+  play.chr.root.rotation.y = c0.facing;
+  play.chr.setGait(c0.gait(), c0.speedXZ);
   play.chr.update(dt);
 
-  play.cam.update(dt, camera, c, play.nav, sprint && c.speedXZ > 3);
+  play.cam.update(dt, camera, c0, play.nav, sprint && c0.speedXZ > 3 * WORLD_SCALE);
+
+  /* Screen shake, same shape as Elbaf's: amplitude falls with the square of a
+     decaying scalar, driven by three out-of-phase sines so it never reads as a
+     regular wobble. Applied after the camera has been placed. */
+  const sh = play.combat.shake;
+  if (sh > 0.001) {
+    const A = sh * sh * 0.9 * WORLD_SCALE;
+    const t = performance.now() * 0.001;
+    camera.position.x += Math.sin(t * 41) * A;
+    camera.position.y += Math.sin(t * 53 + 1.7) * A * 0.7;
+    camera.position.z += Math.sin(t * 47 + 3.1) * A;
+  }
 }
 
 function setMode(m) {
@@ -553,6 +629,11 @@ addEventListener('keydown', (e) => {
   if (e.code === 'KeyP' && !e.repeat) setMode(play.on ? 'orbit' : 'play');
   if (e.code === 'Escape') { if (play.on) setMode('orbit'); else if (walk.on) setMode('orbit'); }
   if (play.on) {
+    if (!e.repeat) {
+      if (e.code === 'KeyQ') play.queued = 'light';                 // Elbaf: Q pistol
+      if (e.code === 'KeyF') play.queued = 'heavy';
+      if (e.code === 'KeyE') play.queued = 'dash';                  // Elbaf: E rocket
+    }
     if (e.code === 'Space' && !e.repeat) play.jump = true;          // Elbaf: Space jumps
     if (e.code === 'Tab' || e.code === 'KeyZ') {                    // Elbaf: Tab/Z swaps
       if (!e.repeat) swapCharacter(1);
@@ -569,7 +650,20 @@ let dragging = false;
 renderer.domElement.addEventListener('mousedown', (e) => {
   if ((walk.on || play.on) && e.button === 0 && !document.pointerLockElement) dragging = true;
 });
-addEventListener('mouseup', () => { dragging = false; });
+let dragFrom = null;
+renderer.domElement.addEventListener('mousedown', (e) => {
+  if (play.on && e.button === 0) dragFrom = { x: e.clientX, y: e.clientY, t: performance.now() };
+});
+addEventListener('mouseup', (e) => {
+  // a click that did not turn into a camera drag is an attack
+  if (play.on && dragFrom) {
+    const moved = Math.hypot(e.clientX - dragFrom.x, e.clientY - dragFrom.y);
+    const held = performance.now() - dragFrom.t;
+    if (moved < 6) play.queued = held > 380 ? 'heavy' : 'light';
+  }
+  dragFrom = null;
+  dragging = false;
+});
 
 addEventListener('mousemove', (e) => {
   if (!walk.on && !play.on) return;
@@ -594,6 +688,11 @@ renderer.domElement.addEventListener('touchstart', (e) => {
       stickEl.classList.add('on');
     } else if (walk.look.id === -1) {
       walk.look.id = t.identifier; walk.look.x = t.clientX; walk.look.y = t.clientY;
+      walk.look.sx = t.clientX; walk.look.sy = t.clientY;
+      walk.look.t0 = performance.now(); walk.look.moved = 0;
+    } else if (play.on) {
+      // a second finger down while already looking = dash, no button needed
+      play.queued = 'dash';
     }
   }
 }, { passive: true });
@@ -617,6 +716,8 @@ renderer.domElement.addEventListener('touchmove', (e) => {
         walk.yaw -= dx * 0.005;
         walk.pitch = THREE.MathUtils.clamp(walk.pitch - dy * 0.005, -1.35, 1.35);
       }
+      walk.look.moved = Math.max(walk.look.moved || 0,
+        Math.hypot(t.clientX - (walk.look.sx || t.clientX), t.clientY - (walk.look.sy || t.clientY)));
       walk.look.x = t.clientX; walk.look.y = t.clientY;
     }
   }
@@ -628,7 +729,17 @@ function endTouch(e) {
       walk.stick.id = -1; walk.stick.active = false; walk.stick.x = walk.stick.y = 0;
       stickEl.classList.remove('on'); knobEl.style.transform = '';
     }
-    if (t.identifier === walk.look.id) walk.look.id = -1;
+    if (t.identifier === walk.look.id) {
+      /* Tap-to-attack. The look finger doubles as the attack button: if it
+         never travelled far it was a tap, not a camera drag. Long press picks
+         the heavy move, which is the only gesture people reliably discover
+         without being told. */
+      if (play.on && (walk.look.moved || 0) < 12) {
+        const held = performance.now() - (walk.look.t0 || 0);
+        play.queued = held > 380 ? 'heavy' : 'light';
+      }
+      walk.look.id = -1; walk.look.moved = 0;
+    }
   }
 }
 renderer.domElement.addEventListener('touchend', endTouch, { passive: true });
@@ -667,9 +778,13 @@ function updateWalk(dt) {
 
 /* ------------------------------------------------------- adaptive resolution */
 
-let renderScale = DEVICE.tier === 'hi' ? 1.0 : 0.85;
-const MIN_SCALE = 0.55, MAX_SCALE = IS_TOUCH ? 1.0 : 1.0;
-const basePR = Math.min(window.devicePixelRatio || 1, IS_TOUCH ? 2 : 2);
+let renderScale = DEVICE.tier === 'hi' ? 1.0 : 0.8;
+const MIN_SCALE = DEVICE.tier === 'hi' ? 0.55 : 0.45, MAX_SCALE = 1.0;
+/* A phone at devicePixelRatio 3 asks for nine times the fragments of a 1x
+   buffer for a screen you hold at arm's length. Cap the low tier at 1.5 —
+   combined with the adaptive scale below the floor is 0.68x native, which is
+   still sharper than most native mobile games render at. */
+const basePR = Math.min(window.devicePixelRatio || 1, DEVICE.tier === 'hi' ? 2 : 1.5);
 let frames = 0, accum = 0, sinceAdjust = 0;
 
 function applySize() {
@@ -737,6 +852,9 @@ if (jumpBtn) {
   jumpBtn.addEventListener('pointercancel', releaseJump);
   jumpBtn.addEventListener('pointerleave', releaseJump);
 }
+document.querySelectorAll('[data-move]').forEach((b) =>
+  b.addEventListener('pointerdown', (e) => { e.preventDefault(); play.queued = b.dataset.move; }));
+
 if (sprintBtn) {
   const hold = (on) => (e) => {
     if (e) e.preventDefault();
@@ -753,6 +871,18 @@ document.getElementById('reset').addEventListener('click', () => {
   if (walk.on) setMode('orbit');
   frameMap();
 });
+function syncSkyButtons() {
+  document.querySelectorAll('[data-sky]').forEach((b) =>
+    b.classList.toggle('on', weather && b.dataset.sky === weather.name));
+}
+document.querySelectorAll('[data-sky]').forEach((b) =>
+  b.addEventListener('click', () => {
+    if (!weather) return;
+    weather.set(b.dataset.sky);
+    try { localStorage.setItem('hledan-sky', b.dataset.sky); } catch (e) { /* private mode */ }
+    syncSkyButtons();
+  }));
+
 const spinBtn = document.getElementById('spin');
 spinBtn.addEventListener('click', () => {
   controls.autoRotate = !controls.autoRotate;
@@ -782,6 +912,23 @@ canvas.addEventListener('webglcontextlost', (e) => {
 
 /* -------------------------------------------------------------------- loop */
 
+const bannerEl = () => document.getElementById('moveBanner');
+function paintCombatHud() {
+  const def = (play.chr && play.chr.def) || CHARACTERS[play.index];
+  document.querySelectorAll('[data-move]').forEach((b) => {
+    const k = play.combat.cooldown(def, b.dataset.move);
+    if (b.classList.contains('movechip')) b.style.setProperty('--cd', (k * 100).toFixed(0) + '%');
+    b.classList.toggle('cooling', k > 0.001);
+  });
+  const el = bannerEl();
+  if (el) {
+    if (play.combat.bannerT > 0) {
+      if (el.textContent !== play.combat.banner) el.textContent = play.combat.banner;
+      el.style.opacity = Math.min(1, play.combat.bannerT / 0.45).toFixed(2);
+    } else if (el.style.opacity !== '0') el.style.opacity = '0';
+  }
+}
+
 /* Small inspection surface — handy from the console when tuning the scene. */
 window.__hledan = { THREE, scene, camera, renderer, controls, walk,
                     get box() { return mapBox; }, get ground() { return groundBox; },
@@ -807,6 +954,8 @@ function loop(now) {
   else if (walk.on) updateWalk(dt);
   else controls.update();
 
+  if (play.on && play.combat) paintCombatHud();
+  if (weather) weather.update(dt, camera);
   sky.position.copy(camera.position);
   skirt.position.x = camera.position.x;
   skirt.position.z = camera.position.z;

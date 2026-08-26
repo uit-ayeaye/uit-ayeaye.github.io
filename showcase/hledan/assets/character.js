@@ -24,26 +24,53 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { clone as skeletonClone } from 'three/addons/utils/SkeletonUtils.js';
 
-export const CHARACTERS = [
-  { id: 'luffy', name: 'Luffy', role: 'Captain',   speed: 5.6, jump: 7.8, blurb: 'Straw hat, and no plan whatsoever.' },
-  { id: 'zoro',  name: 'Zoro',  role: 'Swordsman', speed: 5.2, jump: 6.8, blurb: 'Lost. Insists he is not lost.' },
-  { id: 'nami',  name: 'Nami',  role: 'Navigator', speed: 5.9, jump: 7.0, blurb: 'Already knows the way to the market.' },
-];
+/**
+ * The map is not in metres. It was assembled from a photogrammetry capture plus
+ * a Nagoya city mesh scaled 2.06x, and measuring it against things whose real
+ * size is known puts it about 3x over life size:
+ *
+ *   flyover clearance   18.1 u   (real 5.0-5.5 m)
+ *   deck parapet         3.4 u   (real ~1.15 m)
+ *   street kerb          0.55 u  (real ~0.18 m)
+ *
+ * Rescaling the map itself would invalidate the baked navmap, the fog range and
+ * every camera framing, so the character is scaled into the map's units instead.
+ * Multiplying every length by the same k leaves the motion *feeling* identical:
+ * apex = v^2/2g scales as k, hang time 2v/g is unchanged, and crossing a k-times
+ * larger world takes exactly as long as before. Rates (1/time) must NOT scale.
+ */
+export const WORLD_SCALE = 3.0;
 
-const GRAVITY      = -18;
-const SPRINT_MULT  = 1.75;
-const ACCEL_GROUND = 14;
+const GRAVITY      = -18 * WORLD_SCALE;
+const SPRINT_MULT  = 1.75;                    // ratio — unscaled
+const ACCEL_GROUND = 14;                      // 1/s — unscaled
 const ACCEL_AIR    = 14 * 0.35;
-const BODY_HEIGHT  = 1.7;
-const BODY_RADIUS  = 0.25;
-const COYOTE_TIME  = 0.12;
+const BODY_HEIGHT  = 1.7 * WORLD_SCALE;
+const BODY_RADIUS  = 0.25 * WORLD_SCALE;
+const COYOTE_TIME  = 0.12;                    // seconds — unscaled
 const AIR_JUMPS    = 1;
 const AIR_JUMP_MULT = 0.92;
-const STEP_UP      = 0.62;      // anything taller is a wall, not a kerb
+const STEP_UP      = 0.62 * WORLD_SCALE;      // anything taller is a wall, not a kerb
+const SNAP_DOWN    = 0.40 * WORLD_SCALE;      // stay glued to ground this far below
 export const YAW_SENS   = 0.0045;
 export const PITCH_SENS = 0.0035;
 export const PITCH_MIN  = -0.85;
 export const PITCH_MAX  = 0.35;
+
+/* Elbaf's stats, verbatim, in metres per second. They are lifted into map units
+   by WORLD_SCALE at the point of use — see makeStats(). Zoro uses the Elbaf
+   winter model, the same modelId that build ships. */
+const RAW_CHARACTERS = [
+  { id: 'luffy', modelId: 'luffy',      name: 'Luffy', role: 'Captain',   speed: 5.6, jump: 7.8, style: 'rubber', blurb: 'Straw hat, and no plan whatsoever.' },
+  { id: 'zoro',  modelId: 'zoro-elbaf', name: 'Zoro',  role: 'Swordsman', speed: 5.2, jump: 6.8, style: 'sword',  blurb: 'Lost. Insists he is not lost.' },
+  { id: 'nami',  modelId: 'nami',       name: 'Nami',  role: 'Navigator', speed: 5.9, jump: 7.0, style: 'staff',  blurb: 'Already knows the way to the market.' },
+];
+
+export const CHARACTERS = RAW_CHARACTERS.map((c) => ({
+  ...c,
+  speed: c.speed * WORLD_SCALE,
+  jump: c.jump * WORLD_SCALE,
+}));
 
 /* ------------------------------------------------------------------ navmap */
 
@@ -56,11 +83,36 @@ export const PITCH_MAX  = 0.35;
 export class NavMap {
   constructor(img, meta) {
     this.meta = meta;
+    const { width: W, height: H } = meta;
+
     const c = document.createElement('canvas');
-    c.width = meta.width; c.height = meta.height;
+    c.width = W; c.height = H;
     const ctx = c.getContext('2d', { willReadFrequently: true });
     ctx.drawImage(img, 0, 0);
-    this.data = ctx.getImageData(0, 0, meta.width, meta.height).data;
+    const rgba = ctx.getImageData(0, 0, W, H).data;
+
+    /* Repack and drop the RGBA. Keeping the ImageData costs 5.9 MB on a
+       828x1788 grid; height-as-uint16 plus a flag byte is 4.4 MB, and more
+       importantly the sampling below then touches two flat arrays instead of
+       doing (i*4) indexing with a per-call object allocation. Movement samples
+       this ~22 times a frame, so that allocation was pure GC churn. */
+    const n = W * H;
+    this.h = new Uint16Array(n);
+    this.f = new Uint8Array(n);            // bit0 ground exists, bit1 walkable
+    for (let i = 0; i < n; i++) {
+      const k = i * 4;
+      if (rgba[k + 3] === 0) continue;
+      this.h[i] = (rgba[k] << 8) | rgba[k + 1];
+      this.f[i] = 1 | (rgba[k + 2] > 127 ? 2 : 0);
+    }
+    // let the canvas and its backing store go
+    c.width = c.height = 0;
+
+    this._y0 = meta.yMin;
+    this._ys = meta.ySpan / 65535;
+    this._inv = 1 / meta.cell;
+    this._W = W; this._H = H;
+    this._ox = meta.originX; this._oz = meta.originZ;
   }
 
   static async load(pngUrl, jsonUrl) {
@@ -76,39 +128,37 @@ export class NavMap {
     return new NavMap(img, meta);
   }
 
-  _cell(gx, gz) {
-    const m = this.meta;
-    if (gx < 0 || gz < 0 || gx >= m.width || gz >= m.height) return null;
-    const k = (gz * m.width + gx) * 4;
-    const d = this.data;
-    if (d[k + 3] === 0) return null;                       // void
-    return { y: m.yMin + ((d[k] << 8) | d[k + 1]) / 65535 * m.ySpan, open: d[k + 2] > 127 };
-  }
-
-  /** Bilinear ground height, or null off the map. */
+  /** Bilinear ground height, or null off the map. Allocation-free. */
   heightAt(x, z) {
-    const m = this.meta;
-    const fx = (x - m.originX) / m.cell - 0.5;
-    const fz = (z - m.originZ) / m.cell - 0.5;
+    const fx = (x - this._ox) * this._inv - 0.5;
+    const fz = (z - this._oz) * this._inv - 0.5;
     const gx = Math.floor(fx), gz = Math.floor(fz);
     const tx = fx - gx, tz = fz - gz;
+    const W = this._W, H = this._H, h = this.h, f = this.f;
     let acc = 0, wsum = 0;
     for (let j = 0; j <= 1; j++) {
+      const cz = gz + j;
+      if (cz < 0 || cz >= H) continue;
+      const wz = j ? tz : 1 - tz;
+      const row = cz * W;
       for (let i = 0; i <= 1; i++) {
-        const c = this._cell(gx + i, gz + j);
-        if (!c) continue;
-        const w = (i ? tx : 1 - tx) * (j ? tz : 1 - tz);
-        acc += c.y * w; wsum += w;
+        const cx = gx + i;
+        if (cx < 0 || cx >= W) continue;
+        const k = row + cx;
+        if ((f[k] & 1) === 0) continue;
+        const w = (i ? tx : 1 - tx) * wz;
+        acc += (this._y0 + h[k] * this._ys) * w;
+        wsum += w;
       }
     }
     return wsum > 0.001 ? acc / wsum : null;
   }
 
   blockedAt(x, z) {
-    const m = this.meta;
-    const c = this._cell(Math.floor((x - m.originX) / m.cell),
-                         Math.floor((z - m.originZ) / m.cell));
-    return !c || !c.open;
+    const gx = Math.floor((x - this._ox) * this._inv);
+    const gz = Math.floor((z - this._oz) * this._inv);
+    if (gx < 0 || gz < 0 || gx >= this._W || gz >= this._H) return true;
+    return (this.f[gz * this._W + gx] & 2) === 0;
   }
 
   /** Blocked if the body circle overlaps anything — centre plus 8 rim samples. */
@@ -122,7 +172,7 @@ export class NavMap {
   }
 
   /** Nearest open spot to (x,z), searched on a golden-angle spiral. */
-  findOpen(x, z, maxR = 160) {
+  findOpen(x, z, maxR = 160) {   // already in map units
     if (!this.bodyBlocked(x, z) && this.heightAt(x, z) !== null) return { x, z };
     for (let i = 1; i < 400; i++) {
       const r = Math.min(maxR, 2.2 * Math.sqrt(i));
@@ -161,11 +211,12 @@ export class Character {
     actions.idle.play();
   }
 
-  static async load(def, base = 'models/chars/') {
+  static async load(def, base = 'models/chars/', tier = 'hi') {
+    const m = def.modelId || def.id;
     const [rigged, walk, run] = await Promise.all([
-      loadGLB(`${base}${def.id}-rigged.opt.glb`),
-      loadGLB(`${base}${def.id}-walk.opt.glb`),
-      loadGLB(`${base}${def.id}-run.opt.glb`),
+      loadGLB(`${base}${m}-rigged.opt.glb`),
+      loadGLB(`${base}${m}-walk.opt.glb`),
+      loadGLB(`${base}${m}-run.opt.glb`),
     ]);
 
     const root = skeletonClone(rigged.scene);
@@ -183,20 +234,27 @@ export class Character {
          into the asphalt. This lifts them by a third of their own colour, so
          they stay readable without going flat or washing out in sunlight. */
       const src = o.material;
-      const mat = new THREE.MeshStandardMaterial({
+      const common = {
         map: src.map || null,
         color: src.color ? src.color.clone() : new THREE.Color(0xffffff),
-        roughness: 0.85,
-        metalness: 0.0,
         side: THREE.FrontSide,
         transparent: src.transparent,
         alphaTest: src.alphaTest,
         name: src.name,
-      });
-      if (mat.map) {
-        mat.emissiveMap = mat.map;
-        mat.emissive = new THREE.Color(0xffffff);
-        mat.emissiveIntensity = 0.32;
+      };
+      let mat;
+      if (tier === 'hi') {
+        mat = new THREE.MeshStandardMaterial({ ...common, roughness: 0.85, metalness: 0.0 });
+        if (mat.map) {                       // lift by a third of their own colour
+          mat.emissiveMap = mat.map;
+          mat.emissive = new THREE.Color(0xffffff);
+          mat.emissiveIntensity = 0.32;
+        }
+      } else {
+        /* Lambert on the low tier. The map already uses it there, so this keeps
+           the whole scene on one lighting model instead of compiling a second
+           program, and a flat emissive avoids binding the albedo twice. */
+        mat = new THREE.MeshLambertMaterial({ ...common, emissive: new THREE.Color(0x2a2f38) });
       }
       o.material = mat;
       src.dispose();
@@ -246,8 +304,9 @@ export class Character {
       this.current = name;
     }
     // keep feet roughly in sync with ground travel instead of skating
-    if (name === 'walk') this.actions.walk.timeScale = THREE.MathUtils.clamp(speed / 2.2, 0.55, 1.9);
-    else if (name === 'run') this.actions.run.timeScale = THREE.MathUtils.clamp(speed / 5.6, 0.6, 1.7);
+    const s = speed / WORLD_SCALE;   // compare in metres, the units the clips were authored in
+    if (name === 'walk') this.actions.walk.timeScale = THREE.MathUtils.clamp(s / 2.2, 0.55, 1.9);
+    else if (name === 'run') this.actions.run.timeScale = THREE.MathUtils.clamp(s / 5.6, 0.6, 1.7);
   }
 
   update(dt) { this.mixer.update(dt); }
@@ -271,6 +330,8 @@ export class CharacterController {
     this.airJumps = AIR_JUMPS;
     this.groundY = 0;
     this.speedXZ = 0;
+    this.airTime = 0;
+    this._gait = 'idle';
     this.landedHard = 0;
     this._fwd = new THREE.Vector3();
     this._right = new THREE.Vector3();
@@ -280,7 +341,7 @@ export class CharacterController {
   placeAt(x, z) {
     const spot = this.nav.findOpen(x, z);
     const y = this.nav.heightAt(spot.x, spot.z);
-    this.pos.set(spot.x, (y ?? 0) + 0.05, spot.z);
+    this.pos.set(spot.x, (y ?? 0) + 0.05 * WORLD_SCALE, spot.z);
     this.vel.set(0, 0, 0);
     this.groundY = y ?? 0;
     this.grounded = true;
@@ -314,7 +375,7 @@ export class CharacterController {
     }
 
     this.vel.y += GRAVITY * dt;
-    if (this.vel.y < -55) this.vel.y = -55;
+    if (this.vel.y < -55 * WORLD_SCALE) this.vel.y = -55 * WORLD_SCALE;
 
     // --- horizontal move, resolved per axis so walls slide instead of sticking
     const stepX = this.vel.x * dt, stepZ = this.vel.z * dt;
@@ -329,23 +390,32 @@ export class CharacterController {
     const gy = nav.heightAt(this.pos.x, this.pos.z);
     if (gy !== null) this.groundY = gy;
 
+    /* Ground snap. The height field is sampled from a photogrammetry surface,
+       so running across it the ground drops a few centimetres under your feet
+       constantly. Without a tolerance the character flips grounded->airborne
+       every other frame, which switches the accel rate, re-triggers the run
+       animation and reads as jitter. Anything within SNAP_DOWN while already
+       grounded and not moving upward counts as still standing on it. */
     const wasAir = !this.grounded;
-    if (this.pos.y <= this.groundY) {
-      if (wasAir && this.vel.y < -9) this.landedHard = Math.min(1, -this.vel.y / 16);
+    const snap = (!wasAir && this.vel.y <= 0) ? SNAP_DOWN : 0;
+    if (this.pos.y <= this.groundY + snap) {
+      if (wasAir && this.vel.y < -9 * WORLD_SCALE) this.landedHard = Math.min(1, -this.vel.y / (16 * WORLD_SCALE));
       this.pos.y = this.groundY;
       this.vel.y = 0;
       this.grounded = true;
+      this.airTime = 0;
       this.coyote = COYOTE_TIME;
       this.airJumps = AIR_JUMPS;
     } else {
       this.grounded = false;
+      this.airTime += dt;
       this.coyote = Math.max(0, this.coyote - dt);
     }
     this.landedHard = Math.max(0, this.landedHard - dt * 2.5);
 
     // face the way we are actually travelling
     this.speedXZ = Math.hypot(this.vel.x, this.vel.z);
-    if (this.speedXZ > 0.35) {
+    if (this.speedXZ > 0.35 * WORLD_SCALE) {
       const want = Math.atan2(this.vel.x, this.vel.z);
       let d = want - this.facing;
       while (d > Math.PI) d -= Math.PI * 2;
@@ -363,10 +433,17 @@ export class CharacterController {
     return this.grounded ? (y - fromY) <= STEP_UP : true;
   }
 
+  /* Hysteresis on both edges. A bare threshold makes the animation flip every
+     frame when speed sits on the boundary — which is exactly where it sits when
+     you hold sprint into a headwind of small collisions. */
   gait() {
-    if (!this.grounded) return 'run';
-    if (this.speedXZ < 0.45) return 'idle';
-    return this.speedXZ > 6.2 ? 'run' : 'walk';
+    if (!this.grounded && this.airTime > 0.18) return 'run';
+    const s = this.speedXZ / WORLD_SCALE;
+    const g = this._gait || 'idle';
+    if (g === 'idle') this._gait = s > 0.60 ? 'walk' : 'idle';
+    else if (g === 'walk') this._gait = s < 0.35 ? 'idle' : (s > 6.6 ? 'run' : 'walk');
+    else this._gait = s < 5.6 ? 'walk' : 'run';
+    return this._gait;
   }
 }
 
@@ -376,8 +453,8 @@ export class ChaseCamera {
   constructor() {
     this.yaw = 0;
     this.pitch = -0.18;         // Elbaf's initial pitch
-    this.dist = 6.2;
-    this._dist = 6.2;
+    this.dist = 6.2 * WORLD_SCALE;
+    this._dist = this.dist;
     this.target = new THREE.Vector3();
     this._eye = new THREE.Vector3();
     this._look = new THREE.Vector3();
@@ -404,12 +481,12 @@ export class ChaseCamera {
 
     this._dist += (this.dist - this._dist) * (1 - Math.exp(-8 * dt));
     this._eye.set(this._look.x - ox * this._dist,
-                  this._look.y - oy * this._dist + 1.15,
+                  this._look.y - oy * this._dist + 1.15 * WORLD_SCALE,
                   this._look.z - oz * this._dist);
 
     // never let the chase cam drop below the street it is flying over
     const g = nav.heightAt(this._eye.x, this._eye.z);
-    if (g !== null && this._eye.y < g + 0.6) this._eye.y = g + 0.6;
+    if (g !== null && this._eye.y < g + 0.6 * WORLD_SCALE) this._eye.y = g + 0.6 * WORLD_SCALE;
 
     camera.position.lerp(this._eye, 1 - Math.exp(-16 * dt));
     camera.lookAt(this._look);
