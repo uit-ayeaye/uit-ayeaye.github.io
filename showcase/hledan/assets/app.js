@@ -938,7 +938,10 @@ function adapt(frameMs) {
 
   // two rAF callbacks can land in the same millisecond, which makes avg 0
   const shown = Math.min(999, Math.round(1000 / Math.max(avg, 1)));
-  if (fpsEl) fpsEl.textContent = `${shown} fps · ${Math.round(renderScale * 100)}%`;
+  /* The render-scale figure is in its own element so a narrow phone can drop it
+     without losing the frame rate: at 360 px the two together push the readout
+     off the right edge of the top bar. */
+  if (fpsEl) fpsEl.innerHTML = `${shown} fps<span class="fps-scale"> · ${Math.round(renderScale * 100)}%</span>`;
 
   if (sinceAdjust < 2) return;
   const prev = renderScale;

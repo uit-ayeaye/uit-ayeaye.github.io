@@ -103,6 +103,10 @@
       .spacer { flex: 1; }
       #fps { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 11px;
              color: #7f93b3; white-space: nowrap; }
+      /* Below ~400px the back button, the title and a full readout do not fit
+         across the top bar together, and the readout is what runs off the edge.
+         The frame rate is the part worth keeping. */
+      @media (max-width: 400px) { .fps-scale { display: none; } }
 
       .dock {
         position: absolute; left: 50%; transform: translateX(-50%);
