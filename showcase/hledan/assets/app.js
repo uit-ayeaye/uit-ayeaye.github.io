@@ -15,6 +15,10 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import {
+  CHARACTERS, NavMap, Character, CharacterController, ChaseCamera,
+  YAW_SENS, PITCH_SENS,
+} from './character.js';
 
 /* ------------------------------------------------------------------ device */
 
@@ -390,11 +394,144 @@ function exitWalk() {
   controls.target.set(camera.position.x, walk.ground, camera.position.z - 60);
   controls.update();
 }
-function setMode(m) {
-  if (m === 'walk' && !walk.on) enterWalk();
-  else if (m === 'orbit' && walk.on) exitWalk();
+/* ------------------------------------------------------------------- play */
+
+/**
+ * Third-person mode: a One Piece character on the street, with Elbaf's
+ * movement numbers. Everything here is loaded lazily — the character rig and
+ * the baked navmap are ~1.2 MB that a visitor who only wants to look at the
+ * map from above should never pay for.
+ */
+const play = {
+  on: false, loading: false,
+  nav: null, chr: null, ctrl: null, cam: new ChaseCamera(),
+  index: 0, jump: false, sprintHeld: false,
+};
+
+function syncModeButtons(active) {
   document.querySelectorAll('[data-mode]').forEach((b) =>
-    b.classList.toggle('on', b.dataset.mode === (walk.on ? 'walk' : 'orbit')));
+    b.classList.toggle('on', b.dataset.mode === active));
+}
+
+async function ensurePlayAssets(defIndex) {
+  const def = CHARACTERS[defIndex];
+  if (!play.nav) {
+    setPlayStatus('Reading the street map…');
+    play.nav = await NavMap.load('models/navmesh.png', 'models/navmesh.json');
+  }
+  if (!play.chr || play.chr.def.id !== def.id) {
+    setPlayStatus(`Waking ${def.name}…`);
+    const next = await Character.load(def);
+    if (play.chr) { scene.remove(play.chr.root); play.chr.dispose(); }
+    play.chr = next;
+    scene.add(next.root);
+  }
+  setPlayStatus('');
+}
+
+function setPlayStatus(text) {
+  const el = document.getElementById('playStatus');
+  if (!el) return;
+  el.textContent = text;
+  el.classList.toggle('on', !!text);
+}
+
+async function enterPlay() {
+  if (play.loading) return;
+  play.loading = true;
+  try {
+    await ensurePlayAssets(play.index);
+  } catch (err) {
+    setPlayStatus('Could not load the character.');
+    console.error(err);
+    play.loading = false;
+    setMode('orbit');
+    return;
+  }
+  play.loading = false;
+
+  if (walk.on) exitWalk();
+  play.on = true;
+  controls.enabled = false;
+  controls.autoRotate = false;
+
+  if (!play.ctrl) play.ctrl = new CharacterController(play.nav);
+  const c = coreBox.getCenter(new THREE.Vector3());
+  play.ctrl.placeAt(c.x, c.z);
+  play.cam.yaw = Math.PI * 0.15;
+  play.cam.pitch = -0.18;
+  camera.position.set(play.ctrl.pos.x, play.ctrl.pos.y + 6, play.ctrl.pos.z + 8);
+
+  play.chr.root.visible = true;
+  document.body.classList.add('playing');
+  refreshCharChips();
+  syncModeButtons('play');
+}
+
+function exitPlay() {
+  play.on = false;
+  document.body.classList.remove('playing');
+  if (play.chr) play.chr.root.visible = false;
+  controls.enabled = true;
+  if (camera.fov !== 55) { camera.fov = 55; camera.updateProjectionMatrix(); }
+  if (play.ctrl) {
+    controls.target.set(play.ctrl.pos.x, play.ctrl.pos.y + 1.2, play.ctrl.pos.z);
+    controls.update();
+  }
+}
+
+/** Swap character without losing position or momentum. */
+async function swapCharacter(delta) {
+  if (!play.on || play.loading) return;
+  play.index = (play.index + delta + CHARACTERS.length) % CHARACTERS.length;
+  play.loading = true;
+  try {
+    await ensurePlayAssets(play.index);
+    play.chr.root.visible = true;
+  } finally {
+    play.loading = false;
+    refreshCharChips();
+  }
+}
+
+function refreshCharChips() {
+  document.querySelectorAll('[data-char]').forEach((b) =>
+    b.classList.toggle('on', b.dataset.char === CHARACTERS[play.index].id));
+  const who = document.getElementById('who');
+  if (who) {
+    const d = CHARACTERS[play.index];
+    who.innerHTML = `<b>${d.name}</b> · ${d.role}<span>${d.blurb}</span>`;
+  }
+}
+
+function updatePlay(dt) {
+  const k = walk.keys;
+  let mx = (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0);
+  let mz = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0);
+  if (walk.stick.active) { mx += walk.stick.x; mz -= walk.stick.y; }
+
+  const sprint = !!(k.ShiftLeft || k.ShiftRight || play.sprintHeld);
+  const def = CHARACTERS[play.index];
+
+  play.ctrl.update(dt, { moveX: mx, moveZ: mz, sprint, jump: play.jump, yaw: play.cam.yaw }, def);
+  play.jump = false;
+
+  const c = play.ctrl;
+  play.chr.root.position.set(c.pos.x, c.pos.y, c.pos.z);
+  play.chr.root.rotation.y = c.facing;
+  play.chr.setGait(c.gait(), c.speedXZ);
+  play.chr.update(dt);
+
+  play.cam.update(dt, camera, c, play.nav, sprint && c.speedXZ > 3);
+}
+
+function setMode(m) {
+  if (m === 'walk') { if (play.on) exitPlay(); if (!walk.on) enterWalk(); }
+  else if (m === 'play') {
+    // async: mark the button now, and enterPlay re-syncs (or falls back to orbit)
+    if (!play.on) { syncModeButtons('play'); enterPlay(); return; }
+  } else { if (walk.on) exitWalk(); if (play.on) exitPlay(); }
+  syncModeButtons(play.on ? 'play' : walk.on ? 'walk' : 'orbit');
 }
 
 function sampleGround(force) {
@@ -412,9 +549,17 @@ function sampleGround(force) {
 
 addEventListener('keydown', (e) => {
   walk.keys[e.code] = true;
-  if (e.code === 'KeyG') setMode(walk.on ? 'orbit' : 'walk');
-  if (e.code === 'Escape' && walk.on) setMode('orbit');
-  if (walk.on && (e.code.startsWith('Arrow') || e.code === 'Space')) e.preventDefault();
+  if (e.code === 'KeyG' && !play.on) setMode(walk.on ? 'orbit' : 'walk');
+  if (e.code === 'KeyP' && !e.repeat) setMode(play.on ? 'orbit' : 'play');
+  if (e.code === 'Escape') { if (play.on) setMode('orbit'); else if (walk.on) setMode('orbit'); }
+  if (play.on) {
+    if (e.code === 'Space' && !e.repeat) play.jump = true;          // Elbaf: Space jumps
+    if (e.code === 'Tab' || e.code === 'KeyZ') {                    // Elbaf: Tab/Z swaps
+      if (!e.repeat) swapCharacter(1);
+      e.preventDefault();
+    }
+  }
+  if ((walk.on || play.on) && (e.code.startsWith('Arrow') || e.code === 'Space')) e.preventDefault();
 });
 addEventListener('keyup', (e) => { walk.keys[e.code] = false; });
 
@@ -422,18 +567,16 @@ addEventListener('keyup', (e) => { walk.keys[e.code] = false; });
    press-and-drag where it is not (sandboxed frames, some embedded browsers). */
 let dragging = false;
 renderer.domElement.addEventListener('mousedown', (e) => {
-  if (walk.on && e.button === 0 && !document.pointerLockElement) dragging = true;
+  if ((walk.on || play.on) && e.button === 0 && !document.pointerLockElement) dragging = true;
 });
 addEventListener('mouseup', () => { dragging = false; });
 
 addEventListener('mousemove', (e) => {
-  if (!walk.on) return;
-  const locked = !!document.pointerLockElement;
-  if (!locked && !dragging) return;
-  const dx = locked ? e.movementX : e.movementX;
-  const dy = locked ? e.movementY : e.movementY;
-  walk.yaw -= dx * 0.0022;
-  walk.pitch = THREE.MathUtils.clamp(walk.pitch - dy * 0.0022, -1.35, 1.35);
+  if (!walk.on && !play.on) return;
+  if (!document.pointerLockElement && !dragging) return;
+  if (play.on) { play.cam.look(e.movementX, e.movementY); return; }   // Elbaf sensitivities
+  walk.yaw -= e.movementX * 0.0022;
+  walk.pitch = THREE.MathUtils.clamp(walk.pitch - e.movementY * 0.0022, -1.35, 1.35);
 });
 
 /* Touch: left third of the screen is a thumbstick, everywhere else looks. */
@@ -441,7 +584,7 @@ const stickEl = document.getElementById('stick');
 const knobEl = document.getElementById('knob');
 
 renderer.domElement.addEventListener('touchstart', (e) => {
-  if (!walk.on) return;
+  if (!walk.on && !play.on) return;
   for (const t of e.changedTouches) {
     if (t.clientX < innerWidth * 0.42 && walk.stick.id === -1) {
       walk.stick.id = t.identifier; walk.stick.active = true;
@@ -456,7 +599,7 @@ renderer.domElement.addEventListener('touchstart', (e) => {
 }, { passive: true });
 
 renderer.domElement.addEventListener('touchmove', (e) => {
-  if (!walk.on) return;
+  if (!walk.on && !play.on) return;
   for (const t of e.changedTouches) {
     if (t.identifier === walk.stick.id) {
       const dx = t.clientX - walk.stick.ox, dy = t.clientY - walk.stick.oy;
@@ -466,8 +609,14 @@ renderer.domElement.addEventListener('touchmove', (e) => {
       walk.stick.y = (Math.sin(a) * d) / 52;
       knobEl.style.transform = `translate(${Math.cos(a) * d}px, ${Math.sin(a) * d}px)`;
     } else if (t.identifier === walk.look.id) {
-      walk.yaw -= (t.clientX - walk.look.x) * 0.005;
-      walk.pitch = THREE.MathUtils.clamp(walk.pitch - (t.clientY - walk.look.y) * 0.005, -1.35, 1.35);
+      const dx = t.clientX - walk.look.x, dy = t.clientY - walk.look.y;
+      if (play.on) {
+        // touch drags cover far fewer pixels than a mouse, so scale up
+        play.cam.look(dx * 2.4, dy * 2.4);
+      } else {
+        walk.yaw -= dx * 0.005;
+        walk.pitch = THREE.MathUtils.clamp(walk.pitch - dy * 0.005, -1.35, 1.35);
+      }
       walk.look.x = t.clientX; walk.look.y = t.clientY;
     }
   }
@@ -548,7 +697,9 @@ function adapt(frameMs) {
   const avg = accum / frames;
   accum = 0; frames = 0;
 
-  if (fpsEl) fpsEl.textContent = `${Math.round(1000 / avg)} fps · ${Math.round(renderScale * 100)}%`;
+  // two rAF callbacks can land in the same millisecond, which makes avg 0
+  const shown = Math.min(999, Math.round(1000 / Math.max(avg, 1)));
+  if (fpsEl) fpsEl.textContent = `${shown} fps · ${Math.round(renderScale * 100)}%`;
 
   if (sinceAdjust < 2) return;
   const prev = renderScale;
@@ -562,6 +713,41 @@ function adapt(frameMs) {
 const ui = document.getElementById('ui');
 document.querySelectorAll('[data-mode]').forEach((b) =>
   b.addEventListener('click', () => setMode(b.dataset.mode)));
+
+/* Crew chips pick a character directly rather than cycling. */
+document.querySelectorAll('[data-char]').forEach((b) =>
+  b.addEventListener('click', () => {
+    const i = CHARACTERS.findIndex((c) => c.id === b.dataset.char);
+    if (i < 0 || i === play.index) return;
+    if (!play.on) { play.index = i; refreshCharChips(); setMode('play'); return; }
+    swapCharacter(i - play.index);
+  }));
+
+/* Touch action pad. Pointer events rather than click so JUMP fires on press
+   and RUN can be held; both also cancel on pointercancel, which iOS fires
+   whenever the gesture is stolen by a scroll or a system edge swipe. */
+const jumpBtn = document.getElementById('jumpBtn');
+const sprintBtn = document.getElementById('sprintBtn');
+if (jumpBtn) {
+  jumpBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); play.jump = true; jumpBtn.classList.add('held');
+  });
+  const releaseJump = () => jumpBtn.classList.remove('held');
+  jumpBtn.addEventListener('pointerup', releaseJump);
+  jumpBtn.addEventListener('pointercancel', releaseJump);
+  jumpBtn.addEventListener('pointerleave', releaseJump);
+}
+if (sprintBtn) {
+  const hold = (on) => (e) => {
+    if (e) e.preventDefault();
+    play.sprintHeld = on;
+    sprintBtn.classList.toggle('held', on);
+  };
+  sprintBtn.addEventListener('pointerdown', hold(true));
+  sprintBtn.addEventListener('pointerup', hold(false));
+  sprintBtn.addEventListener('pointercancel', hold(false));
+  sprintBtn.addEventListener('pointerleave', hold(false));
+}
 
 document.getElementById('reset').addEventListener('click', () => {
   if (walk.on) setMode('orbit');
@@ -600,7 +786,14 @@ canvas.addEventListener('webglcontextlost', (e) => {
 window.__hledan = { THREE, scene, camera, renderer, controls, walk,
                     get box() { return mapBox; }, get ground() { return groundBox; },
                     get streetY() { return streetY; }, device: DEVICE,
-                    get scale() { return renderScale; } };
+                    get scale() { return renderScale; }, play, CHARACTERS,
+                    /* drive N frames by hand — the render loop is rAF-driven and
+                       rAF does not fire in a hidden tab, which makes headless
+                       verification of the character controller impossible. */
+                    step(n = 1, ms = 16.7) {
+                      for (let i = 0; i < n; i++) { last = performance.now() - ms; loop(performance.now()); }
+                      return { pos: play.ctrl && play.ctrl.pos.toArray().map(v => +v.toFixed(2)) };
+                    } };
 
 let last = performance.now();
 function loop(now) {
@@ -610,7 +803,8 @@ function loop(now) {
   const dt = Math.min(frameMs / 1000, 0.1);
   last = now;
 
-  if (walk.on) updateWalk(dt);
+  if (play.on && play.ctrl && play.chr) updatePlay(dt);
+  else if (walk.on) updateWalk(dt);
   else controls.update();
 
   sky.position.copy(camera.position);
@@ -620,6 +814,8 @@ function loop(now) {
   adapt(frameMs);
 }
 requestAnimationFrame(loop);
+
+refreshCharChips();
 
 if (REDUCED_MOTION) controls.autoRotate = false;
 else { controls.autoRotate = true; spinBtn.classList.add('on'); }

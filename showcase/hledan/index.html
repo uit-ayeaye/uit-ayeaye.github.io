@@ -6,8 +6,8 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
-    <title>Hledan Junction — Real-Time 3D Map</title>
-    <meta name="description" content="Hledan Junction, Yangon — rebuilt as a real-time WebGL map you can orbit or walk. 59,533 triangles, four materials, streamed in about two megabytes. Runs on a phone." />
+    <title>Hledan Junction — Real-Time 3D Yangon</title>
+    <meta name="description" content="Hledan Junction, Yangon — rebuilt as a real-time WebGL map. Orbit it from above, walk it in first person, or run the streets as Luffy, Zoro or Nami. Pure three.js, no game engine, about two megabytes." />
     <meta name="author" content="Thomas D. Lynn" />
     <link rel="canonical" href="https://thomasdlynn.dev/showcase/hledan/" />
     <meta name="robots" content="index,follow" />
@@ -16,21 +16,21 @@
     <meta property="og:site_name" content="Thomas D. Lynn" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://thomasdlynn.dev/showcase/hledan/" />
-    <meta property="og:title" content="Hledan Junction — walk Yangon in your browser" />
-    <meta property="og:description" content="A real-time 3D map of Hledan Junction, Yangon. Orbit it from above or drop to street level and walk. Pure three.js, no game engine, about two megabytes." />
+    <meta property="og:title" content="Hledan Junction — run Yangon as Luffy" />
+    <meta property="og:description" content="A real-time 3D map of Hledan Junction, Yangon. Orbit it from above, or drop in as Luffy, Zoro or Nami and run the flyover yourself. Pure three.js, no game engine." />
     <meta property="og:image" content="https://thomasdlynn.dev/showcase/hledan/social-hledan.jpg" />
     <meta property="og:image:secure_url" content="https://thomasdlynn.dev/showcase/hledan/social-hledan.jpg" />
     <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="An aerial view of a 3D reconstruction of Hledan Junction in Yangon, city blocks and roads under a warm sky" />
+    <meta property="og:image:alt" content="An aerial view of a 3D reconstruction of Hledan Junction, Yangon — shopfronts, the red pedestrian bridge and the flyover" />
     <meta property="og:locale" content="en_US" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Hledan Junction — walk Yangon in your browser" />
-    <meta name="twitter:description" content="A real-time 3D map of Hledan Junction, Yangon. Orbit it, or drop to street level and walk. Pure three.js, about two megabytes." />
+    <meta name="twitter:title" content="Hledan Junction — run Yangon as Luffy" />
+    <meta name="twitter:description" content="A real-time 3D map of Hledan Junction, Yangon. Orbit it, or run the streets as Luffy, Zoro or Nami. Pure three.js." />
     <meta name="twitter:image" content="https://thomasdlynn.dev/showcase/hledan/social-hledan.jpg" />
-    <meta name="twitter:image:alt" content="An aerial view of a 3D reconstruction of Hledan Junction in Yangon" />
+    <meta name="twitter:image:alt" content="An aerial view of a 3D reconstruction of Hledan Junction, Yangon" />
     <link rel="image_src" href="https://thomasdlynn.dev/showcase/hledan/social-hledan.jpg" />
 
     <meta name="theme-color" content="#0a0e1a" />
@@ -162,6 +162,70 @@
               opacity: 0; transition: opacity .3s; }
       body.walking .hint { opacity: 1; }
 
+      /* ------------------------------------------------------------- play */
+      #playHint { opacity: 0; }
+      body.playing #playHint { opacity: 1; }
+      body.playing .hint#hintWalk { opacity: 0; }
+      @media (max-width: 560px) { #playHint { display: none; } }
+
+      #crew {
+        position: absolute; left: 14px; top: calc(78px + env(safe-area-inset-top));
+        opacity: 0; visibility: hidden; transform: translateX(-8px);
+        transition: opacity .3s, transform .3s, visibility .3s;
+      }
+      body.playing #crew { opacity: 1; visibility: visible; transform: none; }
+      #who { font-size: 12px; color: #b9c8e0; margin-bottom: 7px; line-height: 1.45; }
+      #who b { color: #f0c66b; font-weight: 700; letter-spacing: .04em; }
+      #who span { display: block; color: #6d80a0; font-size: 11px; font-style: italic; }
+      #crew .chips { display: flex; gap: 5px; }
+      .chip {
+        appearance: none; border: 1px solid #ffffff1f; cursor: pointer;
+        font: inherit; font-size: 11.5px; font-weight: 600;
+        color: #b9c8e0; background: #101a2ecc; backdrop-filter: blur(10px);
+        padding: 6px 11px; border-radius: 999px; transition: background .18s, color .18s;
+      }
+      .chip:hover { background: #1a2740; color: #fff; }
+      .chip.on { background: linear-gradient(135deg, #f0c66b, #e08a3c); color: #17233a; border-color: transparent; }
+
+      #pad {
+        position: absolute; right: 16px; bottom: calc(max(16px, env(safe-area-inset-bottom)) + 64px);
+        display: none; flex-direction: column; gap: 10px; align-items: center;
+      }
+      body.playing #pad { display: flex; }
+      @media (hover: hover) { #pad { display: none !important; } }
+      .pad-btn {
+        appearance: none; border: 1.5px solid #ffffff2e; cursor: pointer;
+        width: 68px; height: 68px; border-radius: 50%;
+        font: inherit; font-size: 12px; font-weight: 800; letter-spacing: .08em;
+        color: #dbe6f6; background: #101a2eb3; backdrop-filter: blur(10px);
+        user-select: none; -webkit-user-select: none; touch-action: none;
+      }
+      .pad-btn.primary { background: #f0c66bd9; color: #17233a; border-color: #ffffff40; }
+      .pad-btn.held { transform: scale(.93); filter: brightness(1.25); }
+
+      /* The action pad lands exactly where the info button sits. Reading the
+         about panel is not something anyone does mid-run, so on touch the
+         button steps aside while playing rather than fighting for the corner. */
+      @media (hover: none) and (pointer: coarse) {
+        body.playing #infoBtn { opacity: 0; visibility: hidden; pointer-events: none; }
+        body.playing #info { visibility: hidden; opacity: 0; }
+      }
+      @media (max-width: 560px) {
+        #crew { top: calc(66px + env(safe-area-inset-top)); }
+        #who { font-size: 11.5px; margin-bottom: 6px; }
+        #who span { font-size: 10.5px; }
+        .chip { font-size: 11px; padding: 5px 10px; }
+      }
+
+      #playStatus {
+        position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+        padding: 12px 20px; border-radius: 999px;
+        background: #0d1626e6; border: 1px solid #ffffff1f; backdrop-filter: blur(12px);
+        font-size: 13px; color: #f0c66b; letter-spacing: .04em;
+        opacity: 0; visibility: hidden; transition: opacity .25s, visibility .25s;
+      }
+      #playStatus.on { opacity: 1; visibility: visible; }
+
       /* -------------------------------------------------- touch thumbstick */
       #stick { position: fixed; z-index: 25; width: 116px; height: 116px; margin: -58px 0 0 -58px;
                border-radius: 50%; border: 1.5px solid #ffffff2e; background: #0f1a2e5c;
@@ -199,6 +263,7 @@
       <div class="dock" role="group" aria-label="View controls">
         <button class="btn on" data-mode="orbit">Orbit</button>
         <button class="btn" data-mode="walk">Walk</button>
+        <button class="btn" data-mode="play">Play</button>
         <button class="btn" id="spin"><span class="wide">Auto-spin</span><span class="narrow">Spin</span></button>
         <button class="btn" id="reset">Reset</button>
         <button class="btn" id="full" aria-label="Fullscreen"><span class="wide">Fullscreen</span><span class="narrow" aria-hidden="true">⛶</span></button>
@@ -207,6 +272,26 @@
       <div class="hint" id="hintWalk">
         Drag to look · thumbstick to move · <kbd>Shift</kbd> to sprint · <kbd>Esc</kbd> to orbit
       </div>
+
+      <div class="hint" id="playHint">
+        Drag to look · <kbd>W A S D</kbd> to move · <kbd>Space</kbd> jump · <kbd>Shift</kbd> sprint · <kbd>Tab</kbd> swap crew
+      </div>
+
+      <div id="crew">
+        <div id="who"></div>
+        <div class="chips">
+          <button class="chip on" data-char="luffy">Luffy</button>
+          <button class="chip" data-char="zoro">Zoro</button>
+          <button class="chip" data-char="nami">Nami</button>
+        </div>
+      </div>
+
+      <div id="pad">
+        <button class="pad-btn" id="sprintBtn" aria-label="Sprint">RUN</button>
+        <button class="pad-btn primary" id="jumpBtn" aria-label="Jump">JUMP</button>
+      </div>
+
+      <div id="playStatus"></div>
 
       <button class="btn" id="infoBtn" aria-label="About this map">i</button>
 
@@ -224,6 +309,13 @@
           planes stacked twelve millimetres apart. All of it is gone here; what is
           left is the city.
         </p>
+        <p>
+          <b>Play</b> drops a Straw Hat onto the street. The movement is the same
+          model as the <a href="../elbaf/">Elbaf</a> build — 5.6 m/s, sprint at
+          1.75x, gravity at −18, coyote time and one air jump — running on a
+          ground-height and collision map baked into a 171 KB PNG instead of a
+          physics engine.
+        </p>
         <dl>
           <dt>Triangles</dt><dd>59,533</dd>
           <dt>Meshes</dt><dd>8</dd>
@@ -231,7 +323,12 @@
           <dt>Footprint</dt><dd>826 × 1785 m</dd>
           <dt>Geometry</dt><dd>3.1 MB → 1.3 MB gz</dd>
           <dt>Quality</dt><dd id="tier">—</dd>
+          <dt>Crew</dt><dd>Luffy · Zoro · Nami</dd>
         </dl>
+        <p style="margin-top:12px;font-size:11.5px;color:#6d80a0">
+          Fan-made and non-commercial. One Piece characters belong to Eiichiro
+          Oda and Shueisha.
+        </p>
       </aside>
     </div>
 
