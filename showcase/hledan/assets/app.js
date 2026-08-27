@@ -1121,7 +1121,10 @@ addEventListener('keydown', (e) => {
       e.preventDefault();
     }
   }
-  if ((walk.on || play.on) && (e.code.startsWith('Arrow') || e.code === 'Space')) e.preventDefault();
+  /* Orbit is included now that the arrows drive it. Left out, the page scrolls
+     under the canvas while the camera turns, which on a short window walks the
+     whole UI off the bottom of the screen. */
+  if (e.code.startsWith('Arrow') || ((walk.on || play.on) && e.code === 'Space')) e.preventDefault();
 });
 addEventListener('keyup', (e) => {
   walk.keys[e.code] = false;
