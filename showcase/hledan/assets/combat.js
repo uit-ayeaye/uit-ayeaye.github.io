@@ -115,11 +115,6 @@ const FLASH_PROBE = 0.5 * S;    // march resolution when finding a landing spot
    pavement across the road, while still leaving the step real horizontal reach
    to spend. Straight up would just be a very slow jump. */
 const FLASH_CLIMB = 0.82;
-/* How far below a cleared station a landing may be. Without a bound, a step
-   aimed at a rooftop finds the STREET under the same column and lands there —
-   the roof is the thing the aim was pointing at, and the ledge you sailed over
-   two metres ago is a better answer than the ground twenty metres down. */
-const LAND_DROP   = 3.2 * S;
 /* How far one step will rise to clear what it hits. 9 units is six metres — a
    fence, a bus, a boundary wall, a shopfront canopy, a low roof — but short of
    a tower, which should still take more than one step to get on top of. */
@@ -782,8 +777,10 @@ export class Combat {
    * march asks whether there is a surface under it the body could stand on,
    * and remembers the furthest one; so a step that ends in mid-air settles
    * back onto the last real ledge it passed rather than dropping you into a
-   * shaft. `LAND_DROP` bounds how far below the ray a landing may be, or every
-   * step aimed across a street would find the street and ignore the roof.
+   * shaft. `landDrop` bounds how far below the ray a landing may be, or every
+   * step aimed across a street would find the street and ignore the roof —
+   * and it tightens while climbing, or a step aimed at the sky lands back on
+   * the pavement it started from.
    *
    * A step that cannot clear FLASH_MIN is refused and the move is dropped —
    * better a dead key than a blink that lands you where you started.
@@ -792,8 +789,20 @@ export class Combat {
     const mv = this.move;
     /* Straight up is a jump, not a step: clamp the climb so the aim still has
        horizontal reach to spend. Down is left alone — dropping off a roof
-       under your own power reads fine. */
-    const uy = Math.max(-0.72, Math.min(FLASH_CLIMB, look.y));
+       under your own power reads fine.
+
+       An upward aim is AMPLIFIED. The chase camera only looks up 20 degrees
+       (PITCH_MAX 0.35, and past that the eye sinks behind the character until
+       the ground clamp stops it), which puts the aim vector barely 8 degrees
+       above horizontal — so an "upward" step spent 99% of itself going
+       sideways and read as a long flat glide rather than a leap. Chained, it
+       carried Zoro 180 m out to the terrain backdrop instead of up. Scaling
+       the climb by 3.5 turns the same thumb-drag into about 30 degrees, which
+       is what the player was asking for when they pointed the camera up. */
+    const rawUp = look.y;
+    const uy = rawUp > 0.02
+      ? Math.min(FLASH_CLIMB, rawUp * 3.5)
+      : Math.max(-0.72, rawUp);
     const flat = Math.hypot(look.x, look.z);
     if (flat < 1e-4) { mv.kind = null; mv.slot = null; return false; }
     const k = Math.sqrt(Math.max(1e-6, 1 - uy * uy)) / flat;
@@ -815,14 +824,19 @@ export class Combat {
        noticing, and the step was being cut to 3.6 units and going nowhere. A
        ray down the step's own line, from the height the step actually travels
        at, only stops for things the step would actually meet. */
-    let reach = FLASH_RANGE;
+    /* A climbing step trades reach for height: at full range it would still
+       cross most of the junction on the way up, which is how a leap turns back
+       into a glide. */
+    let reach = uy > 0.02 ? FLASH_RANGE * 0.55 : FLASH_RANGE;
     if (this._solids) {
       const hit = this._solids.raycast(
         this._flashOrigin.set(x0, y0 + CENTER_Y, z0),
         this._flashDir.set(ux, uy, uz), FLASH_RANGE);
-      if (hit >= 0) reach = Math.min(FLASH_RANGE, hit + 2 * S);
+      if (hit >= 0) reach = Math.min(reach, hit + 2 * S);
     }
     let bestX = x0, bestY = y0, bestZ = z0, bestD = 0;
+    // the airborne fallback: furthest station the body fits at, ledge or not
+    let airX = x0, airY = y0, airZ = z0, airD = 0;
     /* The ray's own height, carried between stations rather than recomputed
        from d, because MOUNTING lifts it: when the body's volume runs into
        something, the step tries to arrive on TOP of it and carries on from
@@ -831,6 +845,15 @@ export class Combat {
        to point the camera at the sky. Aim pitch still adds climb on top of
        this; it is just no longer the only way up, which matters on a phone
        where the up-look is a thumb-drag away. */
+    /* How far below the ray a surface may be and still count as a landing.
+       A step that is CLIMBING only lands on something it is practically
+       standing on; otherwise the generous tolerance finds the street under the
+       ray every time and Zoro is snapped back to the ground at the end of
+       every step, which is exactly why he could no longer get into the air.
+       A level or descending step keeps the generous figure, because settling
+       onto the ground is the right answer there. */
+    const climbing = uy > 0.02;
+    const landDrop = FLASH_BODY * 0.5 + (climbing ? 1.2 * S : 2.3 * S);
     let rayY = y0;
     for (let d = FLASH_PROBE; d <= reach; d += FLASH_PROBE) {
       const px = x0 + ux * d, pz = z0 + uz * d;
@@ -848,7 +871,7 @@ export class Combat {
            whatever height it needed to clear the last obstacle and never sees
            the ground again, which is how the step into the field died — it
            rose to 49.1 to clear a 4.5 m fence and the ground at 43.6 was then
-           further below than LAND_DROP allows, so no landing was ever found.
+           further below than the tolerance allows, so no landing was found.
            But descending unconditionally is just as wrong: over a building the
            natural line is the street, so the ray sank straight past the roof
            it had just cleared. Sinking only while there is NOTHING in reach
@@ -856,16 +879,42 @@ export class Combat {
            wall hop stops on the roof. */
         const floorLine = y0 + uy * d;
         while (py - FLASH_PROBE >= floorLine
-               && ctrl._standingSurface(px, pz, py + FLASH_BODY * 0.5, LAND_DROP) === null
+               && ctrl._standingSurface(px, pz, py + FLASH_BODY * 0.5, landDrop) === null
                && !(this._solids && this._solids.blocked(px, pz, FLASH_R, py - FLASH_PROBE, py - FLASH_PROBE + FLASH_BODY))
                && !(this._obstacles && this._obstacles.blocked(px, pz, FLASH_R, py - FLASH_PROBE, FLASH_BODY))) {
           py -= FLASH_PROBE;
         }
       }
       rayY = py;
-      // is there something to stand on under it?
-      const f = ctrl._standingSurface(px, pz, py + FLASH_BODY * 0.5, LAND_DROP);
+      /* The furthest place the body FITS, whether or not anything is under it —
+         but only while there is still a world underneath. The airborne finish
+         does not need a landing, and off the edge of the map plate nothing
+         blocks, so without this test a chain of upward steps flew straight off
+         the side: six of them put Zoro 234 units out and he came down at y=39,
+         under the street, on the back of the terrain skirt. `heightAt` is null
+         exactly where the plate ends, which is the boundary we want. */
+      if (ctrl.nav && ctrl.nav.heightAt(px, pz) === null) break;
+      airX = px; airY = py; airZ = pz; airD = d;
+      // and the furthest place it could stand
+      const f = ctrl._standingSurface(px, pz, py + FLASH_BODY * 0.5, landDrop);
       if (f !== null) { bestX = px; bestY = f; bestZ = pz; bestD = d; }
+    }
+
+    /* No ledge anywhere along the step is not a reason to refuse it.
+       Requiring a landing meant Zoro could only ever step between surfaces:
+       aim at the sky, over a gap, or off the end of the flyover and the move
+       was simply dropped, which took away every use of Flash Step as a way to
+       get INTO the air — the one thing the flight it replaced was good for.
+       When the march found somewhere the body fits but nothing to stand on, go
+       there airborne and let gravity have him. Steps chain in the air, so this
+       is also what makes climbing by repeated steps work. */
+    let landing = true;
+    if (airD >= FLASH_MIN && (bestD < FLASH_MIN || (climbing && airD > bestD + FLASH_PROBE))) {
+      /* Climbing and the ray outran the last ledge: finish in the air where it
+         ended, not back at the ledge. Without this a step up over a rooftop
+         parapet stops on the parapet instead of carrying on over it. */
+      bestX = airX; bestY = airY; bestZ = airZ; bestD = airD;
+      landing = false;
     }
     if (bestD < FLASH_MIN) { mv.kind = null; mv.slot = null; return false; }
 
@@ -873,11 +922,21 @@ export class Combat {
     this._spawnGhosts(x0, y0, z0, bestX, bestY, bestZ, ctrl.facing);
 
     ctrl.pos.set(bestX, bestY, bestZ);
-    ctrl.groundY = bestY;
     ctrl.vel.set(0, 0, 0);          // a blink has no run-up to spend
-    ctrl.grounded = true;
-    ctrl.airTime = 0;
-    ctrl.airJumps = 1;
+    if (landing) {
+      ctrl.groundY = bestY;
+      ctrl.grounded = true;
+      ctrl.airTime = 0;
+    } else {
+      /* Hanging. Leave groundY alone — the controller recomputes it from the
+         new column on the next frame, and writing the ray's height into it
+         would have him standing on thin air. */
+      ctrl.grounded = false;
+      ctrl.coyote = 0;
+    }
+    /* The air jump comes back either way, so a step off a roof is recoverable
+       and a chain of steps upward is a real climb rather than a one-off. */
+    ctrl.airJumps = Math.max(ctrl.airJumps, 1);
     ctrl.facing = Math.atan2(ux, uz);
 
     mv.target.set(bestX, bestY + CENTER_Y, bestZ);

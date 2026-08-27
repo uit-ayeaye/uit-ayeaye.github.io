@@ -69,10 +69,21 @@ export const CENTER_Y = 0.85 * S;
 
 /* Elbaf's crew stats, verbatim, in metres per second. */
 const RAW_CHARACTERS = [
-  { id: 'luffy', modelId: 'luffy',      name: 'Luffy', role: 'Captain',   speed: 5.6, jump: 7.8, style: 'rubber', blurb: 'Straw hat, and no plan whatsoever.' },
-  { id: 'zoro',  modelId: 'zoro-elbaf', name: 'Zoro',  role: 'Swordsman', speed: 5.2, jump: 6.8, style: 'sword',  blurb: 'Lost. Insists he is not lost.' },
-  { id: 'nami',  modelId: 'nami',       name: 'Nami',  role: 'Navigator', speed: 5.9, jump: 7.0, style: 'staff',  blurb: 'Already knows the way to the market.' },
+  { id: 'luffy', modelId: 'luffy',      name: 'Luffy', role: 'Captain',   speed: 5.6, jump: 7.8, height: 1.74, style: 'rubber', blurb: 'Straw hat, and no plan whatsoever.' },
+  { id: 'zoro',  modelId: 'zoro-elbaf', name: 'Zoro',  role: 'Swordsman', speed: 5.2, jump: 6.8, height: 1.81, style: 'sword',  blurb: 'Lost. Insists he is not lost.' },
+  { id: 'nami',  modelId: 'nami',       name: 'Nami',  role: 'Navigator', speed: 5.9, jump: 7.0, height: 1.70, style: 'staff',  blurb: 'Already knows the way to the market.' },
 ];
+
+/**
+ * Where the head bone sits as a fraction of standing height.
+ *
+ * The rigs put `head` at the top of the neck, and on a human the
+ * atlanto-occipital joint is about 87% of the way up. It is the landmark to
+ * scale by because it is the highest part of the body that is still BODY —
+ * scaling by the bounding box instead measures whatever the character happens
+ * to be wearing, and Luffy is wearing a horned viking helmet.
+ */
+const HEAD_RATIO = 0.87;
 
 export const CHARACTERS = RAW_CHARACTERS.map((c) => ({
   ...c,
@@ -869,8 +880,16 @@ export class Character {
       src.dispose();
     });
 
-    /* Measure the SKINNED height after world matrices exist, scale feet-to-head
-       to BODY_HEIGHT, drop the feet onto y=0 of the holder. */
+    /* Measure the SKINNED height after world matrices exist, scale the BODY to
+       the character's own height, drop the feet onto y=0 of the holder.
+       
+       Scaling the bounding box to a fixed 1.7 m was wrong twice over. It made
+       everyone the same height, and it measured hats: the box spans whatever
+       the model wears, so Luffy's horned helmet — 0.36 m of it above his head
+       bone — was being counted as Luffy, and the body underneath came out at
+       about 1.56 m. Standing next to a 1.52 m car he was level with the roof,
+       which is what "the character looks small next to the cars" was. The head
+       bone is the highest part that is still body, so scale by that. */
     const measure = () => {
       model.updateMatrixWorld(true);
       model.traverse((o) => {
@@ -878,15 +897,33 @@ export class Character {
       });
       return new THREE.Box3().setFromObject(model);
     };
+    const preBones = bindBones(model);
     const box = measure();
-    const raw = Math.max(box.max.y - box.min.y, 1e-6);
-    model.scale.setScalar(BODY_HEIGHT / raw);
+    const target = (def.height || 1.74) * S;
+    let scale = BODY_HEIGHT / Math.max(box.max.y - box.min.y, 1e-6);
+    if (preBones.head) {
+      const hp = new THREE.Vector3();
+      preBones.head.getWorldPosition(hp);
+      const headAboveFeet = hp.y - box.min.y;
+      // a rig with no usable head bone keeps the old bounding-box behaviour
+      if (headAboveFeet > 1e-4) scale = (target * HEAD_RATIO) / headAboveFeet;
+    }
+    model.scale.setScalar(scale);
     const posed = measure();
 
     /* Elbaf's transform stack: the roll pivots about the hips, the landing
        squash scales about the feet, the lean composes under the facing yaw.
          holder(pos+facing) > roll(@hip) > unroll > squash > lean > model     */
-    const hipYWorld = BODY_HEIGHT * 0.52;
+    /* The roll pivots about the hips, so it has to follow the model that is
+       actually there — a fixed BODY_HEIGHT * 0.52 was only right while every
+       character was scaled to BODY_HEIGHT. */
+    let hipYWorld = target * 0.52;
+    if (preBones.hips) {
+      const hp2 = new THREE.Vector3();
+      model.updateMatrixWorld(true);
+      preBones.hips.getWorldPosition(hp2);
+      hipYWorld = hp2.y - posed.min.y;
+    }
     const holder = new THREE.Group();
     const rollG = new THREE.Group(); rollG.position.y = hipYWorld;
     const unrollG = new THREE.Group(); unrollG.position.y = -hipYWorld;
@@ -908,7 +945,7 @@ export class Character {
       a.weight = 0;
     }
 
-    const found = bindBones(model);
+    const found = preBones;
     const yaw = rigYaw(model);
     const yawQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -yaw);
 
