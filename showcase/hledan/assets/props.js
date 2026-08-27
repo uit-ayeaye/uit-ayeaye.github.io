@@ -847,15 +847,13 @@ export async function loadVehicleGeometry(url, { bodyMat, length, size, tier = '
      these are flat-painted panels with a 256px palette map, and there is no
      metalness, roughness map or normal map to lose. */
   if (textured && tier !== 'hi' && textured.isMeshStandardMaterial) {
-    const lam = new THREE.MeshLambertMaterial({
-      map: textured.map,
-      color: textured.color,
-      side: textured.side,
-      transparent: textured.transparent,
-      alphaTest: textured.alphaTest,
-      vertexColors: textured.vertexColors,
-      name: textured.name,
-    });
+    const src = {
+      map: textured.map, color: textured.color, side: textured.side,
+      transparent: textured.transparent, alphaTest: textured.alphaTest,
+      vertexColors: textured.vertexColors, name: textured.name,
+    };
+    for (const k of Object.keys(src)) if (src[k] === undefined) delete src[k];
+    const lam = new THREE.MeshLambertMaterial(src);
     textured.dispose();
     textured = lam;
   }

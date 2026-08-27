@@ -653,10 +653,14 @@ function sheathGeos() {
 let SWORD_TIER = 'hi';
 function swordMat(opts) {
   if (SWORD_TIER === 'hi') return new THREE.MeshStandardMaterial(opts);
-  const { color, emissive, emissiveIntensity, flatShading, vertexColors, side } = opts;
-  return new THREE.MeshLambertMaterial({
-    color, emissive, emissiveIntensity, flatShading, vertexColors, side,
-  });
+  /* Only the keys Lambert understands, and only the ones actually given —
+     three warns on every parameter that arrives undefined, and spreading a
+     Standard recipe wholesale produces a screenful of them. */
+  const out = {};
+  for (const k of ['color', 'emissive', 'emissiveIntensity', 'flatShading', 'vertexColors', 'side']) {
+    if (opts[k] !== undefined) out[k] = opts[k];
+  }
+  return new THREE.MeshLambertMaterial(out);
 }
 
 
@@ -1225,9 +1229,10 @@ export class CharacterController {
    *                  walls besides. It also supplies the second storey of
    *                  ground the navmap cannot hold — the road under the flyover
    */
-  constructor(nav, obstacles = null, solids = null) {
+  constructor(nav, obstacles = null, solids = null, interiors = null) {
     this.nav = nav;
     this.obstacles = obstacles;
+    this.interiors = interiors;   // sealed building volumes, see InteriorMask
     this.solids = solids;
     this.pos = new THREE.Vector3();
     this.vel = new THREE.Vector3();
@@ -1464,61 +1469,6 @@ export class CharacterController {
   }
 
   /**
-   * The surface a body dropped at (x, z, fromY) would come to rest on, or null.
-   *
-   * Unlike `_groundAt` this asks about an ARBITRARY point in space rather than
-   * about the level the body is already standing on, and it checks the body
-   * would actually fit once it landed. That is what lets Flash Step aim at a
-   * rooftop: the march wants "is there a ledge under this station of the ray,
-   * and could I stand on it", and the answer has to be the ledge — not the
-   * street twenty units below it, which is what `maxDrop` bounds.
-   *
-   * Both layers are consulted. The mesh colliders know every surface at an
-   * (x, z), roofs and the lower carriageway included; the baked navmap knows
-   * only one, but it is the authority on the ground itself, so it stands in
-   * wherever the geometry has nothing to say.
-   */
-  _standingSurface(x, z, fromY, maxDrop) {
-    let best = null;
-    if (this.solids) {
-      const f = this.solids.floorUnder(x, z, fromY);
-      if (f !== null && fromY - f <= maxDrop) best = f;
-    }
-    if (best === null) {
-      const n = this.nav.heightAt(x, z);
-      if (n !== null && n <= fromY && fromY - n <= maxDrop) best = n;
-    }
-    if (best === null) return null;
-    if (this._walled(x, z, best)) return null;
-    if (this.obstacles && this.obstacles.blocked(x, z, BODY_RADIUS, best, BODY_HEIGHT)) return null;
-    return best;
-  }
-
-  /**
-   * The lowest height above `fromY` at (x, z) where the body FITS, or null.
-   *
-   * Not "the top of the thing you hit" — the first gap big enough to be in.
-   * Flash Step marches the body's volume along the aim, and when that volume
-   * runs into something the useful question is how far up it would have to go
-   * to clear it. Asking the floor grid for a surface to stand on instead only
-   * answers for obstructions that have a walkable top: a bus does, a boundary
-   * wall does, but the wire fence around the field at z=510 has surfaces
-   * [43.2, 43.2] and nothing else, so mounting found nothing and the step
-   * stopped at a waist-high fence. Scanning for clearance answers for all of
-   * them, and lets the step pass OVER a low obstruction and land beyond it.
-   */
-  _clearAbove(x, z, fromY, maxUp) {
-    if (!this.solids) return null;
-    const step = 0.4 * S;
-    for (let y = fromY + step; y <= fromY + maxUp; y += step) {
-      if (this.solids.blocked(x, z, BODY_RADIUS, y, y + BODY_HEIGHT)) continue;
-      if (this.obstacles && this.obstacles.blocked(x, z, BODY_RADIUS, y, BODY_HEIGHT)) continue;
-      return y;
-    }
-    return null;
-  }
-
-  /**
    * Open cell, nothing solid parked in it, and not a step taller than a kerb.
    *
    * `bandY` is where the BODY is, which is only the same as `fromY` while the
@@ -1533,6 +1483,13 @@ export class CharacterController {
    * is still a question about the level you set off from.
    */
   _canStand(x, z, fromY, bandY = fromY) {
+    /* The insides of the buildings are not places. They are hollow shells with
+       the backs of their own facades for walls and nothing in them, and the
+       shopfront sills are low enough in places that a jump or a dash could
+       carry a body over one and strand it in a white box. The mask says which
+       standable ground is sealed inside something roofed; refusing it here
+       means there is no entry point at all, whatever the move. */
+    if (this.interiors && this.interiors.inside(x, z, fromY)) return false;
     if (this._walled(x, z, bandY)) return false;
     if (this.obstacles && this.obstacles.blocked(x, z, BODY_RADIUS, bandY, BODY_HEIGHT)) return false;
     const y = this._groundAt(x, z, fromY);

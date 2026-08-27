@@ -14,7 +14,7 @@
  */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { MapColliders } from './collision.js';
+import { MapColliders, InteriorMask } from './collision.js';
 import { StreetProps, loadVehicleGeometry } from './props.js';
 import { Soundscape } from './audio.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -625,6 +625,16 @@ async function ensurePlayAssets(defIndex) {
       + `${(play.solids.bytes / 1048576).toFixed(1)} MB, `
       + `${(performance.now() - t).toFixed(0)} ms`);
   }
+  if (!play.interiors && play.solids && play.nav) {
+    setPlayStatus('Sealing the buildings…');
+    /* The shells have nothing inside them, so being in one is a bug rather
+       than a discovery. Work out which ground is sealed in, once. */
+    play.interiors = new InteriorMask(play.nav, play.solids);
+    console.info(`hledan: interiors ${play.interiors.sealedCells} sealed `
+      + `(${play.interiors.roofedCells} roofed, ${play.interiors.canopyCells} canopies left open) `
+      + `of ${play.interiors.groundCells} cells, ${play.interiors.ms.toFixed(0)} ms`);
+  }
+
   /* The flyover's parapets exist in the map but not in the baked navmap, which
      is one layer of heights with no walls in it, so rails are derived from the
      deck's own footprint. AFTER the colliders, not before: given the real
@@ -673,11 +683,10 @@ async function enterPlay() {
   controls.enabled = false;
   controls.autoRotate = false;
 
-  if (!play.ctrl) play.ctrl = new CharacterController(play.nav, props ? props.obstacles : null, play.solids);
+  if (!play.ctrl) play.ctrl = new CharacterController(play.nav, props ? props.obstacles : null, play.solids, play.interiors);
   if (!play.combat) {
     play.combat = new Combat(scene, DEVICE.tier);
     play.combat.bindGround((x, z) => play.nav.heightAt(x, z));
-    play.combat.bindSolids(play.solids, props ? props.obstacles : null);
     /* Every ring the move machine spawns gets its noise burst here, at the
        listener's distance from it. The soundscape stays off until the visitor
        asks for it, so this is a no-op for anyone who never presses ♪. */

@@ -418,3 +418,129 @@ export class MapColliders {
     return found ? best : -1;
   }
 }
+
+/**
+ * Which patches of standable ground are inside a building.
+ *
+ * The buildings on this map are hollow shells with nothing modelled in them —
+ * no rooms, no floors, no fittings, just the mirrored backs of their own
+ * facades — so ending up in one reads as falling out of the world rather than
+ * as exploring. They are also not reliably closed at ground level: some
+ * shopfronts have a sill low enough to jump, and once anything can carry a
+ * body over one it lands in a white box it then has to find its way out of.
+ *
+ * The openings cannot be closed one at a time — they are gaps in a
+ * photogrammetry mesh, not doors. So the interiors are identified instead, and
+ * the test turns out to be a single question: **is there a ceiling above it?**
+ *
+ * Measured over the built core, that separates cleanly. Standing on the
+ * navmap's own ground, a mesh ceiling overhead marks 10.4% of standable cells,
+ * and rendering them gives the building footprints back exactly — shophouse
+ * rows, tower blocks, the mall — with open street everywhere else. The four
+ * interiors that had trapped the character all report one (12.9, 12.3, 36.5
+ * and 43 units up) and every outdoor probe reports none, the underpass beneath
+ * the flyover included: the navmap calls the DECK the ground there, so the
+ * cell is classified up on the deck where the sky is open, and the road below
+ * is a level the navmap has never heard of and this mask never marks.
+ *
+ * An earlier version flooded the map from the street and sealed whatever it
+ * could not reach. It is not in here because it does not work at any
+ * affordable resolution: walls on this map get down to 0.3 units and a grid
+ * coarse enough to flood quickly steps straight through them, so the flood
+ * "reached" the inside of the shophouses and sealed 197 cells instead of 1372.
+ *
+ * Ceilings closer than MIN_ROOF are left alone. Those are canopies, awnings
+ * and covered walkways — 241 cells of them — and pavement you can stand under
+ * is pavement, which is the same mistake the baked navmap made with tree
+ * canopies and the reason its walkable bit could not be trusted.
+ */
+export class InteriorMask {
+  /**
+   * @param nav    the baked navmap, for ground height
+   * @param solids MapColliders, for walls and ceilings
+   * @param opts   {cell, bodyR, stepUp, bodyH, minRoof, bounds}
+   */
+  constructor(nav, solids, opts = {}) {
+    const cell = opts.cell || 2.5;
+    const R = opts.bodyR || 0.375;
+    const STEP_UP = opts.stepUp || 0.93;
+    const BODY_H = opts.bodyH || 2.7;
+    /* A roof is a storey up. Below this it is a canopy and the ground under it
+       is still ground. */
+    const MIN_ROOF = opts.minRoof || 6;
+    /* Clearance kept under the ceiling, so the ROOF of a building is free to
+       stand on even though the room beneath it is not. */
+    const ROOF_GAP = opts.roofGap || 1;
+    const t0 = (typeof performance !== 'undefined' ? performance.now() : 0);
+
+    /* Bounded to the built-up core on purpose. The map plate is 826 x 1786
+       units, but everything outside roughly x -140..160 / z -230..640 is
+       terrain backdrop — fields and embankments, with no buildings in them. */
+    const minX = opts.minX ?? -180, maxX = opts.maxX ?? 200;
+    const minZ = opts.minZ ?? -320, maxZ = opts.maxZ ?? 740;
+    const nx = Math.max(1, Math.ceil((maxX - minX) / cell));
+    const nz = Math.max(1, Math.ceil((maxZ - minZ) / cell));
+    this.cell = cell; this.minX = minX; this.minZ = minZ; this.nx = nx; this.nz = nz;
+    this.roofGap = ROOF_GAP;
+
+    const N = nx * nz;
+    const raw = new Uint8Array(N);
+    this.bits = new Uint8Array(N);
+    this.floorY = new Float32Array(N);
+    this.roofY = new Float32Array(N);
+    let ground = 0, roofed = 0, canopy = 0;
+    for (let j = 0; j < nz; j++) {
+      for (let i = 0; i < nx; i++) {
+        const x = minX + i * cell, z = minZ + j * cell, k = j * nx + i;
+        const top = nav.heightAt(x, z);
+        if (top === null) continue;
+        ground++;
+        /* Deliberately NOT gated on the cell being standable. A cell whose
+           centre happens to land inside a wall would otherwise be a hole in the
+           mask, and at 2.5 units there are plenty of those in a narrow room —
+           it is what left the tower on Pyay Road open when everything around it
+           was sealed. A wall cell is blocked anyway, so marking it costs
+           nothing. */
+        const c = solids.ceilingOver(x, z, top + BODY_H);
+        if (c === null) continue;
+        if (c - top < MIN_ROOF) { canopy++; continue; }
+        raw[k] = 1; this.floorY[k] = top; this.roofY[k] = c; roofed++;
+      }
+    }
+
+    /* Erode by one cell. The marked region runs to the outer face of the
+       building, and a cell straddling the facade would take a bite out of the
+       pavement outside it — up to 1.25 units of a footpath that is not much
+       wider than that. Keeping only cells whose four neighbours are also
+       roofed pulls the mask back behind the wall, and the wall itself is
+       already solid, so nothing is lost by leaving that ring unmarked. */
+    let sealed = 0;
+    for (let j = 1; j < nz - 1; j++) {
+      for (let i = 1; i < nx - 1; i++) {
+        const k = j * nx + i;
+        if (!raw[k]) continue;
+        if (!raw[k - 1] || !raw[k + 1] || !raw[k - nx] || !raw[k + nx]) continue;
+        this.bits[k] = 1; sealed++;
+      }
+    }
+    this.groundCells = ground;
+    this.roofedCells = roofed;
+    this.sealedCells = sealed;
+    this.canopyCells = canopy;
+    this.bytes = N * 9;
+    this.ms = (typeof performance !== 'undefined' ? performance.now() : 0) - t0;
+  }
+
+  /** Is (x, z) at height `y` inside a building? */
+  inside(x, z, y) {
+    const i = ((x - this.minX) / this.cell) | 0;
+    const j = ((z - this.minZ) / this.cell) | 0;
+    if (i < 0 || j < 0 || i >= this.nx || j >= this.nz) return false;
+    const k = j * this.nx + i;
+    if (!this.bits[k]) return false;
+    /* Only between this room's floor and its own ceiling. Above that is the
+       roof, which Flash Step can put you on and which must stay standable —
+       a fixed height window instead would have sealed the rooftops too. */
+    return y > this.floorY[k] - 2 && y < this.roofY[k] - this.roofGap;
+  }
+}
