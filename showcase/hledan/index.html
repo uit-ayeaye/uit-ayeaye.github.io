@@ -59,7 +59,18 @@
       }
       canvas { display: block; width: 100%; height: 100%; touch-action: none;
                position: fixed; inset: 0; z-index: 0; }
-      #input-layer { position: fixed; inset: 0; z-index: 10; touch-action: none; }
+      /* Full-screen and above the canvas, so in play and walk it catches every
+         drag before the UI does. In ORBIT it must be transparent to input:
+         OrbitControls listens on the canvas underneath, and a layer sitting
+         over the whole viewport with pointer events on meant not one finger or
+         mouse drag ever reached it. Orbit could be auto-spun and flown to a
+         viewpoint, and that was all — no turning it, no pinching it, no pivot.
+         `pointer-events` is the whole fix and it belongs here, not in a
+         handler, because the events were being consumed before any handler of
+         ours ran. */
+      #input-layer { position: fixed; inset: 0; z-index: 10; touch-action: none;
+                     pointer-events: none; }
+      body.walking #input-layer, body.playing #input-layer { pointer-events: auto; }
 
       /* ---------------------------------------------------------- loader */
       #load {
@@ -87,6 +98,29 @@
             opacity: 0; transition: opacity .6s ease .15s; }
       #ui.ready { opacity: 1; }
       #ui > * { pointer-events: auto; }
+
+      /* Nothing in this HUD is text to be read twice, and all of it is on top
+         of a 3D viewport being dragged. Only the combat pad said so, which is
+         why every other control — the mode dock, the viewpoints, the weather
+         chips — answered a tap that moved a couple of pixels by selecting its
+         own label and putting a selection handle on the screen instead of
+         doing anything. `manipulation` is the other half: it drops the
+         double-tap-to-zoom gesture, and with it the 300ms wait before a single
+         tap is allowed to count. */
+      #ui, #ui * {
+        user-select: none; -webkit-user-select: none;
+        -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+      }
+      .btn, .chip, .back, .liftbtn, .movechip { touch-action: manipulation; }
+
+      /* Thumb-sized. A 24px chip is a mouse target, and this page is mostly
+         read on a phone: 40 is inside the 44 both platforms ask for once the
+         gap between rows is counted, and it is height only, so the viewpoint
+         row still fits across a 375px screen on one line. */
+      body.touch .btn, body.touch .chip {
+        min-height: 40px; display: inline-flex; align-items: center;
+        justify-content: center;
+      }
 
       .topbar {
         position: absolute; top: 0; left: 0; right: 0;
@@ -334,6 +368,7 @@
                  padding: 0 58px 0 8px; }
         #views::-webkit-scrollbar { display: none; }
         #views .chip { font-size: 10px; padding: 5px 9px; flex: 0 0 auto; }
+        body.touch #views .chip { min-height: 36px; }
         #hintOrbit { bottom: calc(max(16px, env(safe-area-inset-bottom)) + 100px);
                      font-size: 10.5px; }
       }
@@ -357,7 +392,12 @@
       }
       /* Auto-spin is an orbit-mode nicety; it is the first thing to go when the
          dock has to compete with a thumb pad for the bottom of a phone. */
-      @media (max-width: 560px) { #spin { display: none; } }
+      /* Auto-spin used to be `display: none` below 560px, which left a phone
+         with no way to start the turntable at all — and the turntable is the
+         first thing a visitor sees the model do. It stays now; the global
+         narrow breakpoint above already swaps it to the short label, and the
+         dock gives back the width for the sixth button. */
+      @media (max-width: 560px) { .dock .btn { padding: 9px 11px; } }
       /* A slot the current character does not have is hidden, not dead. */
       .pad-btn[data-move].absent, .movechip.absent { display: none; }
 
