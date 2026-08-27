@@ -1137,7 +1137,30 @@ export class CharacterController {
   }
 
   placeAt(x, z) {
-    const spot = this.nav.findOpen(x, z);
+    let spot = this.nav.findOpen(x, z);
+    /* findOpen only knows the baked map, and every bus, tea shop and pole was
+       added on top of it — so a cell that is open on the navmap can still have
+       a parked vehicle standing in it. Landing there leaves you wedged: every
+       axis test fails against the obstacle you are already inside, and the
+       sub-step retry lets you creep out at walking pace instead of moving.
+       Search on for somewhere that is clear of BOTH. */
+    if (this.obstacles) {
+      const clear = (px, pz) => {
+        const gy = this.nav.heightAt(px, pz);
+        return gy !== null && !this.nav.bodyBlocked(px, pz)
+          && !this.obstacles.blocked(px, pz, BODY_RADIUS, gy);
+      };
+      if (!clear(spot.x, spot.z)) {
+        for (let i = 1; i < 400; i++) {
+          const r = Math.min(160, 2.2 * Math.sqrt(i));
+          const a = i * 2.39996;
+          const px = spot.x + Math.cos(a) * r, pz = spot.z + Math.sin(a) * r;
+          if (!clear(px, pz)) continue;
+          spot = { x: px, z: pz };
+          break;
+        }
+      }
+    }
     const y = this.nav.heightAt(spot.x, spot.z);
     this.pos.set(spot.x, (y ?? 0) + 0.05 * S, spot.z);
     this.vel.set(0, 0, 0);
