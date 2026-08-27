@@ -516,29 +516,86 @@ controls.minDistance = 14;
  * billboard or the underside of the flyover by dragging. Each entry is a camera
  * position and the point it looks at, measured off the map, and the flight
  * between them is eased rather than cut so the eye keeps its bearings.
+ *
+ * Two of these used to be aimed at nothing.
+ *
+ * `tower` looked at (-96, 470), ninety units off the tower, which actually
+ * stands at (-64, 546) and rises to 197 — so the eye at (30, 560) was pressed
+ * against its glass and the left half of the screen was a curtain wall. And
+ * `street` stood in the underpass, which is how a visitor's first look at this
+ * map came to be a dark tunnel with buses parked in it.
+ *
+ * Both were re-measured against the geometry rather than guessed: the tower's
+ * position from the roof triangles above y=95, the street stance from a road
+ * anchor with a 230-unit clear sightline and nothing overhead for the first
+ * hundred units of the shot.
+ *
+ * `deck` is new, and it is the one the map had been missing: seven hundred units
+ * of elevated carriageway that until now carried no traffic at all.
  */
 const VIEWPOINTS = {
   junction: { eye: [188, 214, 486], at: [-24, 58, 300] },
   board:    { eye: [-47, 95, 392],  at: [-81, 92, 418] },
+  deck:     { eye: [46, 86, 58],    at: [-6, 64, 262] },
   flyover:  { eye: [96, 92, 232],   at: [-6, 62, 214] },
-  tower:    { eye: [30, 150, 560],  at: [-96, 108, 470] },
-  street:   { eye: [24, 52, 268],   at: [-52, 48, 236] },
+  tower:    { eye: [112, 132, 398], at: [-52, 108, 528] },
+  street:   { eye: [-46, 52, 262],  at: [-50, 58, 360] },
 };
 /* One flight at a time; a second click retargets the one in the air. */
 let flight = null;
+/* Which viewpoint the row is showing as chosen, so a second tap on the same
+   chip can mean "just put me there" rather than fly the same arc again. */
+let atView = null;
 const _flyFrom = new THREE.Vector3(), _flyTo = new THREE.Vector3();
 const _flyFromT = new THREE.Vector3(), _flyToT = new THREE.Vector3();
 
+/**
+ * Take the visitor to one of the views worth seeing.
+ *
+ * Three things this now does that it did not:
+ *
+ * It works from walk and play. The row is only DRAWN in orbit, but a viewpoint
+ * is a place on the map, not a mode — and asking for one while running around
+ * on the ground obviously means "show me that", so it returns to orbit and
+ * flies. Before, the only route was Orbit, then the chip: two taps, and the
+ * first one dumped you wherever the orbit camera happened to be pointing.
+ *
+ * It answers the tap immediately. The chip lights the moment it is pressed
+ * rather than when the camera arrives, and the flight is 0.8s rather than 1.5 —
+ * long enough to keep your bearings, short enough that the button feels
+ * connected to the picture.
+ *
+ * And tapping the chip you are already on is a cut, not a flight. A second tap
+ * on the same viewpoint means you have drifted off it and want it back, and
+ * re-flying the arc you just watched is the slow answer to that.
+ */
 function flyTo(name) {
   const v = VIEWPOINTS[name];
   if (!v) return;
+  /* A viewpoint is a place, not a mode: asking for one from the ground means
+     come back up and go there. */
+  if (walk.on || play.on) setMode('orbit');
   controls.autoRotate = false;
   document.getElementById('spin')?.classList.remove('on');
+  const again = atView === name && !flight;
   _flyFrom.copy(camera.position);
   _flyFromT.copy(controls.target);
   _flyTo.set(v.eye[0], v.eye[1], v.eye[2]);
   _flyToT.set(v.at[0], v.at[1], v.at[2]);
-  flight = { t: 0, dur: 1.5 };
+  if (again) {
+    camera.position.copy(_flyTo);
+    controls.target.copy(_flyToT);
+    controls.update();
+    flight = null;
+  } else {
+    flight = { t: 0, dur: 0.8 };
+  }
+  markView(name);
+}
+
+/** The row's selected state, kept in one place so nothing can half-set it. */
+function markView(name) {
+  atView = name;
   document.querySelectorAll('[data-view]').forEach((b) =>
     b.classList.toggle('on', b.dataset.view === name));
 }
@@ -561,6 +618,7 @@ function updateOrbitKeys(dt) {
   if (!yaw && !pit && !zoom) return false;
   controls.autoRotate = false;
   document.getElementById('spin')?.classList.remove('on');
+  markView(null);
   _orbOff.copy(camera.position).sub(controls.target);
   _orbSph.setFromVector3(_orbOff);
   _orbSph.theta -= yaw * dt * 0.9;
@@ -597,8 +655,8 @@ function focusAt(clientX, clientY) {
   _flyFromT.copy(controls.target);
   _flyToT.copy(p);
   _flyTo.copy(p).addScaledVector(dir, keep);
-  flight = { t: 0, dur: 0.75 };
-  document.querySelectorAll('[data-view]').forEach((b) => b.classList.remove('on'));
+  flight = { t: 0, dur: 0.55 };
+  markView(null);
 }
 
 /**
@@ -843,14 +901,26 @@ async function ensurePlayAssets(defIndex) {
        the moment Flash Step could take a roof. Every roof on this map above 96
        simply had no collision on it, so the tallest tower was not hard to
        climb, it was NOT THERE: the perch search found the highest surface in
-       its column at 95.96 and nothing over it. 175 clears the tallest building
-       and costs 908 triangles and 0.08 MB — 1.7% — because there is very
-       little of this city above the ninth floor. The low tier widens the
-       buckets, trading a slightly longer scan per query for a third off the
-       index. */
+       its column at 95.96 and nothing over it.
+
+       175 did not clear the tallest building. It was picked as the number that
+       did, and the Buildings mesh reaches 197: the tower on Pyay Road wears a
+       shallow hexagonal basin of a roof with a raised rim and a plant room in
+       the middle, and every part of that above 175 was cut out of the index.
+       What was left was the basin floor at 174.5 and a scatter of rim panels
+       that happened to have one vertex low enough to survive — which is why
+       the roof of the tallest building on the map read as a 68-degree slope
+       with nowhere on it to stand. You could get up there and not take a step.
+
+       205 clears the real roofline with room over it, and it is nearly free:
+       measured, the extra thirty units of city are 52 triangles and 4 KB — 0.1%
+       — because there is very little of Yangon above the ninth floor. In
+       exchange the tower's roof goes from nothing standable at all to 347 flat
+       cells, 334 of them walkable. The low tier widens the buckets, trading a
+       slightly longer scan per query for a third off the index. */
     const t = performance.now();
     play.solids = new MapColliders(colliderMeshes, THREE, {
-      yLo: 24, yHi: 175, cell: DEVICE.tier === 'hi' ? 4 : 6,
+      yLo: 24, yHi: 205, cell: DEVICE.tier === 'hi' ? 4 : 6,
     });
     console.info(`hledan: colliders ${play.solids.wallCount} walls + `
       + `${play.solids.floorCount} floors, `
@@ -1644,12 +1714,68 @@ function precompile() {
 /* --------------------------------------------------------------------- HUD */
 
 const ui = document.getElementById('ui');
+
+/**
+ * One tap, on every pointer this page can be driven with.
+ *
+ * `click` on a touchscreen is a synthesised event: the browser waits for the
+ * pointer sequence to finish, decides the gesture was not a scroll, a pan, a
+ * double-tap-to-zoom or a long-press, and only then fires. Every one of those
+ * decisions is a way for a tap on a HUD button over a 3D viewport to be spent
+ * on something else, and when it is spent there is no feedback at all — the
+ * button does not even acknowledge having been touched. That is what "I have to
+ * tap it twice" is: the first tap was ruled a gesture.
+ *
+ * So the press is handled directly. `pointerdown` lights the button at once —
+ * which is the whole of the "instant" feeling, because the camera flight that
+ * follows is always going to take a moment — and `pointerup` on the same
+ * pointer runs the action, subject to the two tests a tap has to pass: the
+ * finger did not travel (a drag on this page means orbit, or scroll the row),
+ * and it was not held (a hold means something else on the action pad).
+ *
+ * Pointer capture is what makes the release land here even when the finger has
+ * slid off the button, so a thumb that rolls a few pixels still counts.
+ *
+ * `click` is kept as the second route, not the first. Keyboards, screen readers
+ * and any browser that fails to deliver the pointer pair still arrive that way,
+ * and the timestamp guard is what stops a tap firing the action twice.
+ */
+function onTap(el, fn) {
+  if (!el) return;
+  let id = null, x0 = 0, y0 = 0, t0 = 0, done = -1e9;
+  const release = () => { id = null; el.classList.remove('press'); };
+  el.addEventListener('pointerdown', (e) => {
+    if (!e.isPrimary || e.button > 0) return;
+    id = e.pointerId; x0 = e.clientX; y0 = e.clientY; t0 = e.timeStamp;
+    el.classList.add('press');
+    try { el.setPointerCapture(e.pointerId); } catch (err) { /* mouse, mid-drag */ }
+  });
+  el.addEventListener('pointerup', (e) => {
+    if (e.pointerId !== id) return;
+    const slid = Math.hypot(e.clientX - x0, e.clientY - y0);
+    release();
+    if (slid > 16 || e.timeStamp - t0 > 800) return;
+    done = e.timeStamp;
+    fn(e);
+  });
+  /* iOS fires this whenever the system takes the gesture — an edge swipe, the
+     notification shade, a scroll starting under the finger. The press state has
+     to come off, and the action must NOT run: if the browser still decides it
+     was a click, the listener below will catch it. */
+  el.addEventListener('pointercancel', release);
+  el.addEventListener('lostpointercapture', () => { if (id !== null) release(); });
+  el.addEventListener('click', (e) => {
+    if (e.timeStamp - done < 800) return;
+    fn(e);
+  });
+}
+
 document.querySelectorAll('[data-mode]').forEach((b) =>
-  b.addEventListener('click', () => setMode(b.dataset.mode)));
+  onTap(b, () => setMode(b.dataset.mode)));
 
 /* Crew chips pick a character directly rather than cycling. */
 document.querySelectorAll('[data-char]').forEach((b) =>
-  b.addEventListener('click', () => {
+  onTap(b, () => {
     const i = CHARACTERS.findIndex((c) => c.id === b.dataset.char);
     if (i < 0 || i === play.index) return;
     if (!play.on) { play.index = i; refreshCharChips(); setMode('play'); return; }
@@ -1727,16 +1853,17 @@ if (rollBtn) rollBtn.addEventListener('pointerdown', (e) => {
 });
 
 
-document.getElementById('reset').addEventListener('click', () => {
+onTap(document.getElementById('reset'), () => {
   if (walk.on) setMode('orbit');
   frameMap();
+  markView(null);
 });
 function syncSkyButtons() {
   document.querySelectorAll('[data-sky]').forEach((b) =>
     b.classList.toggle('on', weather && b.dataset.sky === weather.name));
 }
 document.querySelectorAll('[data-sky]').forEach((b) =>
-  b.addEventListener('click', () => {
+  onTap(b, () => {
     if (!weather) return;
     weather.set(b.dataset.sky);
     try { localStorage.setItem('hledan-sky', b.dataset.sky); } catch (e) { /* private mode */ }
@@ -1758,21 +1885,27 @@ if (soundBtn) {
     soundBtn.setAttribute('aria-pressed', sound.enabled ? 'true' : 'false');
     soundBtn.textContent = sound.enabled ? '♪ Sound' : '♪ Muted';
   };
-  soundBtn.addEventListener('click', () => { sound.toggle(); syncSound(); });
+  onTap(soundBtn, () => { sound.toggle(); syncSound(); });
   syncSound();
 }
 
 const spinBtn = document.getElementById('spin');
-spinBtn.addEventListener('click', () => {
+onTap(spinBtn, () => {
   controls.autoRotate = !controls.autoRotate;
   spinBtn.classList.toggle('on', controls.autoRotate);
 });
-document.getElementById('full').addEventListener('click', () => {
+onTap(document.getElementById('full'), () => {
   if (document.fullscreenElement) document.exitFullscreen();
   else document.documentElement.requestFullscreen?.();
 });
-document.querySelectorAll('[data-view]').forEach((b) =>
-  b.addEventListener('click', () => flyTo(b.dataset.view)));
+document.querySelectorAll('[data-view]').forEach((b) => onTap(b, () => flyTo(b.dataset.view)));
+
+/* Keep the row honest. The chip means "the camera is at this viewpoint", and
+   the moment a drag, a pinch, a wheel or an arrow key moves the camera it is
+   not — leaving it lit is the row telling the visitor something false about
+   where they are. OrbitControls fires `start` for exactly the user-driven
+   gestures and not for our own `update()` calls during a flight. */
+controls.addEventListener('start', () => { if (!flight) markView(null); });
 
 /* Pivot on what was double-clicked. On touch the same thing, hand-rolled:
    `dblclick` is unreliable across mobile browsers and a 300 ms two-tap test is
@@ -1821,7 +1954,7 @@ for (const [id, dir] of [['liftUp', 1], ['liftDown', -1]]) {
    everything else that turns a light on or off already lives. */
 const ledBtn = document.getElementById('ledBtn');
 if (ledBtn) {
-  ledBtn.addEventListener('click', () => {
+  onTap(ledBtn, () => {
     if (!ledBoard) return;
     const on = ledBoard.toggle();
     ledBtn.classList.toggle('on', on);
@@ -1830,8 +1963,8 @@ if (ledBtn) {
 }
 
 const infoPanel = document.getElementById('info');
-document.getElementById('infoBtn').addEventListener('click', () => infoPanel.classList.toggle('open'));
-document.getElementById('infoClose').addEventListener('click', () => infoPanel.classList.remove('open'));
+onTap(document.getElementById('infoBtn'), () => infoPanel.classList.toggle('open'));
+onTap(document.getElementById('infoClose'), () => infoPanel.classList.remove('open'));
 
 document.getElementById('tier').textContent =
   `${DEVICE.tier === 'hi' ? '2048' : '1024'} textures · ${DEVICE.cores} cores`

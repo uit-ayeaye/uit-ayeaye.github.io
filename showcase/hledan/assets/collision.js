@@ -409,6 +409,42 @@ export class MapColliders {
     return null;
   }
 
+  /**
+   * The highest surface a body could stand on at (x, z), or null.
+   *
+   * `surfaces()` would answer this, but it answers it into a buffer it shares
+   * with every other caller — and the one caller that needs this is
+   * `InteriorMask.inside`, which is itself called from inside a loop over that
+   * same buffer. So this walks the grids and keeps a maximum instead, touching
+   * nothing anyone else is holding.
+   */
+  topAt(x, z) {
+    const T = this.tris;
+    let top = null;
+    for (let b = 0; b < 2; b++) {
+      const g = b ? this.ramp : this.floor;
+      const c = g._cz(z) * g.nx + g._cx(x);
+      const end = g.start[c + 1];
+      for (let p = g.start[c]; p < end; p++) {
+        const t = g.items[p], o = t * 9;
+        const ax = T[o], az = T[o + 2];
+        const bx = T[o + 3], bz = T[o + 5];
+        const cx = T[o + 6], cz = T[o + 8];
+        const d = (bz - cz) * (ax - cx) + (cx - bx) * (az - cz);
+        if (d > -1e-9 && d < 1e-9) continue;
+        const l1 = ((bz - cz) * (x - cx) + (cx - bx) * (z - cz)) / d;
+        if (l1 < -1e-4) continue;
+        const l2 = ((cz - az) * (x - cx) + (ax - cx) * (z - cz)) / d;
+        if (l2 < -1e-4) continue;
+        const l3 = 1 - l1 - l2;
+        if (l3 < -1e-4) continue;
+        const y = l1 * T[o + 1] + l2 * T[o + 4] + l3 * T[o + 7];
+        if (top === null || y > top) top = y;
+      }
+    }
+    return top;
+  }
+
   /** The lowest surface above `y` — headroom, for anything that needs it. */
   ceilingOver(x, z, y) {
     const s = this.surfaces(x, z);
@@ -550,6 +586,9 @@ export class InteriorMask {
     this.bits = new Uint8Array(N);
     this.floorY = new Float32Array(N);
     this.roofY = new Float32Array(N);
+    /* Kept so `inside` can ask the geometry a question the grid cannot answer;
+       see the note there. */
+    this.solids = solids;
     let ground = 0, roofed = 0, canopy = 0;
     for (let j = 0; j < nz; j++) {
       for (let i = 0; i < nx; i++) {
@@ -600,9 +639,30 @@ export class InteriorMask {
     if (i < 0 || j < 0 || i >= this.nx || j >= this.nz) return false;
     const k = j * this.nx + i;
     if (!this.bits[k]) return false;
-    /* Only between this room's floor and its own ceiling. Above that is the
-       roof, which Flash Step can put you on and which must stay standable —
-       a fixed height window instead would have sealed the rooftops too. */
-    return y > this.floorY[k] - 2 && y < this.roofY[k] - this.roofGap;
+    if (y <= this.floorY[k] - 2) return false;
+    if (y >= this.roofY[k] - this.roofGap) return false;
+    /* The grid says "inside". Before believing it, ask the geometry.
+     *
+     * A cell is 2.5 units and carries ONE floor/ceiling pair, sampled at its
+     * own corner. That is a fair description of a shophouse and a poor one of
+     * a stepped roof, because the pair recorded for a cell can belong to a
+     * different level of the roof than the point being tested — and the answer
+     * it then gives is that the rooftop is a room.
+     *
+     * The tower on Pyay Road is the case. Its roof is a low hexagonal basin at
+     * 174.5 inside a crown that rises to 191.9, so cells over the basin were
+     * baked against the crown: the window ran to 175.1 and swallowed the floor
+     * of the basin whole. You could Flash Step up there and then not take a
+     * single step — 58 of the 123 cells of that rooftop, the entire middle of
+     * it, answered "inside a building". It is what the roof reads as from the
+     * air: a ledge around a hole.
+     *
+     * Standing on the highest surface of a column is never being inside
+     * something, whatever the grid was baked against, so that is the test.
+     * It costs a grid lookup and it is only ever reached for a body the cheap
+     * test has already placed within a building's volume. */
+    const top = this.solids ? this.solids.topAt(x, z) : null;
+    if (top !== null && y > top - 0.5) return false;
+    return true;
   }
 }

@@ -99,6 +99,45 @@
       #ui.ready { opacity: 1; }
       #ui > * { pointer-events: auto; }
 
+      /* Corner brackets.
+         Four hairlines that say "you are looking THROUGH something at a place",
+         which is most of the difference between a viewer and an instrument. Two
+         gradients per corner, no extra elements, and it never takes a pointer
+         event — a drag started on a bracket is a drag on the map. */
+      #frame { position: absolute; inset: 12px; pointer-events: none;
+               opacity: .5; }
+      #frame span { position: absolute; width: 26px; height: 26px; }
+      #frame span::before, #frame span::after {
+        content: ''; position: absolute; background: var(--hud-gold);
+      }
+      #frame span::before { width: 100%; height: 1px; }
+      #frame span::after { width: 1px; height: 100%; }
+      #frame .tl { top: 0; left: 0; }
+      #frame .tr { top: 0; right: 0; }
+      #frame .bl { bottom: 0; left: 0; }
+      #frame .br { bottom: 0; right: 0; }
+      #frame .tr::before, #frame .tr::after { right: 0; }
+      #frame .bl::before { bottom: 0; }
+      #frame .br::before, #frame .br::after { bottom: 0; right: 0; }
+      /* Out of the way on a phone, where 12px of inset is 3% of the screen and
+         the brackets land on top of the back button and the dock. */
+      @media (max-width: 700px) { #frame { display: none; } }
+
+      /* Group headings. Small tracked caps over each cluster of controls, the
+         way a cockpit labels its panels — and the thing that turns six chips in
+         a row from a toolbar into a viewpoint selector. */
+      .grouplabel {
+        display: block; font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 8.5px; font-weight: 700; letter-spacing: .3em;
+        text-transform: uppercase; color: #9fb0c9;
+        text-shadow: 0 1px 3px #0a0e1a, 0 0 8px #0a0e1acc;
+        margin: 0 0 5px; pointer-events: none; white-space: nowrap;
+      }
+      #views .grouplabel { width: 100%; text-align: center; }
+      /* The one thing a phone in landscape cannot spare is height, and a label
+         is the part of a control that can be inferred from the control. */
+      @media (max-height: 620px) { .grouplabel { display: none; } }
+
       /* Nothing in this HUD is text to be read twice, and all of it is on top
          of a 3D viewport being dragged. Only the combat pad said so, which is
          why every other control — the mode dock, the viewpoints, the weather
@@ -113,12 +152,15 @@
       }
       .btn, .chip, .back, .liftbtn, .movechip { touch-action: manipulation; }
 
-      /* Thumb-sized. A 24px chip is a mouse target, and this page is mostly
-         read on a phone: 40 is inside the 44 both platforms ask for once the
-         gap between rows is counted, and it is height only, so the viewpoint
-         row still fits across a 375px screen on one line. */
+      /* Thumb-sized, and 44 rather than 40.
+         40 was "inside 44 once the gap between rows is counted", which is true
+         of the gap and not of the button: a thumb lands on a 40px chip and the
+         bottom four pixels of the press are on the row below it. 44 is what both
+         platforms ask for, and the viewpoint row still fits across a 375px
+         screen on one line because the row was never the constraint — its own
+         padding was. */
       body.touch .btn, body.touch .chip {
-        min-height: 40px; display: inline-flex; align-items: center;
+        min-height: 44px; display: inline-flex; align-items: center;
         justify-content: center;
       }
 
@@ -136,7 +178,10 @@
         padding: 7px 12px; border-radius: 999px;
         background: #121b2e99; border: 1px solid #ffffff1f; backdrop-filter: blur(8px);
       }
-      .back:hover { background: #1a2740cc; color: #fff; }
+      @media (hover: hover) and (pointer: fine) {
+        .back:hover { background: #1a2740cc; color: #fff; }
+      }
+      .back.press { background: #24354fcc; color: #fff; }
       .title { font-family: "Cinzel", Georgia, serif; font-size: 14px; letter-spacing: .16em;
                color: #f0c66b; text-transform: uppercase; white-space: nowrap; }
       .title small { display: block; font-family: inherit; font-size: 10px;
@@ -155,29 +200,40 @@
          The frame rate is the part worth keeping. */
       @media (max-width: 400px) { .fps-scale { display: none; } }
 
+
       .dock {
         position: absolute; left: 50%; transform: translateX(-50%);
         bottom: max(16px, env(safe-area-inset-bottom));
-        display: flex; gap: 6px; padding: 6px;
-        background: #101a2ecc; border: 1px solid #ffffff1f; border-radius: 999px;
-        backdrop-filter: blur(12px); box-shadow: 0 8px 30px #0006;
+        display: flex; gap: 4px; padding: 5px;
+        background: var(--hud-bg); border: 1px solid var(--hud-line); border-radius: 3px;
+        clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px),
+                           calc(100% - 12px) 100%, 0 100%, 0 12px);
+        backdrop-filter: blur(12px); box-shadow: 0 8px 30px #0008;
         max-width: calc(100vw - 24px); overflow-x: auto; scrollbar-width: none;
       }
       .dock::-webkit-scrollbar { display: none; }
       .btn {
         appearance: none; border: 0; cursor: pointer; white-space: nowrap;
-        font: inherit; font-size: 12.5px; font-weight: 600; letter-spacing: .02em;
-        color: #b9c8e0; background: transparent; padding: 9px 15px; border-radius: 999px;
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 10.5px; font-weight: 700; letter-spacing: .09em;
+        text-transform: uppercase;
+        color: var(--hud-ink); background: transparent; padding: 9px 13px; border-radius: 2px;
+        clip-path: var(--hud-cut);
         transition: background .18s, color .18s;
       }
-      .btn:hover { background: #ffffff12; color: #fff; }
-      .btn.on { background: linear-gradient(135deg, #f0c66b, #e08a3c); color: #17233a; }
+      @media (hover: hover) and (pointer: fine) {
+        .btn:hover { background: #ffffff14; color: var(--hud-ink-hi); }
+      }
+      .btn.press { background: #ffffff26; color: #fff; transform: scale(.965); }
+      .btn { transition: background .18s, color .18s, transform .08s; }
+      .btn.on { background: linear-gradient(180deg, #f6d488, var(--hud-gold-deep)); color: #16202f; }
+      .btn.on.press { background: linear-gradient(180deg, #ffe3a3, #f09a44); }
 
       .narrow { display: none; }
       @media (max-width: 560px) {
         .wide { display: none; }
         .narrow { display: inline; }
-        .btn { padding: 9px 13px; }
+        .btn { padding: 9px 10px; font-size: 9.5px; letter-spacing: .07em; }
         .title small { display: none; }
         .title { font-size: 12.5px; letter-spacing: .12em; }
       }
@@ -254,14 +310,64 @@
       #who b { color: #f0c66b; font-weight: 700; letter-spacing: .04em; }
       #who span { display: block; color: #6d80a0; font-size: 11px; font-style: italic; }
       #crew .chips { display: flex; gap: 5px; }
-      .chip {
-        appearance: none; border: 1px solid #ffffff1f; cursor: pointer;
-        font: inherit; font-size: 11.5px; font-weight: 600;
-        color: #b9c8e0; background: #101a2ecc; backdrop-filter: blur(10px);
-        padding: 6px 11px; border-radius: 999px; transition: background .18s, color .18s;
+      /* ------------------------------------------------------------ controls
+         The HUD's own vocabulary, in one place.
+
+         Pills read as a web page. This is a map you fly, walk and fight
+         through, and the controls should look like instruments: corners cut
+         rather than rounded, labels set in tracked mono caps, and the selected
+         one carrying a lit bar down its leading edge instead of just changing
+         colour. Everything below is that one idea applied to the chips, the
+         mode dock and the group headings — the geometry and the positions are
+         untouched, so nothing about where a thumb lands changes. */
+      :root {
+        --hud-bg: #0c1424e0;
+        --hud-bg-hi: #16233acc;
+        --hud-line: #ffffff1c;
+        --hud-line-lit: #f0c66b66;
+        --hud-ink: #b9c8e0;
+        --hud-ink-hi: #eaf1fb;
+        --hud-gold: #f0c66b;
+        --hud-gold-deep: #e08a3c;
+        /* One notch off each end. A 6px cut is legible at 11px type and does
+           not eat the first letter the way a 45-degree bevel does. */
+        --hud-cut: polygon(7px 0, 100% 0, 100% calc(100% - 7px),
+                           calc(100% - 7px) 100%, 0 100%, 0 7px);
       }
-      .chip:hover { background: #1a2740; color: #fff; }
-      .chip.on { background: linear-gradient(135deg, #f0c66b, #e08a3c); color: #17233a; border-color: transparent; }
+      .chip {
+        appearance: none; border: 1px solid var(--hud-line); cursor: pointer;
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 10px; font-weight: 600; letter-spacing: .08em;
+        text-transform: uppercase;
+        color: var(--hud-ink); background: var(--hud-bg); backdrop-filter: blur(10px);
+        padding: 6px 11px; border-radius: 2px; clip-path: var(--hud-cut);
+        position: relative; transition: background .18s, color .18s, transform .08s;
+      }
+      /* The lit edge. A pseudo-element rather than a border, so it can sit
+         inside the clip and not fight the cut corners. */
+      .chip::before {
+        content: ''; position: absolute; left: 0; top: 7px; bottom: 0; width: 2px;
+        background: var(--hud-gold); opacity: 0; transition: opacity .18s;
+      }
+      .chip.on::before { opacity: 1; }
+      /* A phone has no hover to leave, so an unscoped :hover is applied on tap
+         and then STAYS applied — the chip you last tapped keeps the highlight
+         that is supposed to mean "the pointer is here", and two chips end up
+         looking selected at once. Every hover rule on this page is therefore
+         gated on a device that actually has a pointer. */
+      @media (hover: hover) and (pointer: fine) {
+        .chip:hover { background: var(--hud-bg-hi); color: var(--hud-ink-hi);
+                      border-color: var(--hud-line-lit); }
+        .chip:hover::before { opacity: .45; }
+      }
+      /* What a phone gets instead: the press itself. Driven by a class rather
+         than :active, because the tap handler owns the gesture and :active is
+         cleared by the scroll the handler is deliberately tolerating. */
+      .chip.press { background: #21324b; color: #fff; transform: scale(.965); }
+      .chip.on { background: linear-gradient(180deg, #f6d488, var(--hud-gold-deep));
+                 color: #16202f; border-color: transparent; }
+      .chip.on::before { background: #16202f; opacity: .55; }
+      .chip.on.press { background: linear-gradient(180deg, #ffe3a3, #f09a44); }
 
       #pad {
         position: absolute; right: 16px; bottom: calc(max(16px, env(safe-area-inset-bottom)) + 64px);
@@ -294,7 +400,7 @@
         #crew { top: calc(66px + env(safe-area-inset-top)); }
         #who { font-size: 11.5px; margin-bottom: 6px; }
         #who span { font-size: 10.5px; }
-        .chip { font-size: 11px; padding: 5px 10px; }
+        .chip { font-size: 9.5px; padding: 5px 9px; letter-spacing: .06em; }
       }
 
       #sky {
@@ -311,7 +417,10 @@
         #sky { right: 12px; left: auto; top: calc(52px + env(safe-area-inset-top));
                display: grid; grid-template-columns: repeat(2, auto);
                justify-items: stretch; gap: 4px; }
-        #sky .chip { min-width: 0; font-size: 10px; padding: 4px 8px; }
+        /* The heading is a heading, not a cell — without this it takes the
+           first slot of the grid and knocks Midday onto the second column. */
+        #sky .grouplabel { grid-column: 1 / -1; text-align: right; }
+        #sky .chip { min-width: 0; font-size: 9.5px; padding: 5px 8px; letter-spacing: .06em; }
       }
 
       /* --------------------------------------------------------------- lift */
@@ -344,38 +453,78 @@
            last viewpoint sat half off the screen. */
         position: absolute; left: 0; right: 0;
         /* Measured off the dock rather than guessed: the dock sits at
-           max(16px, safe-area) and is 48px tall, so anything below 74px lands
-           on top of it. It did — by 6px on a 375x812 phone, which put the
-           Street chip under the Orbit button. */
-        bottom: calc(max(16px, env(safe-area-inset-bottom)) + 60px);
+           max(16px, safe-area) and is 56px tall now that its buttons are
+           thumb-sized, so anything below 82px lands on top of it. */
+        bottom: calc(max(16px, env(safe-area-inset-bottom)) + 68px);
         display: none; gap: 6px; flex-wrap: wrap; justify-content: center;
         /* The info button lives in this same band, at right:14 and 38px wide.
            Reserving its corner is what stops the last viewpoint sliding under
            it — on a 375px phone "Street" was half-covered by the "i". */
         padding: 0 60px 0 12px;
+        /* The row spans the full width so it can centre on the dock, which used
+           to mean a 44px-tall invisible band across the whole screen that ate
+           every drag aimed at the map behind the gaps between chips. The chips
+           take their own events back; the gaps belong to the viewport. */
+        pointer-events: none;
       }
       body.orbiting #views { display: flex; }
-      #views .chip { min-width: 0; }
+      #views .chip { min-width: 0; pointer-events: auto; }
       @media (max-width: 560px) {
-        /* One row that scrolls, not two that wrap. Wrapping cost 24px of a
-           phone screen and pushed the row into the dock; the dock itself has
-           scrolled horizontally since it was written, so this is the pattern
-           the page already uses. */
-        /* One row, and it only scrolls if it genuinely cannot fit — centred
-           until then. */
-        #views { gap: 4px; flex-wrap: nowrap; justify-content: center;
-                 overflow-x: auto; scrollbar-width: none;
-                 padding: 0 58px 0 8px; }
-        #views::-webkit-scrollbar { display: none; }
-        #views .chip { font-size: 10px; padding: 5px 9px; flex: 0 0 auto; }
-        body.touch #views .chip { min-height: 36px; }
-        #hintOrbit { bottom: calc(max(16px, env(safe-area-inset-bottom)) + 100px);
+        /* Two rows that wrap, not one that scrolls — the opposite of what was
+           here, and the reason is the thing this row is FOR.
+           A horizontal scroller cannot tell a tap from the start of a pan until
+           the finger has moved, so on a phone every viewpoint chip was one
+           stray pixel away from being spent on a scroll that had nowhere to go.
+           With six viewpoints the row genuinely does not fit across 375px at a
+           size a thumb can hit, and the honest answer is the second row: it
+           costs 50px of a screen that has it, and every chip is then a plain
+           44px target that cannot be mistaken for a gesture. */
+        /* Three across, twice down, every cell the same size. Wrapping left
+           five on one line and Street alone on the next, which reads as an
+           accident; a grid reads as a panel, and equal cells mean no viewpoint
+           is a smaller target than its neighbour. */
+        #views { display: none; grid-template-columns: repeat(3, 1fr);
+                 gap: 5px; padding: 0 52px 0 8px; }
+        body.orbiting #views { display: grid; }
+        #views .grouplabel { grid-column: 1 / -1; }
+        /* 12px, not 10. Ten-pixel type on a phone is a label you squint at, and
+           the row has room for it now that it wraps. */
+        #views .chip { font-size: 9.5px; padding: 6px 6px; letter-spacing: .06em;
+                       min-width: 0; }
+        /* This row is the one place a min-height override used to UNDO the
+           thumb sizing above — 36px, on the control a visitor taps most. */
+        body.touch #views .chip { min-height: 44px; }
+        /* Clear of the viewpoint panel, which is now a labelled 3x2 block
+           113px tall sitting 68px off the bottom. */
+        #hintOrbit { bottom: calc(max(16px, env(safe-area-inset-bottom)) + 200px);
                      font-size: 10.5px; }
       }
       /* A landscape phone is about 380px of height for everything. The hint is
          the one element here that has done its job after it is read once, so
          it is what goes when the screen runs out of room. */
       @media (max-height: 520px) { #hintOrbit, #hintWalk { display: none; } }
+
+      /* ------------------------------------------------------- narrow phones
+         Last in the sheet on purpose. These are overrides of the 560px block
+         above at the same specificity, so source order is what decides them —
+         written earlier in the file they lost, silently, and the dock went on
+         scrolling.
+
+         Six controls in tracked mono caps come to 313px, which is the whole of
+         a 320px screen once the dock's own margins are counted, so Reset and
+         Fullscreen sat off the right edge behind a horizontal scroll — on the
+         one row where scrolling is exactly what eats a tap. Tightened rather
+         than scrolled, and every button stays a 44px target either way.
+         Measured at 320/360/375/390/414/768/1440: nothing overflows now. */
+      @media (max-width: 400px) {
+        .dock { gap: 2px; padding: 4px; }
+        .btn { padding: 9px 7px; font-size: 9px; letter-spacing: .05em; }
+      }
+      @media (max-width: 340px) {
+        .btn { padding: 9px 4px; font-size: 8.5px; letter-spacing: .02em; }
+        #views { padding: 0 46px 0 6px; gap: 4px; }
+        #views .chip { padding: 6px 3px; font-size: 9px; letter-spacing: .02em; }
+      }
 
       /* ------------------------------------------------------------ combat */
       .pad-row { display: flex; gap: 10px; align-items: center; }
@@ -494,6 +643,11 @@
     <div id="stick"><span id="knob"></span></div>
 
     <div id="ui">
+      <div id="frame" aria-hidden="true">
+        <span class="tl"></span><span class="tr"></span>
+        <span class="bl"></span><span class="br"></span>
+      </div>
+
       <div class="topbar">
         <a data-ui-button class="back" href="../" aria-label="Back to the showcase">← Showcase</a>
         <div class="title">Hledan Junction<small>Yangon · Myanmar</small></div>
@@ -513,9 +667,11 @@
       <!-- Orbit's own row. A showcase wants somewhere to be TAKEN, not only a
            model to be spun: these fly the camera to the views worth seeing. -->
       <div data-ui-button id="views" role="group" aria-label="Viewpoints">
+        <span class="grouplabel">Viewpoint</span>
         <button data-ui-button class="chip" data-view="junction">Junction</button>
-        <button data-ui-button class="chip" data-view="board">The Board</button>
+        <button data-ui-button class="chip" data-view="deck">Deck</button>
         <button data-ui-button class="chip" data-view="flyover">Flyover</button>
+        <button data-ui-button class="chip" data-view="board">Board</button>
         <button data-ui-button class="chip" data-view="tower">Tower</button>
         <button data-ui-button class="chip" data-view="street">Street</button>
       </div>
@@ -594,6 +750,7 @@
       <div id="playStatus"></div>
 
       <div data-ui-button id="sky" role="group" aria-label="Weather">
+        <span class="grouplabel">Conditions</span>
         <button data-ui-button class="chip on" data-sky="noon">☀︎ Midday</button>
         <button data-ui-button class="chip" data-sky="evening">◐ Golden</button>
         <button data-ui-button class="chip" data-sky="rain">☂ Monsoon</button>
