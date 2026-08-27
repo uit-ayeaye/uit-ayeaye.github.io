@@ -933,8 +933,13 @@ export class Character {
        scaled by runDur/walkDur precisely so its cycle is the same length. A
        cycle is two steps, hence half. Computed here rather than imported from
        audio.js: that module pulls in props.js, which pulls in this one, and
-       the cycle would put WORLD_SCALE in the temporal dead zone. */
-    this.strideM = 1.3 * (this.walkDur || 1.07);
+       the cycle would put WORLD_SCALE in the temporal dead zone.
+       "At ANY speed" is only true while the timeScale is free. It is clamped,
+       and sprinting is past the clamp — see update(), which keeps `strideM`
+       honest per frame. This is the nominal figure and the value it falls back
+       to when the legs are not cycling. */
+    this.strideNominal = 1.3 * (this.walkDur || 1.07);
+    this.strideM = this.strideNominal;
 
     // damped animation state
     this._air = 0;        // 0 grounded → 1 airborne
@@ -1225,9 +1230,34 @@ export class Character {
 
     // locomotion mixer: idle weight damped, run blend, one stride clock
     const loco = 1 - this._idle;
-    const ts = clamp(speed / 2.6, .3, 2.2) * (mo.grounded ? 1 : .25);
+    const tsFree = speed / 2.6;
+    const ts = clamp(tsFree, .3, 2.2) * (mo.grounded ? 1 : .25);
     if (this.walk) { this.walk.weight = loco * (1 - runW); this.walk.timeScale = ts; }
     if (this.run) { this.run.weight = loco * runW; this.run.timeScale = ts * (this.runDur / this.walkDur); }
+
+    /* How far one footfall actually covers, this frame.
+     *
+     * The constant in the constructor assumes the clip is free to speed up with
+     * the body, and it is not: `ts` is clamped at 2.2, and every character
+     * sprints straight past that. Luffy's 5.6 m/s walk wants 2.15 and gets it;
+     * his 11.5 m/s sprint wants 4.42 and gets 2.2 — so the legs cycle at half
+     * the rate the distance model believes, and the footsteps came out at
+     * exactly DOUBLE the cadence of the feet making them. It reads as a much
+     * smaller, much faster character than the one on screen.
+     *
+     * A cycle takes walkDur/ts seconds whatever the clamp did, and half a cycle
+     * is a step, so a step covers speed * walkDur / (2 * ts) metres. Below the
+     * clamp that reduces to the constant; above it, it grows with speed, which
+     * is right — a sprint IS a longer stride, not a faster shuffle. The run
+     * clip is re-timed to share the walk's cycle length, so one number serves
+     * the blend.
+     *
+     * Only while the feet are actually driving: airborne, `ts` is scaled by
+     * .25 for the slow tuck of a jump, and reading a stride off that would
+     * hand audio a quarter-length one to spend on the next landing. */
+    this.strideM = (mo.grounded && ts > 1e-3 && speed > 0.4)
+      ? speed * this.walkDur / (2 * ts)
+      : this.strideNominal;
     this.mixer.update(dt);
 
     // pose layers, in Elbaf's order: idle → air → land → roll tuck → moves

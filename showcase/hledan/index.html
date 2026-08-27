@@ -204,7 +204,7 @@
       .dock {
         position: absolute; left: 50%; transform: translateX(-50%);
         bottom: max(16px, env(safe-area-inset-bottom));
-        display: flex; gap: 4px; padding: 5px;
+        display: flex; gap: 3px; padding: 4px;
         background: var(--hud-bg); border: 1px solid var(--hud-line); border-radius: 3px;
         clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px),
                            calc(100% - 12px) 100%, 0 100%, 0 12px);
@@ -217,7 +217,7 @@
         font-family: "JetBrains Mono", ui-monospace, monospace;
         font-size: 10.5px; font-weight: 700; letter-spacing: .09em;
         text-transform: uppercase;
-        color: var(--hud-ink); background: transparent; padding: 9px 13px; border-radius: 2px;
+        color: var(--hud-ink); background: transparent; padding: 8px 12px; border-radius: 2px;
         clip-path: var(--hud-cut);
         transition: background .18s, color .18s;
       }
@@ -340,7 +340,7 @@
         font-size: 10px; font-weight: 600; letter-spacing: .08em;
         text-transform: uppercase;
         color: var(--hud-ink); background: var(--hud-bg); backdrop-filter: blur(10px);
-        padding: 6px 11px; border-radius: 2px; clip-path: var(--hud-cut);
+        padding: 5px 10px; border-radius: 2px; clip-path: var(--hud-cut);
         position: relative; transition: background .18s, color .18s, transform .08s;
       }
       /* The lit edge. A pseudo-element rather than a border, so it can sit
@@ -407,7 +407,10 @@
         position: absolute; right: 14px; top: calc(56px + env(safe-area-inset-top));
         display: flex; flex-direction: column; gap: 5px; align-items: flex-end;
       }
-      #sky .chip { min-width: 96px; text-align: center; }
+      /* 84, not 96. The longest label is "Blackout"; the extra twelve pixels
+         were padding a column that already sits against the edge of the
+         screen. */
+      #sky .chip { min-width: 84px; text-align: center; }
       @media (max-width: 560px) {
         /* Keep the weather stack top-right. Along the bottom it lands under the
            action pad, and the pad has to own that corner — it is the only part
@@ -415,12 +418,16 @@
         /* Seven chips in one column is 190px of phone screen. Two columns puts
            it back to four rows without touching the dock's corner. */
         #sky { right: 12px; left: auto; top: calc(52px + env(safe-area-inset-top));
+               /* `stretch`, not `end`. The block is shrink-to-fit either way —
+                  it is pinned to `right` with no width — so right-aligning each
+                  chip inside its column bought nothing and left a ragged left
+                  edge down the middle of the panel. */
                display: grid; grid-template-columns: repeat(2, auto);
-               justify-items: stretch; gap: 4px; }
+               justify-items: stretch; gap: 3px; }
         /* The heading is a heading, not a cell — without this it takes the
            first slot of the grid and knocks Midday onto the second column. */
         #sky .grouplabel { grid-column: 1 / -1; text-align: right; }
-        #sky .chip { min-width: 0; font-size: 9.5px; padding: 5px 8px; letter-spacing: .06em; }
+        #sky .chip { min-width: 0; font-size: 9px; padding: 5px 7px; letter-spacing: .04em; }
       }
 
       /* --------------------------------------------------------------- lift */
@@ -479,12 +486,16 @@
            size a thumb can hit, and the honest answer is the second row: it
            costs 50px of a screen that has it, and every chip is then a plain
            44px target that cannot be mistaken for a gesture. */
-        /* Three across, twice down, every cell the same size. Wrapping left
-           five on one line and Street alone on the next, which reads as an
-           accident; a grid reads as a panel, and equal cells mean no viewpoint
-           is a smaller target than its neighbour. */
-        #views { display: none; grid-template-columns: repeat(3, 1fr);
-                 gap: 5px; padding: 0 52px 0 8px; }
+        /* Three across, twice down — a panel rather than a wrap, which left
+           five on one line and Street alone on the next.
+           `auto` columns, not `1fr`. The row is spanned edge to edge so it can
+           centre on the dock, and fractional columns took that as an
+           instruction to fill it: on a 529px screen each chip came out 153px
+           wide to hold eight characters of 9.5px type, and the six of them
+           plus the weather block covered 39% of the viewport. Auto columns hug
+           their longest label — same two tidy rows, 70px a chip. */
+        #views { display: none; grid-template-columns: repeat(3, auto);
+                 justify-content: center; gap: 5px; padding: 0 52px 0 8px; }
         body.orbiting #views { display: grid; }
         #views .grouplabel { grid-column: 1 / -1; }
         /* 12px, not 10. Ten-pixel type on a phone is a label you squint at, and
