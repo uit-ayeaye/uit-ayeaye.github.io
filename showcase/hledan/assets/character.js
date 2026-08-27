@@ -628,14 +628,31 @@ function sheathGeos() {
   });
 }
 
+/**
+ * A lit material for the sword furniture, at the device's tier.
+ *
+ * The blades were MeshStandard whatever the phone said, which left 51 small
+ * PBR meshes on Zoro as the only thing on the low tier still running the full
+ * BRDF after the map, the fleet and the effects had all been moved to Lambert.
+ * Lambert has no metalness or roughness, so the steel keeps its colour and its
+ * emissive glow and loses only a specular highlight that a 0.02 m bevel was
+ * never resolving anyway.
+ */
+let SWORD_TIER = 'hi';
+function swordMat(opts) {
+  if (SWORD_TIER === 'hi') return new THREE.MeshStandardMaterial(opts);
+  const { color, emissive, emissiveIntensity, flatShading } = opts;
+  return new THREE.MeshLambertMaterial({ color, emissive, emissiveIntensity, flatShading });
+}
+
 function sheathedKatana(spec) {
   const g = sheathGeos();
   const group = new THREE.Group();
   group.name = spec.name;
-  const mSaya = new THREE.MeshStandardMaterial({ color: spec.saya, roughness: .35, metalness: .08, flatShading: true });
-  const mFit = new THREE.MeshStandardMaterial({ color: spec.fitting, roughness: .35, metalness: .65, flatShading: true });
-  const mWrap = new THREE.MeshStandardMaterial({ color: spec.wrap, roughness: .85, flatShading: true });
-  const mCross = new THREE.MeshStandardMaterial({ color: spec.cross, roughness: .6, metalness: .3, flatShading: true });
+  const mSaya = swordMat({ color: spec.saya, roughness: .35, metalness: .08, flatShading: true });
+  const mFit = swordMat({ color: spec.fitting, roughness: .35, metalness: .65, flatShading: true });
+  const mWrap = swordMat({ color: spec.wrap, roughness: .85, flatShading: true });
+  const mCross = swordMat({ color: spec.cross, roughness: .6, metalness: .3, flatShading: true });
   const add = (geo, mat, z) => {
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.z = z; mesh.frustumCulled = false;
@@ -653,13 +670,13 @@ function sheathedKatana(spec) {
 function drawnKatana(spec, mouth = false) {
   const group = new THREE.Group();
   group.name = `drawn-${spec.name}`;
-  const steel = new THREE.MeshStandardMaterial({
+  const steel = swordMat({
     color: spec.steel, roughness: .16, metalness: .9,
     emissive: new THREE.Color(spec.steel).multiplyScalar(.4), emissiveIntensity: 1,
     flatShading: true,
   });
-  const mFit = new THREE.MeshStandardMaterial({ color: spec.fitting, roughness: .35, metalness: .65, flatShading: true });
-  const mWrap = new THREE.MeshStandardMaterial({ color: spec.wrap, roughness: .85, flatShading: true });
+  const mFit = swordMat({ color: spec.fitting, roughness: .35, metalness: .65, flatShading: true });
+  const mWrap = swordMat({ color: spec.wrap, roughness: .85, flatShading: true });
   const add = (geo, mat, z, rot = true) => {
     if (rot) geo.rotateX(Math.PI / 2);
     const mesh = new THREE.Mesh(geo, mat);
@@ -773,6 +790,7 @@ export class Character {
   }
 
   static async load(def, base = 'models/chars/', tier = 'hi') {
+    SWORD_TIER = tier;                 // read by swordMat() during _buildSwords
     const m = def.modelId || def.id;
     const [rigged, walkG, runG] = await Promise.all([
       loadGLB(`${base}${m}-rigged.opt.glb`),

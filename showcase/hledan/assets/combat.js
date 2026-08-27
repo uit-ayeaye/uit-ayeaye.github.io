@@ -364,7 +364,19 @@ export class Combat {
     this._look.copy(lookDir);
     let d = -1;
     if (grid) d = grid.raycast(this._center, lookDir, AIM_RANGE);
-    const dg = nav ? nav.raymarch(ox, oy, oz, lookDir.x, lookDir.y, lookDir.z, AIM_RANGE) : null;
+    /* The navmap is one layer of heights, so under the flyover it reports the
+       DECK as the ground — eighteen units above the eye that is looking along
+       the lower carriageway. Marched from there the ray starts below its own
+       terrain and reports a hit at once: measured under the deck, 0.1 units in
+       every direction, which pinned the reticle to the character's face and
+       made Rocket and Cyclone Tempo fly nowhere, because the point they aim at
+       was already reached. Where the eye is below the surface the navmap
+       claims, the navmap has nothing true to say — the mesh colliders know
+       about both levels, so let them answer alone. */
+    const navTop = nav ? nav.heightAt(ox, oz) : null;
+    const underAnUpperLevel = navTop !== null && oy < navTop;
+    const dg = (nav && !underAnUpperLevel)
+      ? nav.raymarch(ox, oy, oz, lookDir.x, lookDir.y, lookDir.z, AIM_RANGE) : null;
     if (dg !== null && (d < 0 || dg < d)) d = dg;
     this.aim.valid = d >= 0;
     if (this.aim.valid) {
