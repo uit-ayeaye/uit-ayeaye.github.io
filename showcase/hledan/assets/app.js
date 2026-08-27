@@ -430,6 +430,9 @@ new GLTFLoader().load(
     /* The billboard on Hledan Centre. Its position is measured off the facade
        and baked, so it needs nothing from the map but the scene to sit in. */
     ledBoard = new LedBoard({ scene, THREE, tier: DEVICE.tier });
+    /* The map's own materials, compiled while the loading screen is still up
+       rather than on the first frame the visitor sees. */
+    requestAnimationFrame(() => precompile());
 
     weather = new Weather({
       scene, renderer, sky, hemi, ambient, sun, skirt, props, led: ledBoard,
@@ -880,6 +883,17 @@ async function enterPlay() {
 
   play.chr.root.visible = true;
   document.body.classList.add('playing');
+  /* Compile the whole kit before the visitor can fire any of it.
+     Measured on the low tier: entering play sits at 25 programs and running
+     once through strike / heavy / ult / dash / sustain takes it to 36. Those
+     eleven compile the first time each move is used, and a shader compile on a
+     phone is tens of milliseconds — so the first Oni Giri, the first Flash
+     Step and the first Tatsumaki each drop a frame, which is precisely the
+     stutter that survives into a screen recording. Doing it here spends the
+     same time behind the status line nobody is filming.
+     `compile` traverses the whole graph rather than the visible part of it, so
+     the effect pool counts even though every mesh in it starts hidden. */
+  precompile();
   refreshCharChips();
   syncModeButtons('play');
 }
@@ -1254,6 +1268,38 @@ inputLayer.addEventListener('pointerdown', (e) => {
 });
 
 /**
+ * Two fingers, pinching.
+ *
+ * Play had no zoom at all: the chase camera sat at Elbaf's follow distance for
+ * the whole visit, which is a compromise between seeing the character and
+ * seeing the city and is the wrong answer to both. Orbit has always pinched —
+ * that is OrbitControls — but only because the input layer stays out of its
+ * way; in play the layer swallows everything, so the gesture had to be read
+ * here.
+ *
+ * The span between the two pointers is the whole signal. Tracked as a ratio
+ * against the previous frame rather than against the start, so a pinch can be
+ * reversed mid-gesture without the camera jumping back through everything it
+ * has already done.
+ */
+let pinchSpan = 0;
+function pinchDist() {
+  const p = [...pointers.values()];
+  if (p.length < 2) return 0;
+  return Math.hypot(p[0].lastX - p[1].lastX, p[0].lastY - p[1].lastY);
+}
+function playPinch() {
+  const d = pinchDist();
+  if (!d) { pinchSpan = 0; return false; }
+  if (!pinchSpan) { pinchSpan = d; return true; }
+  const k = d / pinchSpan;
+  pinchSpan = d;
+  /* A dead band, or the camera creeps whenever two fingers rest on the glass. */
+  if (Math.abs(k - 1) > 0.004) play.cam.zoomBy(1 / k);
+  return true;
+}
+
+/**
  * Two fingers in walk mode: drag up to rise, down to descend.
  *
  * The buttons cover it, but a gesture is what a hand reaches for first, and on
@@ -1281,8 +1327,10 @@ inputLayer.addEventListener('pointermove', (e) => {
     const dx = e.clientX - p.lastX, dy = e.clientY - p.lastY;
     p.lastX = e.clientX; p.lastY = e.clientY;
     p.drift += Math.abs(dx) + Math.abs(dy);
-    /* A second finger down turns the pair into a lift, not two looks. */
+    /* A second finger down turns the pair into a gesture, not two looks:
+       a lift in walk, a zoom in play. */
     if (walk.on && pointers.size >= 2) { walkPinch(); return; }
+    if (play.on && pointers.size >= 2) { playPinch(); return; }
     walk.liftGesture = 0;
     applyLook(dx, dy);
     return;
@@ -1340,7 +1388,7 @@ function endPointer(e) {
     if (play.on) play.queued.add('strike');    // Elbaf: a mouse tap is a pistol
   }
   pointers.delete(e.pointerId);
-  if (pointers.size < 2) walk.liftGesture = 0;
+  if (pointers.size < 2) { walk.liftGesture = 0; pinchSpan = 0; }
   if (e.pointerId === stickId) clearStick();
 }
 inputLayer.addEventListener('pointerup', endPointer);
@@ -1486,6 +1534,20 @@ function adapt(frameMs) {
   if (mid > TARGET_MS * 1.12 && renderScale > MIN_SCALE) renderScale = Math.max(MIN_SCALE, renderScale - 0.1);
   else if (mid < TARGET_MS * 0.80 && renderScale < MAX_SCALE) renderScale = Math.min(MAX_SCALE, renderScale + 0.05);
   if (prev !== renderScale) { applySize(); sinceAdjust = 0; }
+}
+
+/**
+ * Warm the shader cache for whatever is currently in the scene.
+ *
+ * `compileAsync` where the driver offers KHR_parallel_shader_compile, so the
+ * work lands off the main thread; the synchronous path is the fallback and is
+ * still better than compiling mid-move.
+ */
+function precompile() {
+  try {
+    if (renderer.compileAsync) renderer.compileAsync(scene, camera);
+    else renderer.compile(scene, camera);
+  } catch (e) { /* a warm cache is an optimisation, never a requirement */ }
 }
 
 /* --------------------------------------------------------------------- HUD */
@@ -1639,6 +1701,16 @@ renderer.domElement.addEventListener('pointerup', (e) => {
   }
   lastTap = now; lastTapX = e.clientX; lastTapY = e.clientY;
 });
+
+/* The wheel zooms the chase camera, the way it zooms everything else on this
+   page. Orbit has its own on the canvas; this is only for play, where the input
+   layer is over the top and OrbitControls is switched off. */
+addEventListener('wheel', (e) => {
+  if (!play.on || !play.cam) return;
+  if (e.target.closest && e.target.closest('[data-ui-button]')) return;
+  e.preventDefault();
+  play.cam.zoomBy(1 + Math.sign(e.deltaY) * 0.12);
+}, { passive: false });
 
 /* Walk's vertical, for a thumb. Held, not tapped — the same pointer handling
    the action pad uses, including pointercancel, which iOS fires whenever a

@@ -138,8 +138,15 @@ const PERCH_EDGE     = 0.35 * K;               // and the finer one used to find
 const PERCH_MIN_RISE = 1.0 * K;
 export const YAW_SENS   = 0.0045;
 export const PITCH_SENS = 0.0035;
-export const PITCH_MIN  = -0.85;
-export const PITCH_MAX  = 0.35;
+/* Elbaf's clamp was -0.85 to +0.35 — 49 degrees down, 20 up — which is a
+   valley's worth of sky. This map is a city: 20 degrees of up cannot see the
+   top of the tower you are standing under, and 49 of down cannot see the
+   street from the roof you just landed on. Both of those are the shots
+   somebody recording this actually wants. The eye is clamped above the ground
+   and pulled in through geometry either way, so the wider arc costs nothing
+   but the view. */
+export const PITCH_MIN  = -1.05;
+export const PITCH_MAX  = 0.62;
 /** Feet → capsule centre. Every Elbaf height offset is authored against the
     capsule centre (feet + 0.85 m), so effects and the camera key off this. */
 export const CENTER_Y = 0.85 * K;
@@ -1898,10 +1905,19 @@ const CAM_CLEAR    = 0.55 * S;
 const MIN_CAM_DIST = 0.95 * S;
 const CAM_RETREAT  = 3.2;
 
+/* How far the chase camera may be pulled in and pushed out, as a factor of
+   Elbaf's follow distance. In tight at 0.45 the crew fill the frame, which is
+   what a clip wants; out at 3 the junction fits around them, which is what
+   somebody exploring wants. Neither is worth having as the only option, and a
+   pinch maps 1:1 onto the span between the fingers, so the range has to be wide
+   enough that one gesture does not run straight into both ends of it. */
+const CAM_ZOOM_MIN = 0.45, CAM_ZOOM_MAX = 3.0;
+
 export class ChaseCamera {
   constructor() {
     this.yaw = 0;
     this.pitch = -0.18;               // Elbaf's initial pitch
+    this.zoom = 1;
     this.dist = CAM_DIST;
     this._dist = this.dist;
     this.fovPunch = 0;                // heavy hits kick the lens in briefly
@@ -1919,6 +1935,20 @@ export class ChaseCamera {
   }
 
   punch(amount) { this.fovPunch = Math.max(this.fovPunch, amount); }
+
+  /**
+   * Pull in or push out. `k` is a multiplier, so a wheel notch and a pinch can
+   * both feed it without either having to know the follow distance.
+   *
+   * Damped through `_dist` like everything else the camera does, so a pinch
+   * eases rather than snaps — the same reason the follow distance was damped in
+   * the first place.
+   */
+  zoomBy(k) {
+    this.zoom = Math.max(CAM_ZOOM_MIN, Math.min(CAM_ZOOM_MAX, this.zoom * k));
+    this.dist = CAM_DIST * this.zoom;
+    return this.zoom;
+  }
 
   update(dt, camera, ctrl, nav, occluders) {
     /* The look target tracks the body directly in XZ but is damped in Y: the

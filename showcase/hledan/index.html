@@ -109,7 +109,13 @@
                      letter-spacing: .12em; color: #6d80a0; margin-top: 2px; }
       .spacer { flex: 1; }
       #fps { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 11px;
-             color: #7f93b3; white-space: nowrap; }
+             color: #7f93b3; white-space: nowrap;
+             /* Never shrink. Flex gives every item a shrink factor of 1, so on a
+                375px phone the title took the room and the readout was squeezed
+                to seven pixels — "100 f" with the rest clipped off the edge.
+                The title is the one that should give way; it has an ellipsis. */
+             flex: 0 0 auto; }
+      .title { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
       /* Below ~400px the back button, the title and a full readout do not fit
          across the top bar together, and the readout is what runs off the edge.
          The frame rate is the part worth keeping. */
@@ -291,18 +297,38 @@
       /* Orbit only. Sits above the dock and centres on it, so the eye reads the
          two rows as one control surface rather than as furniture in a corner. */
       #views {
-        position: absolute; left: 50%; transform: translateX(-50%);
-        bottom: calc(64px + env(safe-area-inset-bottom));
+        /* Spanned by both edges, not centred with a transform. An absolutely
+           positioned element at left:50% is shrink-to-fit against what is left
+           of the line, which on a 375px phone came out 291px wide for 313px of
+           chips — so the row scrolled when it had 60px of room to spare and the
+           last viewpoint sat half off the screen. */
+        position: absolute; left: 0; right: 0;
+        /* Measured off the dock rather than guessed: the dock sits at
+           max(16px, safe-area) and is 48px tall, so anything below 74px lands
+           on top of it. It did — by 6px on a 375x812 phone, which put the
+           Street chip under the Orbit button. */
+        bottom: calc(max(16px, env(safe-area-inset-bottom)) + 60px);
         display: none; gap: 6px; flex-wrap: wrap; justify-content: center;
-        max-width: min(560px, calc(100vw - 24px));
+        /* The info button lives in this same band, at right:14 and 38px wide.
+           Reserving its corner is what stops the last viewpoint sliding under
+           it — on a 375px phone "Street" was half-covered by the "i". */
+        padding: 0 60px 0 12px;
       }
       body.orbiting #views { display: flex; }
       #views .chip { min-width: 0; }
       @media (max-width: 560px) {
-        #views { bottom: calc(58px + env(safe-area-inset-bottom)); gap: 4px; }
-        #views .chip { font-size: 10px; padding: 4px 9px; }
-        /* Two rows of chips on a narrow screen, so the hint has to clear both. */
-        #hintOrbit { bottom: calc(max(16px, env(safe-area-inset-bottom)) + 138px);
+        /* One row that scrolls, not two that wrap. Wrapping cost 24px of a
+           phone screen and pushed the row into the dock; the dock itself has
+           scrolled horizontally since it was written, so this is the pattern
+           the page already uses. */
+        /* One row, and it only scrolls if it genuinely cannot fit — centred
+           until then. */
+        #views { gap: 4px; flex-wrap: nowrap; justify-content: center;
+                 overflow-x: auto; scrollbar-width: none;
+                 padding: 0 58px 0 8px; }
+        #views::-webkit-scrollbar { display: none; }
+        #views .chip { font-size: 10px; padding: 5px 9px; flex: 0 0 auto; }
+        #hintOrbit { bottom: calc(max(16px, env(safe-area-inset-bottom)) + 100px);
                      font-size: 10.5px; }
       }
       /* A landscape phone is about 380px of height for everything. The hint is
@@ -470,7 +496,8 @@
       </div>
 
       <div class="hint" id="playHint">
-        Drag to look · <kbd>W A S D</kbd> move · <kbd>Space</kbd> ×2 jump · <kbd>Shift</kbd> sprint · click to attack · <kbd>C</kbd> roll · <kbd>Tab</kbd> swap
+        Drag to look · <kbd>W A S D</kbd> move · <kbd>Space</kbd> ×2 jump · <kbd>Shift</kbd> sprint ·
+        scroll to zoom · click to attack · <kbd>C</kbd> roll · <kbd>Tab</kbd> swap
       </div>
 
       <div data-ui-button id="crew">
