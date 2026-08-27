@@ -432,7 +432,7 @@ new GLTFLoader().load(
     ledBoard = new LedBoard({ scene, THREE, tier: DEVICE.tier });
 
     weather = new Weather({
-      scene, renderer, sky, hemi, ambient, sun, skirt, props,
+      scene, renderer, sky, hemi, ambient, sun, skirt, props, led: ledBoard,
       mapMaterials: [...cache.values()],
     }, DEVICE.tier);
     const savedSky = (() => { try { return localStorage.getItem('hledan-sky'); } catch (e) { return null; } })();
@@ -478,6 +478,61 @@ controls.maxPolarAngle = Math.PI * 0.495;   // never dip under the ground plane
    the map, and at the old rate the far side had moved before you had finished
    looking at the near one. */
 controls.autoRotateSpeed = 0.17;
+/* Zoom where the pointer is, not where the pivot happens to be. On a map this
+   wide the difference is the whole feel of it: without this, closing in on the
+   billboard means zoom, re-orbit, zoom, re-orbit. */
+controls.zoomToCursor = true;
+/* 40 was far enough away that nothing on the map could be looked AT — the
+   board is 16 units across and the mall doorway smaller. */
+controls.minDistance = 14;
+
+/**
+ * The views worth being taken to.
+ *
+ * A showcase is not only a model to be spun; most visitors will never find the
+ * billboard or the underside of the flyover by dragging. Each entry is a camera
+ * position and the point it looks at, measured off the map, and the flight
+ * between them is eased rather than cut so the eye keeps its bearings.
+ */
+const VIEWPOINTS = {
+  junction: { eye: [188, 214, 486], at: [-24, 58, 300] },
+  board:    { eye: [-47, 95, 392],  at: [-81, 92, 418] },
+  flyover:  { eye: [96, 92, 232],   at: [-6, 62, 214] },
+  tower:    { eye: [30, 150, 560],  at: [-96, 108, 470] },
+  street:   { eye: [24, 52, 268],   at: [-52, 48, 236] },
+};
+/* One flight at a time; a second click retargets the one in the air. */
+let flight = null;
+const _flyFrom = new THREE.Vector3(), _flyTo = new THREE.Vector3();
+const _flyFromT = new THREE.Vector3(), _flyToT = new THREE.Vector3();
+
+function flyTo(name) {
+  const v = VIEWPOINTS[name];
+  if (!v) return;
+  controls.autoRotate = false;
+  document.getElementById('spin')?.classList.remove('on');
+  _flyFrom.copy(camera.position);
+  _flyFromT.copy(controls.target);
+  _flyTo.set(v.eye[0], v.eye[1], v.eye[2]);
+  _flyToT.set(v.at[0], v.at[1], v.at[2]);
+  flight = { t: 0, dur: 1.5 };
+  document.querySelectorAll('[data-view]').forEach((b) =>
+    b.classList.toggle('on', b.dataset.view === name));
+}
+
+function updateFlight(dt) {
+  if (!flight) return;
+  flight.t = Math.min(1, flight.t + dt / flight.dur);
+  /* Ease both ends. A linear fly reads as a machine move; easing out of the
+     old view and into the new one is what makes it read as a camera. */
+  const e = flight.t < 0.5
+    ? 4 * flight.t * flight.t * flight.t
+    : 1 - Math.pow(-2 * flight.t + 2, 3) / 2;
+  camera.position.lerpVectors(_flyFrom, _flyTo, e);
+  controls.target.lerpVectors(_flyFromT, _flyToT, e);
+  controls.update();
+  if (flight.t >= 1) flight = null;
+}
 
 function frameMap() {
   const c = mapBox.getCenter(new THREE.Vector3());
@@ -499,7 +554,19 @@ const walk = {
   on: false,
   vel: new THREE.Vector3(),
   yaw: 0, pitch: 0,
-  eye: 1.75,
+  /* Eye height in MAP units. 1.75 of those is 1.17 m, which is a child's
+     sightline — every kerb read as a step up and the buses looked enormous.
+     2.6 is 1.73 m, which is a person. */
+  eye: 2.6,
+  /* How far the camera has been lifted off the ground it is riding. This is
+     what makes walk mode a way of looking at the map rather than a tour of its
+     pavements: the flyover deck, the rooftops and the skyline over the mall are
+     all things you can only see from above, and until now the only way to get
+     there was to leave the mode. Ground is still sampled underneath, so coming
+     back down lands on it rather than through it. */
+  lift: 0,
+  liftVel: 0,
+  liftStick: 0,          // -1 / 0 / +1 from the touch buttons
   ground: 0,
   tick: 0,
   ray: new THREE.Raycaster(),
@@ -523,6 +590,8 @@ function enterWalk() {
   walk.ground = spot.y;
   walk.yaw = spot.yaw;
   walk.pitch = 0;
+  walk.lift = 0;
+  walk.liftVel = 0;
   camera.quaternion.setFromEuler(new THREE.Euler(0, walk.yaw, 0, 'YXZ'));
 
   document.body.classList.add('walking');
@@ -613,6 +682,9 @@ play.cam.touch = IS_TOUCH;
 function syncModeButtons(active) {
   document.querySelectorAll('[data-mode]').forEach((b) =>
     b.classList.toggle('on', b.dataset.mode === active));
+  /* The viewpoint row belongs to orbit and nothing else, and CSS is a better
+     place to decide that than five call sites. */
+  document.body.classList.toggle('orbiting', active === 'orbit');
 }
 
 async function ensurePlayAssets(defIndex) {
@@ -1147,7 +1219,12 @@ function updateWalk(dt) {
   let fz = (k.KeyS || k.ArrowDown ? 1 : 0) - (k.KeyW || k.ArrowUp ? 1 : 0);
   if (walk.stick.active) { fx += walk.stick.x; fz += walk.stick.y; }
 
-  const run = k.ShiftLeft || k.ShiftRight ? 4.2 : 1;
+  /* Three gears, not two. The map is 825 x 1765 units and a single walking
+     pace crosses it in about a minute; Alt is for looking at a shopfront and
+     Shift is for getting to the far end of the flyover. */
+  const fast = k.ShiftLeft || k.ShiftRight;
+  const slow = k.AltLeft || k.AltRight;
+  const run = fast ? 4.2 : slow ? 0.3 : 1;
   const speed = 34 * run;
   const len = Math.hypot(fx, fz) || 1;
   if (Math.hypot(fx, fz) > 0.03) { fx /= len; fz /= len; } else { fx = fz = 0; }
@@ -1165,9 +1242,22 @@ function updateWalk(dt) {
   camera.position.x = THREE.MathUtils.clamp(camera.position.x, groundBox.min.x + 4, groundBox.max.x - 4);
   camera.position.z = THREE.MathUtils.clamp(camera.position.z, groundBox.min.z + 4, groundBox.max.z - 4);
 
+  /* Vertical is its own axis, damped like the horizontal one so a tap of the
+     key is a nudge rather than a jump. It rides ON TOP of the ground the camera
+     is already following, which is what keeps it honest: fly out over the
+     junction and the lift stays what you set, walk back onto the pavement and
+     the ground comes up to meet you. */
+  const upKey = (k.Space || k.KeyE ? 1 : 0) - (k.KeyC || k.KeyQ ? 1 : 0);
+  let liftWant = upKey * speed * 0.8;
+  if (walk.liftStick) liftWant += walk.liftStick * speed * 0.8;
+  walk.liftVel += (liftWant - walk.liftVel) * Math.min(1, dt * 9);
+  walk.lift = THREE.MathUtils.clamp(walk.lift + walk.liftVel * dt, 0, 420);
+
   sampleGround(false);
-  const wantY = walk.ground + walk.eye;
-  camera.position.y += (wantY - camera.position.y) * Math.min(1, dt * 6);
+  const wantY = walk.ground + walk.eye + walk.lift;
+  /* Snappier when climbing under your own power than when the ground is
+     sliding around beneath you: at 6 the camera lagged visibly behind the key. */
+  camera.position.y += (wantY - camera.position.y) * Math.min(1, dt * (walk.liftVel ? 12 : 6));
 
   camera.quaternion.setFromEuler(_walkEuler.set(walk.pitch, walk.yaw, 0, 'YXZ'));
 }
@@ -1394,6 +1484,35 @@ document.getElementById('full').addEventListener('click', () => {
   if (document.fullscreenElement) document.exitFullscreen();
   else document.documentElement.requestFullscreen?.();
 });
+document.querySelectorAll('[data-view]').forEach((b) =>
+  b.addEventListener('click', () => flyTo(b.dataset.view)));
+
+/* Walk's vertical, for a thumb. Held, not tapped — the same pointer handling
+   the action pad uses, including pointercancel, which iOS fires whenever a
+   gesture is stolen by a scroll or a system edge swipe. */
+for (const [id, dir] of [['liftUp', 1], ['liftDown', -1]]) {
+  const b = document.getElementById(id);
+  if (!b) continue;
+  const press = (e) => { e.preventDefault(); walk.liftStick = dir; b.classList.add('held'); };
+  const release = () => { walk.liftStick = 0; b.classList.remove('held'); };
+  b.addEventListener('pointerdown', press);
+  b.addEventListener('pointerup', release);
+  b.addEventListener('pointercancel', release);
+  b.addEventListener('pointerleave', release);
+}
+
+/* The board's own switch. It is in the weather column because that is where
+   everything else that turns a light on or off already lives. */
+const ledBtn = document.getElementById('ledBtn');
+if (ledBtn) {
+  ledBtn.addEventListener('click', () => {
+    if (!ledBoard) return;
+    const on = ledBoard.toggle();
+    ledBtn.classList.toggle('on', on);
+    ledBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+
 const infoPanel = document.getElementById('info');
 document.getElementById('infoBtn').addEventListener('click', () => infoPanel.classList.toggle('open'));
 document.getElementById('infoClose').addEventListener('click', () => infoPanel.classList.remove('open'));
@@ -1481,6 +1600,7 @@ function loop(now) {
      motion on the player frame alone, not a freeze of the whole world. */
   if (play.on && play.ctrl && play.chr) updatePlay(dt);
   else if (walk.on) updateWalk(dt);
+  else if (flight) updateFlight(dt);
   else controls.update();
 
   if (play.on && play.combat) paintCombatHud();
@@ -1500,6 +1620,8 @@ function loop(now) {
 requestAnimationFrame(loop);
 
 refreshCharChips();
+/* Orbit is where the page starts, and the viewpoint row keys off the class. */
+syncModeButtons('orbit');
 
 if (REDUCED_MOTION) controls.autoRotate = false;
 else { controls.autoRotate = true; spinBtn.classList.add('on'); }

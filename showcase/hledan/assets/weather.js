@@ -333,6 +333,11 @@ export class Weather {
       r.props.setGlow((p.lamps || 0) * (1 + this.flash * 0.5),
                       (p.headlights === undefined ? p.lamps : p.headlights) || 0);
     }
+    /* The board's bloom rides the same photocell as everything else: a screen
+       hazes the air in front of it after dark and does nothing visible at
+       midday. The panel itself is always at full brightness — it is an LED
+       wall, and they are built to be legible in sun. */
+    if (r.led) r.led.setGlow((p.lamps || 0) * (1 + this.flash * 0.5));
   }
 
   update(dt, camera) {

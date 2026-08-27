@@ -87,7 +87,10 @@ export const HERO_SCALE = 1.2;
 const K = S * HERO_SCALE;                      // body-sized lengths use this
 
 const GRAVITY      = -18 * S;
-export const SPRINT_MULT = 1.75;
+/* Elbaf's is 1.75. This map is 825 x 1765 units of ground against Elbaf's
+   valley, and the crew are 20% taller than they were, so a sprint that felt
+   right there reads as a jog here. */
+export const SPRINT_MULT = 2.05;
 const ACCEL        = 14;                       // 1/s
 const AIR_ACCEL_K  = 0.35;                     // Elbaf: air accel is 35% of ground
 /* Body-sized: a taller body occupies a taller slice of air, steps over a taller
@@ -128,7 +131,11 @@ const PERCH_CLIMB_HIGH = 80 * K;
 /* The chase camera's pitch is clamped to +0.35 rad, so `look.y` never gets
    past about 0.34. This is that range, not a notional one. */
 const PERCH_AIM_LO = -0.05, PERCH_AIM_HI = 0.30;
-const PERCH_STEP   = 1.4 * K;                  // march resolution
+const PERCH_STEP     = 1.4 * K;                // march resolution
+const PERCH_EDGE     = 0.35 * K;               // and the finer one used to find the lip
+/* Below this a surface is a kerb, not a climb, and stepping onto it is not
+   what the button is for. */
+const PERCH_MIN_RISE = 1.0 * K;
 export const YAW_SENS   = 0.0045;
 export const PITCH_SENS = 0.0035;
 export const PITCH_MIN  = -0.85;
@@ -1680,7 +1687,8 @@ export class CharacterController {
   }
 
   /**
-   * The highest place along a look direction that this body could stand on.
+   * The nearest thing in front of you that this body could stand on top of —
+   * and the near LIP of it, not somewhere out in the middle.
    *
    * This is what makes Flash Step a way onto a roof rather than a hop with a
    * cut in it. Marching HORIZONTALLY matters: standing at the foot of a
@@ -1689,6 +1697,23 @@ export class CharacterController {
    * flattened look goes into the building's own footprint — which is exactly
    * where its roof is.
    *
+   * Three rules, and each of them replaced one that read badly:
+   *
+   *  - **Nearest, not highest.** Taking the highest perch anywhere along the
+   *    march meant the step would skip the shophouse in front of you to reach a
+   *    taller block behind it: measured over ten street stances, the landing
+   *    was 6 to 19 units out and averaged 11, which is seven metres past the
+   *    thing the player was looking at. It stops at the first thing it meets.
+   *  - **The top of THAT thing, not the first surface on it.** Stopping at the
+   *    first valid surface is how nearest-first used to fail — it parks you on
+   *    the shopfront awning. So the near column is searched top down and the
+   *    highest standable level in it wins, which is the roof.
+   *  - **The lip, not the middle.** Having found a level, the search walks back
+   *    along its own line to the last point where that level is still standable
+   *    — the outer face of the building — and lands a body's width in from it.
+   *    Arriving mid-roof loses the whole read of the move: you cannot see what
+   *    you just cleared.
+   *
    * Every candidate is checked as a place to STAND, not merely as a surface:
    * clear of walls through the body's slice of air, out of the sealed
    * interiors, and with headroom. That is the whole difference between this
@@ -1696,17 +1721,10 @@ export class CharacterController {
    * allowed to climb over a shopfront and put the body wherever it stopped —
    * 13.1% of the time inside a building.
    *
-   * The HIGHEST valid perch wins, nearest breaking the tie. "Get me up there"
-   * is what the move is for, and the alternative rules both misbehave in the
-   * case it exists to serve: nearest-first stops at the awning in front of the
-   * building, and farthest-first skips the roof you are looking at in favour of
-   * whatever ledge happens to be at the end of the march.
-   *
    * How high it will reach comes from `lookY` — see PERCH_CLIMB_*. Standing at
-   * the foot of the tower and looking up its face, the march goes into the
-   * tower's own footprint and the highest surface in that column is its roof,
-   * a hundred units up; the same march at a level glance stops at the first
-   * shopfront awning.
+   * the foot of the tower and looking up its face, the highest standable level
+   * in the first column inside its footprint is its roof, a hundred units up;
+   * the same march at a level glance stops at the shopfront awning.
    *
    * @returns {x, y, z, dist} | null
    */
@@ -1719,24 +1737,51 @@ export class CharacterController {
     const dx = lookX / len, dz = lookZ / len;
     const feet = this.pos.y;
     const ceiling = feet + climb;
-    let best = null;
-    for (let d = PERCH_STEP * 1.5; d <= reach; d += PERCH_STEP) {
-      const x = this.pos.x + dx * d, z = this.pos.z + dz * d;
+    const minRise = feet + PERCH_MIN_RISE;
+
+    /* The highest level at (x, z) that this body could stand on, or null.
+       Top down, because the roof is the answer and the awning under it is not.
+       The navmap is not consulted: it holds one height per cell and the whole
+       point here is the level it cannot describe. */
+    const standAt = (x, z) => {
       const col = this.solids.surfaces(x, z);
-      /* The highest surface within reach — a roof, not the street under it. The
-         navmap is not consulted: it holds one height per cell and the whole
-         point here is the level it cannot describe. */
-      let y = null;
-      for (let i = col.length - 1; i >= 0; i--) if (col[i] <= ceiling) { y = col[i]; break; }
-      if (y === null || y < feet + 1.0 * K) continue;          // not a climb
-      if (this.interiors && this.interiors.inside(x, z, y)) continue;
-      if (this._walled(x, z, y)) continue;                     // a wall stands in it
-      if (this.obstacles && this.obstacles.blocked(x, z, BODY_RADIUS, y, BODY_HEIGHT)) continue;
-      const roof = this.solids.ceilingOver(x, z, y + 0.2 * K);
-      if (roof !== null && roof - y < BODY_HEIGHT) continue;   // no headroom
-      if (!best || y > best.y + 0.5) best = { x, y, z, dist: d };
+      for (let i = col.length - 1; i >= 0; i--) {
+        const y = col[i];
+        if (y > ceiling) continue;
+        if (y < minRise) return null;                          // nothing left worth climbing
+        if (this.interiors && this.interiors.inside(x, z, y)) continue;
+        if (this._walled(x, z, y)) continue;                   // a wall stands in it
+        if (this.obstacles && this.obstacles.blocked(x, z, BODY_RADIUS, y, BODY_HEIGHT)) continue;
+        const roof = this.solids.ceilingOver(x, z, y + 0.2 * K);
+        if (roof !== null && roof - y < BODY_HEIGHT) continue; // no headroom
+        return y;
+      }
+      return null;
+    };
+
+    for (let d = PERCH_STEP; d <= reach; d += PERCH_STEP) {
+      const y = standAt(this.pos.x + dx * d, this.pos.z + dz * d);
+      if (y === null) continue;
+
+      /* Back off to the lip. The march resolution is deliberately coarse — it
+         is a query that runs on a keypress, not per frame — so the first hit
+         can be most of a step past the edge; this walks in at a quarter of
+         that until the level stops holding, which is the outer face. */
+      let lip = d;
+      for (let b = d - PERCH_EDGE; b >= PERCH_STEP * 0.5; b -= PERCH_EDGE) {
+        const yb = standAt(this.pos.x + dx * b, this.pos.z + dz * b);
+        if (yb === null || Math.abs(yb - y) > 1.0) break;
+        lip = b;
+      }
+      /* A body's width in from the face, so the feet are on the roof rather
+         than half over the drop. */
+      const at = lip + BODY_RADIUS * 2;
+      const fx = this.pos.x + dx * at, fz = this.pos.z + dz * at;
+      const fy = standAt(fx, fz);
+      if (fy === null) return { x: this.pos.x + dx * lip, y, z: this.pos.z + dz * lip, dist: lip };
+      return { x: fx, y: fy, z: fz, dist: at };
     }
-    return best;
+    return null;
   }
 
   /**

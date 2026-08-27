@@ -180,6 +180,8 @@ export class LedBoard {
     this.tier = tier;
     this.t = 0;
     this._paintAcc = 0;
+    this._glow = 0;
+    this.on = true;
     this.scene = scene;
 
     const { geometry, aspect } = panelGeometry(THREE);
@@ -243,11 +245,45 @@ export class LedBoard {
 
   /** Night glow, 0..1, straight off the weather preset. */
   setGlow(k) {
+    this._glow = k;
     this.glowMat.opacity = 0.42 * k;
-    this.glow.visible = k > 0.01;
+    this.glow.visible = this.on && k > 0.01;
   }
 
+  /**
+   * The switch on the wall.
+   *
+   * Off is a dead panel, not a hidden one — the board is part of the building
+   * and a hole where it should be reads as a bug. So the mesh stays and the
+   * canvas is painted black once; the repaint loop stops, which is the whole
+   * cost of the thing.
+   */
+  setEnabled(on) {
+    if (on === this.on) return this.on;
+    this.on = !!on;
+    this.glow.visible = this.on && (this._glow || 0) > 0.01;
+    if (!this.on) {
+      const g = this.ctx;
+      g.globalAlpha = 1;
+      g.globalCompositeOperation = 'source-over';
+      g.fillStyle = '#05060a';
+      g.fillRect(0, 0, this.W, this.H);
+      g.globalCompositeOperation = 'destination-out';
+      g.fillStyle = this.dotPattern;
+      g.fillRect(0, 0, this.W, this.H);
+      g.globalCompositeOperation = 'source-over';
+      this.texture.needsUpdate = true;
+    } else {
+      this._paint(this.t);
+      this.texture.needsUpdate = true;
+    }
+    return this.on;
+  }
+
+  toggle() { return this.setEnabled(!this.on); }
+
   update(dt) {
+    if (!this.on) return;
     this.t += dt;
     this._paintAcc += dt;
     const step = 1 / REPAINT_HZ;

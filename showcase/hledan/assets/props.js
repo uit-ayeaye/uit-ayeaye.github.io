@@ -1667,8 +1667,14 @@ export class StreetProps {
     /* Coarser than the window grid on purpose: a sign is a metre of wall, not a
        window's worth, and two of them on one shopfront is a mess. */
     const GX = 9.5, GY = 7.0;
+    /* The mall wants a tighter grid than the shophouses: one sign per 9.5 units
+       of a hundred-metre glass facade is four lights on the whole building. */
+    const MGX = 5.0, MGY = 4.4;
     const LOW_A = streetY + m(2.4), LOW_B = streetY + m(9.0);     // the shopfront band
     const UP_A = streetY + m(13), UP_B = streetY + m(64);         // boxes further up
+    /* The mall's atrium runs the full height of the building, so its upper
+       band is not the shophouse one. */
+    const MALL_B = streetY + m(46);
     const seen = new Set();
     const rows = [], colours = [];
     const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
@@ -1678,6 +1684,10 @@ export class StreetProps {
        Electric Blue and Firebrick are the studio's own, and they earn their
        place on the two buildings the board is on. */
     const PALETTE = [0xff2e88, 0x36e0ff, 0xffd27a, 0x53ff9d, 0xff3030, 0x0066ff, 0xfff0d0];
+    /* The mall's own light: warm white, barely varied. A shopping centre's
+       glow is one colour temperature repeated over a hundred metres of glass,
+       and scattering it across a palette is what makes CGI look like CGI. */
+    const WARM = [0xfff2dc, 0xffe9c6, 0xfff6ea, 0xffedd2];
 
     for (const mesh of meshes) {
       const geo = mesh.geometry;
@@ -1691,8 +1701,9 @@ export class StreetProps {
         const i1 = index ? index.getX(i + 1) : i + 1;
         const i2 = index ? index.getX(i + 2) : i + 2;
         a.fromBufferAttribute(pos, i0).applyMatrix4(mw);
+        const mall = mesh.material && mesh.material.name === 'Hledan_Center';
         const lowBand = a.y >= LOW_A && a.y <= LOW_B;
-        const upBand = a.y >= UP_A && a.y <= UP_B;
+        const upBand = a.y >= UP_A && a.y <= (mall ? MALL_B : UP_B);
         if (!lowBand && !upBand) continue;
         b.fromBufferAttribute(pos, i1).applyMatrix4(mw);
         c.fromBufferAttribute(pos, i2).applyMatrix4(mw);
@@ -1706,22 +1717,29 @@ export class StreetProps {
         const cx = (a.x + b.x + c.x) / 3;
         const cy = (a.y + b.y + c.y) / 3;
         const cz = (a.z + b.z + c.z) / 3;
-        const key = `${Math.floor(cx / GX)},${Math.floor(cy / GY)},${Math.floor(cz / GX)}`;
+        const gx = mall ? MGX : GX, gy = mall ? MGY : GY;
+        const key = `${Math.floor(cx / gx)},${Math.floor(cy / gy)},${Math.floor(cz / gx)}`;
         if (seen.has(key)) continue;
         seen.add(key);
         const h = Math.abs(Math.imul(Math.floor(cx * 5) ^ Math.floor(cz * 11), 0x9e3779b1)
                            ^ Math.imul(Math.floor(cy * 3), 0x85ebca6b)) % 1000;
-        /* A third of the shopfront band, a twentieth of everything above it —
-           the street is where the signs are. */
-        if (lowBand ? h > 340 : h > 52) continue;
+        /* The mall is its own case. Hledan Centre is a shopping centre with a
+           lit atrium behind glass on every level, and treating it like a
+           shophouse row left the one landmark on the map the darkest thing in
+           frame after dark. It gets far more of its faces lit, and it gets
+           them WARM WHITE rather than out of the neon palette: what a mall
+           throws onto the street is its own interior lighting, not signage. */
+        const isMall = mall;
+        const keepGate = isMall ? (lowBand ? 780 : 460) : (lowBand ? 340 : 52);
+        if (h > keepGate) continue;
         const big = lowBand;
         rows.push({
           x: cx + n.x * m(0.22), y: cy, z: cz + n.z * m(0.22),
           yaw: Math.atan2(n.x, n.z),
-          w: big ? m(2.5 + (h % 7) * 0.28) : m(1.1 + (h % 5) * 0.22),
-          hgt: big ? m(0.62 + (h % 3) * 0.16) : m(0.44),
+          w: isMall ? m(3.4 + (h % 7) * 0.34) : (big ? m(2.5 + (h % 7) * 0.28) : m(1.1 + (h % 5) * 0.22)),
+          hgt: isMall ? m(1.05 + (h % 4) * 0.20) : (big ? m(0.62 + (h % 3) * 0.16) : m(0.44)),
         });
-        colours.push(PALETTE[h % PALETTE.length]);
+        colours.push(isMall ? WARM[h % WARM.length] : PALETTE[h % PALETTE.length]);
       }
     }
     if (!rows.length) return 0;

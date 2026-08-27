@@ -148,6 +148,10 @@ const FLASH_RISE  = 8.4 * S;    // upward impulse on the fallback
    as a fraction of the distance. A dead-straight warp reads as a slide along
    a wire; a bow reads as a leap. */
 const FLASH_ARC   = .16;
+/* How far a step reaches when the aim ray finds nothing to fly at. AIM_RANGE
+   is 105 map units; this is most of it, so pointing at open sky over the
+   junction still crosses the junction. */
+const FLASH_FLY_RANGE = 62 * S;
 
 /**
  * The step's speed across its own window.
@@ -551,7 +555,7 @@ export class Combat {
        Nothing can enter a building that a walk could not enter, because it is
        the same movement code. It also re-fires in mid-air, which is what makes
        it spammable: each press is another beat of height and another cut. */
-    const dashFree = !mv.kind || mv.slot === 'dash';
+    const dashFree = (!mv.kind || mv.slot === 'dash') && !this.fly;
     if (input.queued.has('dash') && kit.dash && sword && dashFree) {
       /* Somewhere to land, along the flattened look? That decides which of the
          two moves this press is — and looking DOWN opts out of it, so the
@@ -581,19 +585,39 @@ export class Combat {
            the move had no attack at all. */
         if (this.onImpact) this.onImpact(ctrl.pos, .5, 'whoosh');
       } else {
+        /* Nothing to land on — open sky, open road, or a look down the street.
+           This used to be a short thrown arc that covered eight metres and
+           stopped, which made the move feel like it had run out of road every
+           time it was not pointed at a building. It is a FLIGHT now, on the
+           same machinery Luffy's Rocket uses: a target out along the aim and a
+           state that runs until the body arrives there, rather than a velocity
+           the controller eases away from the moment the pose window closes.
+           Sword flights already run at 1.3x the Rocket's speed in that block,
+           so a Zoro step crosses the junction in about a second. */
         this._start('dash', kit.dash, FLASH_DUR);
         mv.hit = false;
-        /* Never SUBTRACT from a rise that is already going: spamming the button
-           on the way up should stack into a climb, not reset you to one impulse. */
         ctrl.vel.y = Math.max(ctrl.vel.y, FLASH_RISE);
         ctrl.grounded = false;
         ctrl.coyote = 0;
         ctrl.airTime = 0;
         ctrl.facing = yaw;
-        mv.target.copy(C).addScaledVector(look, 5 * S);
+        /* Far down the look, NOT at what the aim ray hit. That distinction is
+           the difference between the two moves: Luffy's Rocket is a grapple and
+           hooks whatever it is pointed at, so a wall eight metres away is a
+           legitimate target. A Flash Step is a burst of speed, and taking the
+           first thing the ray touches made it a five-metre hop down any street
+           with a parked bus on it — measured over twenty stances, the flight
+           averaged 13 m and bottomed out at 5. Aiming past everything and
+           letting the controller decide where the body actually stops is both
+           longer and more honest: a wall still stops it, because the flight is
+           driven through the same `_canStand` a walk is. */
+        mv.target.copy(C).addScaledVector(look, FLASH_FLY_RANGE);
+        this.fly = { to: mv.target.clone(), t: 0, stall: 0,
+                     last: new THREE.Vector3(ctrl.pos.x, ctrl.pos.y, ctrl.pos.z) };
+        ctrl.airJumps = Math.max(ctrl.airJumps, 1);
         this.blink = { t: 0, dur: .18 };
         this._trailReset(ctrl);
-        this.addShake(.05);
+        this.addShake(.06);
       }
     } else if (input.queued.has('dash') && kit.dash && !this.fly) {
       this._start('dash', kit.dash, ROCKET_DUR);
@@ -657,8 +681,25 @@ export class Combat {
       this.fly.t += dt;
       this._v.copy(this.fly.to).sub(C);
       const gap = this._v.length();
-      const spent = this.fly.t > FLY_MAX;
-      if (gap > 2.5 * S && !spent) {
+      /* Stalled against something. A target aimed past the world can never be
+         REACHED when a wall is in the way, so without this the body stands
+         pressed into the brickwork for the whole 2.4 s the flight is allowed —
+         input dead, pose held. Progress is measured over the flight's own
+         clock rather than per frame so a single blocked axis does not end it. */
+      if (this.fly.last) {
+        this.fly.stall += dt;
+        if (this.fly.stall > 0.12) {
+          const moved = this.fly.last.distanceTo(C);
+          this.fly.last.copy(C);
+          this.fly.stall = 0;
+          if (moved < 0.9 * S) this.fly.t = FLY_MAX + 1;
+        }
+      }
+      const spentNow = this.fly.t > FLY_MAX;
+      if (gap > 2.5 * S && !spentNow) {
+        /* Zoro's flight is a Flash Step, so it keeps laying afterimages the
+           whole way rather than only through the pose window. */
+        if (sword) this._trail(ctrl);
         const ease = 1 - Math.min(1, this.fly.t / ROCKET_DUR) * 0.35;
         this._v.multiplyScalar((sword ? ROCKET_SPEED * 1.3 : ROCKET_SPEED) * ease / gap);
         this.drive.vx = this._v.x;
@@ -667,7 +708,7 @@ export class Combat {
         this.drive.face = 'look';
         this.drive.lookYaw = Math.atan2(this._v.x, this._v.z);
       } else {
-        if (!spent) {
+        if (!spentNow) {
           this.impact(this.fly.to, sword ? 1.4 : 1.1, sword ? 'slash' : (staff ? 'zap' : 'punch'));
           this.addShake(.15);
           this.fovPunch = Math.max(this.fovPunch, .3);
