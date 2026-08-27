@@ -726,7 +726,7 @@ function haloPoints(entries, map) {
         gl_Position = projectionMatrix * mv;
         /* world-sized sprite, clamped so a halo the camera drives through
            cannot flood the frame */
-        gl_PointSize = clamp(aSize * 430.0 / max(-mv.z, 2.0), 2.0, 128.0);
+        gl_PointSize = clamp(aSize * 430.0 / max(-mv.z, 2.0), 2.0, 64.0);
         vC = aColor;
       }`,
     fragmentShader: `
@@ -807,9 +807,9 @@ export class StreetProps {
     /* Lamps ride the pole transforms, so they are laid out from a PRNG seeded
        exactly as the poles were. Both are unlit materials — a street lamp that
        obeys the scene's own lighting goes out at dusk, which is backwards. */
-    const lampMat = new THREE.MeshBasicMaterial({ vertexColors: true, color: 0xffc074, transparent: true, opacity: 0 });
+    const lampMat = new THREE.MeshBasicMaterial({ vertexColors: true, color: 0xffe9c9, transparent: true, opacity: 0 });
     const glowMat = new THREE.MeshBasicMaterial({
-      vertexColors: true, color: 0xffb45e, transparent: true, opacity: 0,
+      vertexColors: true, color: 0xffc98e, transparent: true, opacity: 0,
       blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
     });
     this.lampMat = lampMat;
@@ -833,7 +833,7 @@ export class StreetProps {
       blending: THREE.AdditiveBlending, depthWrite: false,
     });
     const bulbMat = new THREE.MeshBasicMaterial({
-      vertexColors: true, color: 0xffcf8a, transparent: true, opacity: 0,
+      vertexColors: true, color: 0xffe3b8, transparent: true, opacity: 0,
       blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
     });
     this.vehMat = vehMat;
@@ -881,11 +881,11 @@ export class StreetProps {
     const gridHalos = [];
     for (const p of polePlace) {
       const at = localToWorld(p, m(1.20), m(5.96), 0);
-      gridHalos.push({ x: at.x, y: at.y, z: at.z, size: m(2.6), color: 0xffb45e });
+      gridHalos.push({ x: at.x, y: at.y, z: at.z, size: m(0.85), color: 0xffdcae });
     }
     for (const p of bulbPlace) {
       const at = localToWorld(p, 0, m(2.05), 0);
-      gridHalos.push({ x: at.x, y: at.y, z: at.z, size: m(1.6), color: 0xffcf8a });
+      gridHalos.push({ x: at.x, y: at.y, z: at.z, size: m(0.55), color: 0xffe3b8 });
     }
 
     /* Neon. Yangon shopfronts run LED sign strips in saturated colour, and
@@ -906,7 +906,7 @@ export class StreetProps {
     this.meshes.push(neon);
     neonPlace.forEach((p, i) => {
       const at = localToWorld(p, 0, m(2.95), 0);
-      gridHalos.push({ x: at.x, y: at.y, z: at.z, size: m(1.5), color: NEON[(i * 7 + 3) % NEON.length] });
+      gridHalos.push({ x: at.x, y: at.y, z: at.z, size: m(0.7), color: NEON[(i * 7 + 3) % NEON.length] });
     });
     this._neon = neon;
 
@@ -914,10 +914,13 @@ export class StreetProps {
        a pool on the surface below it, a halo. No new geometry stands anywhere
        — the post itself is already in the photogrammetry. */
     this.bakedMat = new THREE.MeshBasicMaterial({
-      vertexColors: true, color: 0xffd9a0, transparent: true, opacity: 0,
+      vertexColors: true, color: 0xffeed2, transparent: true, opacity: 0,
       blending: THREE.AdditiveBlending, depthWrite: false,
     });
-    const headRows = BAKED_LAMPS.map((r) => [r[0], r[1] - m(0.12), r[2]]);
+    /* Seated INSIDE the luminaire, not perched on it. r[1] is the highest
+       point of the detected post, so a 0.34 m bulb hung 0.12 m under it still
+       poked out the top and read as a ball balanced on the lamp. */
+    const headRows = BAKED_LAMPS.map((r) => [r[0], r[1] - m(0.45), r[2]]);
     const heads = instanced(paint(new THREE.SphereGeometry(m(0.34), 8, 6), 0xffffff),
       this.bakedMat, headRows, null, 0x4C414D, 0);
     heads.renderOrder = 3;
@@ -927,7 +930,7 @@ export class StreetProps {
     bakedPools.renderOrder = 3;
     this.meshes.push(bakedPools);
     for (const r of BAKED_LAMPS) {
-      gridHalos.push({ x: r[0], y: r[1], z: r[2], size: r[3] > 50 ? m(3.4) : m(3.0), color: 0xffb45e });
+      gridHalos.push({ x: r[0], y: r[1] - m(0.45), z: r[2], size: r[3] > 50 ? m(1.15) : m(1.0), color: 0xffdcae });
     }
     this._bakedHeads = heads;
     this._bakedPools = bakedPools;
@@ -947,8 +950,8 @@ export class StreetProps {
         }
       }
     };
-    vehLampHalos(busPlace, B, m(1.05), m(0.75));
-    vehLampHalos(taxiPlace, T, m(0.85), m(0.62));
+    vehLampHalos(busPlace, B, m(0.46), m(0.32));
+    vehLampHalos(taxiPlace, T, m(0.38), m(0.27));
 
     /* ---- the city itself. Every wall on the map gets its windows lit; see
        buildWindows(), which app.js calls once the map geometry is in. ---- */
@@ -965,7 +968,7 @@ export class StreetProps {
     this._lampLights = [];
     this._litCount = tier === 'hi' ? 8 : 3;
     for (let i = 0; i < this._litCount; i++) {
-      const l = new THREE.PointLight(0xffa14f, 0, m(36), 2);
+      const l = new THREE.PointLight(0xffc98a, 0, m(36), 2);
       l.visible = false;
       this.group.add(l);
       this._lampLights.push(l);
@@ -1168,7 +1171,7 @@ export class StreetProps {
         const kind = h > 960 ? 2 : (h > 800 ? 1 : 0);
         rows.push({
           x: cx + n.x * m(0.35), y: cy, z: cz + n.z * m(0.35),
-          size: kind === 2 ? m(1.5) : m(1.15),
+          size: kind === 2 ? m(0.62) : m(0.5),
           color: kind === 2 ? 0x5fe0ff : (kind === 1 ? 0xdcecff : 0xffc98a),
         });
       }
@@ -1197,27 +1200,49 @@ export class StreetProps {
     if (!lights.length || !lights[0].visible) return;
     const heads = this._lampHeads;
     const cx = camera.position.x, cy = camera.position.y, cz = camera.position.z;
-    /* Partial selection: walk the list keeping the N nearest. N is 8, so an
-       insertion pass beats sorting 94 entries every frame. */
     const N = lights.length;
-    const bestI = this._bestI || (this._bestI = new Int32Array(N));
-    const bestD = this._bestD || (this._bestD = new Float32Array(N));
-    bestD.fill(Infinity); bestI.fill(-1);
+
+    /* Keep a shortlist of the nearest lamps, then hand the lights out along it
+       while refusing any lamp that sits within MIN_SEP of one already chosen.
+       Taking the nearest N outright looked correct on paper and blew out in
+       practice: at a junction this dense, all eight landed inside one corner
+       and stacked into a single overexposed patch. Spacing them turns the same
+       eight lights into a lit neighbourhood. */
+    const MIN_SEP = 26 * 26;
+    const POOL = Math.min(heads.length, N * 4);
+    const poolI = this._poolI || (this._poolI = new Int32Array(POOL));
+    const poolD = this._poolD || (this._poolD = new Float32Array(POOL));
+    poolD.fill(Infinity); poolI.fill(-1);
     for (let i = 0; i < heads.length; i++) {
       const h = heads[i];
       const dx = h.x - cx, dy = h.y - cy, dz = h.z - cz;
       const d = dx * dx + dy * dy + dz * dz;
-      if (d >= bestD[N - 1]) continue;
-      let k = N - 1;
-      while (k > 0 && bestD[k - 1] > d) { bestD[k] = bestD[k - 1]; bestI[k] = bestI[k - 1]; k--; }
-      bestD[k] = d; bestI[k] = i;
+      if (d >= poolD[POOL - 1]) continue;
+      let k = POOL - 1;
+      while (k > 0 && poolD[k - 1] > d) { poolD[k] = poolD[k - 1]; poolI[k] = poolI[k - 1]; k--; }
+      poolD[k] = d; poolI[k] = i;
     }
-    for (let i = 0; i < N; i++) {
-      const src = bestI[i] >= 0 ? heads[bestI[i]] : null;
-      if (!src) { lights[i].visible = false; continue; }
-      lights[i].visible = true;
-      lights[i].position.set(src.x, src.y, src.z);
+
+    let used = 0;
+    for (let p = 0; p < POOL && used < N; p++) {
+      if (poolI[p] < 0) continue;
+      const h = heads[poolI[p]];
+      let clash = false;
+      for (let u = 0; u < used; u++) {
+        const l = lights[u].position;
+        const dx = l.x - h.x, dz = l.z - h.z;
+        if (dx * dx + dz * dz < MIN_SEP) { clash = true; break; }
+      }
+      if (clash) continue;
+      lights[used].position.set(h.x, h.y, h.z);
+      lights[used].intensity = lights[used].userData.lit || 0;
+      used++;
     }
+    /* A sparse corner may not fill every light. Darken the remainder by
+       INTENSITY, never by `visible`: three.js keys its shader programs on the
+       light COUNT, so toggling one off mid-run recompiles every material in
+       the scene — a visible hitch, once per step you take. */
+    for (let i = used; i < N; i++) lights[i].intensity = 0;
   }
 
   /**
@@ -1265,7 +1290,9 @@ export class StreetProps {
     }
     if (this._lampLights) {
       for (const l of this._lampLights) {
-        l.intensity = a * 340;
+        /* the value update() restores for whichever lamps it hands out */
+        l.userData.lit = a * 260;
+        l.intensity = l.userData.lit;
         l.visible = a > 0.02;
       }
     }

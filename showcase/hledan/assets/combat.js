@@ -42,6 +42,10 @@ const BAZOOKA_DUR = .34, BAZOOKA_RANGE = 9 * S, BAZOOKA_CD = 1.1;
 const GIGANT_DUR  = .55, GIGANT_RANGE = 12 * S, GIGANT_CD = 6;
 const SANZEN_DUR  = .5,  SANZEN_DASH = 26 * S, SANZEN_CD = 6;
 const ROCKET_DUR  = .55, ROCKET_SPEED = 26 * S;
+/* How long a flight may keep steering before it gives up. At 26 m/s this is
+   about 60 m of travel, which covers the whole aim range; the cap only ever
+   bites when something solid is in the way. */
+const FLY_MAX = 2.4;
 const GATLING_INT = .09, GATLING_RANGE = 13 * S, GATLING_SLOW = .35;
 const TATSU_INT   = .13, TATSU_RADIUS = 3.4 * S, TATSU_SPIN = 16;
 const WAVE_TRAVEL = 32 * S, WAVE_DUR = .65, WAVE_CD = 1.1;
@@ -130,6 +134,7 @@ export class Combat {
     this.hakiFired = false;
     this.haki = 0;
     this.roll = null;                     // {t, dir}
+    this.fly = null;                      // {to, t} — a dash in flight
     this.rollK = 0;
     this.shake = 0;
     this.hitStop = 0;
@@ -264,6 +269,7 @@ export class Combat {
     this.move.kind = null; this.move.slot = null; this.move.t = 0;
     this.buffer.slot = null;
     this.gatling = 0; this.gatT = 0; this.balloon = 0;
+    this.fly = null;
     this.gear2 = false; this.gear2T = 0;
     this.haki = 0; this.hakiT = 0;
     this.stretch.active = false;
@@ -396,9 +402,24 @@ export class Combat {
     /* ---- move starts. Dash first (it can interrupt nothing but itself),
        then the buffered strikes, exactly Elbaf's order. ---- */
     const free = !mv.kind;
-    if (input.queued.has('dash') && kit.dash && mv.kind !== 'dash' && this.aim.valid) {
+    if (input.queued.has('dash') && kit.dash && !this.fly) {
       this._start('dash', kit.dash, ROCKET_DUR);
-      mv.target.copy(this.aim.point);
+      /* Aim at whatever the ray found, or — when it found nothing, which is
+         what happens every time you point at open sky over the junction —
+         at a point out along the look. Elbaf simply refuses the move on a
+         miss; here that read as a dead key, because this map has far more
+         sky in frame than a valley floor does. */
+      if (this.aim.valid) mv.target.copy(this.aim.point);
+      else mv.target.copy(C).addScaledVector(look, AIM_RANGE * 0.5);
+      /* The flight is its own state, not part of the move.
+         Elbaf steers for the move's 0.55 s and then lets the Rapier body
+         COAST the rest of the way on its own momentum, so you arrive. This
+         controller has no rigid body to coast — it eases velocity back to
+         whatever the stick is asking for the moment the move ends, which
+         stopped you dead a third of the way there. Flying as a separate
+         state that runs until it arrives reproduces the arrival without
+         pretending to simulate momentum. */
+      this.fly = { to: mv.target.clone(), t: 0 };
       ctrl.airJumps = Math.max(ctrl.airJumps, 1);      // the grapple refills the air jump
     }
     if (take('strike') && !mv.kind && kit.strike) {
@@ -432,6 +453,34 @@ export class Combat {
       const r = staff ? 14 * S : GIGANT_RANGE;
       mv.target.copy(C).addScaledVector(look, this.aim.valid ? Math.min(this.aim.distance + 1.5 * S, r) : r);
       this.cd.ult = sword ? SANZEN_CD : GIGANT_CD;
+    }
+
+    /* ---- the flight. Rocket / Flash Step / Cyclone carry you to the point
+       you aimed at, and keep carrying until you get there. Speed eases off
+       over the move's own window so the arrival is a settle rather than a
+       stop, and the whole thing is capped so a flight into a wall cannot
+       leave you hovering. ---- */
+    if (this.fly) {
+      this.fly.t += dt;
+      this._v.copy(this.fly.to).sub(C);
+      const gap = this._v.length();
+      const spent = this.fly.t > FLY_MAX;
+      if (gap > 2.5 * S && !spent) {
+        const ease = 1 - Math.min(1, this.fly.t / ROCKET_DUR) * 0.35;
+        this._v.multiplyScalar((sword ? ROCKET_SPEED * 1.3 : ROCKET_SPEED) * ease / gap);
+        this.drive.vx = this._v.x;
+        this.drive.vz = this._v.z;
+        this.drive.vy = this._v.y + 3 * S;   // Elbaf's lift, so you arc rather than skim
+        this.drive.face = 'look';
+        this.drive.lookYaw = Math.atan2(this._v.x, this._v.z);
+      } else {
+        if (!spent) {
+          this.impact(this.fly.to, sword ? 1.4 : 1.1, sword ? 'slash' : (staff ? 'zap' : 'punch'));
+          this.addShake(.15);
+          this.fovPunch = Math.max(this.fovPunch, .3);
+        }
+        this.fly = null;
+      }
     }
 
     // the flying crescents
@@ -506,21 +555,9 @@ export class Combat {
       mv.t += dt;
       const k = Math.min(1, mv.t / mv.dur);
 
-      if (mv.kind === 'dash') {
-        // Rocket / Flash Step / Cyclone: fly until you arrive
-        const spd = (sword ? ROCKET_SPEED * 1.3 : ROCKET_SPEED);
-        this._v.copy(mv.target).sub(this._s3.set(ctrl.pos.x, ctrl.pos.y + CENTER_Y, ctrl.pos.z));
-        if (this._v.length() > 2.5 * S) {
-          this._v.normalize().multiplyScalar(spd * (1 - k * .35));
-          this.drive.vx = this._v.x;
-          this.drive.vz = this._v.z;
-          this.drive.vy = this._v.y + 3 * S;
-        } else if (!mv.hit) {
-          mv.hit = true;
-          this.impact(mv.target, sword ? 1.4 : 1.1, sword ? 'slash' : (staff ? 'zap' : 'punch'));
-          this.addShake(.15);
-          mv.kind = null;
-        }
+      if (mv.slot === 'dash') {
+        /* the flight below owns the body; the move here is only the pose,
+           the banner and the cooldown */
       } else if (mv.slot === 'strike') {
         if (sword) {
           // Oni Giri: a 22 m/s cut with three slashes along it
