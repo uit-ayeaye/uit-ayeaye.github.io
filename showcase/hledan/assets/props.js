@@ -56,7 +56,46 @@ const POLE = [[210,43.6,-278],[198,43.6,-246],[82,43.3,-202],[58,43.3,-134],[146
  * added: a glowing head where each post tops out, a pool on the surface
  * beneath it, and a halo. Rows are [x, headY, z, groundY].
  */
-const BAKED_LAMPS = [[110.6,55.1,-233.1,43.5],[-108.9,53.8,-10.1,43.4],[-167.4,52.5,55.4,43.6],[-166.4,52.1,60.4,43.6],[-88.9,53.8,69.2,43.4],[-164.6,53.3,69.4,43.5],[-197.2,54.4,70.4,41.3],[-80.4,51.3,71.9,43.4],[-196.4,54.4,74.9,41.4],[30.6,72.9,75.9,61.7],[-234.7,52.1,80.9,39.7],[52.6,72.9,81.9,61.7],[-236.4,52.1,86.9,39.6],[-80.4,63.2,99.9,56.5],[-148.4,51.6,105.9,43.5],[-138.4,51.6,105.9,43.6],[-198.1,53.5,113.1,40.5],[-132.4,63.2,124.9,57.2],[-145.9,53.0,127.9,42.9],[-142.9,52.3,138.7,43.0],[14.6,72.9,138.9,61.7],[35.6,72.9,144.9,61.7],[-201.7,51.0,153.6,40.1],[-209.2,51.0,155.5,39.9],[-123.4,51.6,162.9,43.7],[-123.9,52.4,192.4,43.4],[-8.4,73.3,205.9,61.7],[-55.8,53.8,221.2,43.1],[-106.4,52.2,256.4,43.7],[-104.9,52.3,260.9,44.0],[-39.0,49.4,261.3,43.2],[-119.4,49.5,264.9,42.8],[-95.4,53.3,300.4,43.5],[-94.4,53.6,305.9,43.5],[-150.4,47.9,317.9,40.4],[-98.4,49.5,319.9,41.9],[-179.4,49.3,326.9,39.6],[-103.4,49.5,327.9,42.6],[-114.4,49.5,332.9,42.1],[-173.4,51.4,334.9,39.7],[-109.4,52.7,334.9,42.8],[-121.9,52.3,336.9,41.7],[-75.4,49.9,340.4,43.6],[-37.4,72.9,340.9,61.7],[-15.4,72.9,342.9,61.7],[29.1,49.5,343.9,43.2],[-11.4,72.9,406.9,61.7],[-33.4,72.8,411.9,61.7],[29.6,51.2,420.9,43.6],[-19.4,72.9,478.9,61.7]];
+const BAKED_LAMPS = [
+  /* the flyover's own fourteen, in pairs down the deck */
+  [-1.2,72.7,278.8,61.7],[-23.6,72.7,272.2,61.7],[17.3,72.7,213.5,61.7],[-5.1,72.7,206.9,61.7],
+  [36.3,72.7,145,61.7],[13.9,72.7,138.5,61.7],[-14.2,72.7,342.9,61.7],[-37.5,72.7,341.1,61.7],
+  [2.6,72.7,474.1,61.7],[-20.2,72.7,479.1,61.7],[-10.2,72.7,406.8,61.7],[-32.9,72.7,411.8,61.7],
+  [53.8,72.7,82.4,61.7],[31.3,72.7,76.2,61.7],
+  /* and the street-level posts, arm offsets already folded in */
+  [110.6,54.4,-233.1,43.5],[-108.9,53.1,-10.1,43.4],[-167.4,51.8,55.4,43.6],[-166.4,51.4,60.4,43.6],
+  [-88.9,53.1,69.2,43.4],[-164.6,52.6,69.4,43.5],[-196.2,53.7,73,41.3],[-80.4,50.6,71.9,43.4],
+  [-196.4,53.7,74.9,41.4],[-234.7,51.4,80.9,39.7],[-236.4,51.4,86.9,39.6],[-80.4,62.5,99.9,56.5],
+  [-148.4,50.9,105.9,43.5],[-138.4,50.9,105.9,43.6],[-198.1,52.8,113.1,40.5],[-132.4,62.5,124.9,57.2],
+  [-145.9,52.3,127.9,42.9],[-142.9,51.6,138.7,43],[-201.7,50.3,153.6,40.1],[-209.2,50.3,155.5,39.9],
+  [-123.4,50.9,162.9,43.7],[-123.9,51.7,192.4,43.4],[-55.8,53.1,221.2,43.1],[-106.4,51.5,256.4,43.7],
+  [-104.9,51.6,260.9,44],[-39,48.7,261.3,43.2],[-119.4,48.8,264.9,42.8],[-95.4,52.6,300.4,43.5],
+  [-94.4,52.9,305.9,43.5],[-150.4,47.2,317.9,40.4],[-98.4,48.8,319.9,41.9],[-179.4,48.6,326.9,39.6],
+  [-103.4,48.8,327.9,42.6],[-114.4,48.8,332.9,42.1],[-173.4,50.7,334.9,39.7],[-109.4,52,334.9,42.8],
+  [-121.9,51.6,336.9,41.7],[-75.4,49.2,340.4,43.6],[29.1,48.8,343.9,43.2],[29.6,50.5,420.9,43.6],
+];
+
+/**
+ * Rows are the LUMINAIRE itself — [x, y, z, groundY] — not the post it hangs
+ * from. That distinction is the whole fix: a street lamp's fixture sits on the
+ * end of an arm a couple of metres to one side of its pole, so a bulb drawn at
+ * the pole top glows in mid-air beside the dark fixture it is meant to be
+ * lighting, which is exactly how the bridge read.
+ *
+ * The flyover's fourteen were identified outright rather than guessed at. The
+ * fixture is one repeated model, and every instance of it carries exactly 96
+ * triangles — so clustering the map's geometry in the deck's lamp-head band and
+ * keeping the 96-triangle blobs finds all of them and nothing else. They come
+ * out in clean pairs about 65 units apart down the deck, which is what a
+ * flyover's lighting actually looks like. The earlier list came from scanning
+ * the baked height field for thin spikes, which found fence posts and signs as
+ * readily as lamps and missed several lamps entirely.
+ *
+ * The street-level posts have no such repeated model to key on, so those keep
+ * their scanned positions with the measured arm offset folded into x/z.
+ */
+const lampHead = (r) => ({ x: r[0], y: r[1], z: r[2] });
+const lampFoot = (r) => ({ x: r[0], y: r[3] + m(0.06), z: r[2] });
 
 /* The soundscape needs to know what you are standing next to — a tea shop
    sounds different from four lanes of traffic — so the same anchors drive it. */
@@ -433,6 +472,35 @@ function shopBulbGeo() {
     mostly warm, and it is half of why the city reads the way it does at dusk. */
 function lampLensGeo() {
   return paint(box(0.40, 0.05, 0.18, 1.20, 5.96, 0), 0xffffff);
+}
+
+/**
+ * The shaft of light under a lamp.
+ *
+ * This is the thing that makes a street at night feel like somewhere rather
+ * than like geometry with bright dots on it: humid air under a sodium lamp
+ * scatters, so the light is visible in the air between the fixture and the
+ * road, not only where it lands. A hollow cone hanging from the luminaire,
+ * additive, with the falloff baked into its vertex colours — bright where it
+ * leaves the lamp and gone before it reaches the ground, because the pool disc
+ * already does the ground contact.
+ *
+ * Built longer than any lamp is tall and simply allowed to run into the road:
+ * it is depth-tested, so the tarmac clips whatever hangs below it, and one
+ * geometry then serves posts of every height.
+ */
+function lampShaftGeo(topR, botR, height, seg = 9) {
+  const g = new THREE.CylinderGeometry(m(topR), m(botR), m(height), seg, 1, true);
+  g.translate(0, -m(height) / 2, 0);          // apex at the origin, hanging down
+  const pos = g.attributes.position;
+  const col = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++) {
+    const t = Math.min(1, Math.max(0, -pos.getY(i) / m(height)));
+    const v = Math.pow(1 - t, 1.9);
+    col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = v;
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  return g;
 }
 
 /** A standalone pool for the baked posts — same vertex-colour falloff as the
@@ -920,17 +988,18 @@ export class StreetProps {
     /* Seated INSIDE the luminaire, not perched on it. r[1] is the highest
        point of the detected post, so a 0.34 m bulb hung 0.12 m under it still
        poked out the top and read as a ball balanced on the lamp. */
-    const headRows = BAKED_LAMPS.map((r) => [r[0], r[1] - m(0.45), r[2]]);
+    const headRows = BAKED_LAMPS.map((r) => { const h = lampHead(r); return [h.x, h.y, h.z]; });
     const heads = instanced(paint(new THREE.SphereGeometry(m(0.34), 8, 6), 0xffffff),
       this.bakedMat, headRows, null, 0x4C414D, 0);
     heads.renderOrder = 3;
     this.meshes.push(heads);
-    const poolRows = BAKED_LAMPS.map((r) => [r[0], r[3] + m(0.06), r[2]]);
+    const poolRows = BAKED_LAMPS.map((r) => { const f = lampFoot(r); return [f.x, f.y, f.z]; });
     const bakedPools = instanced(bakedPoolGeo(tier === 'hi' ? 3.8 : 2.4), this.glowMat, poolRows, null, 0x4C414D, 0);
     bakedPools.renderOrder = 3;
     this.meshes.push(bakedPools);
     for (const r of BAKED_LAMPS) {
-      gridHalos.push({ x: r[0], y: r[1] - m(0.45), z: r[2], size: r[3] > 50 ? m(1.15) : m(1.0), color: 0xffdcae });
+      const h = lampHead(r);
+      gridHalos.push({ x: h.x, y: h.y, z: h.z, size: r[3] > 50 ? m(1.15) : m(1.0), color: 0xffdcae });
     }
     this._bakedHeads = heads;
     this._bakedPools = bakedPools;
@@ -976,12 +1045,33 @@ export class StreetProps {
     /* Where those lights may go: every lamp head on the map, street and deck. */
     this._lampHeads = [];
     for (const p of polePlace) this._lampHeads.push(localToWorld(p, m(1.20), m(5.9), 0));
-    for (const r of BAKED_LAMPS) this._lampHeads.push({ x: r[0], y: r[1] - m(0.3), z: r[2] });
+    for (const r of BAKED_LAMPS) this._lampHeads.push(lampHead(r));
+
+    /* One shaft per lamp head, street and deck alike — the layer that turns a
+       lit road into a place. Faint by design: at 0.05 it is air, at 0.2 it is
+       a spotlight in a theatre. */
+    /* BackSide, not DoubleSide. With both faces drawn you see the near wall of
+       the cone AND the far one, which doubles up exactly at the silhouette and
+       turns a shaft of light into a solid white cone with a bright rim. Drawing
+       only the far wall gives a single smooth gradient — the cheapest honest
+       approximation of light scattering through air there is. */
+    this.shaftMat = new THREE.MeshBasicMaterial({
+      vertexColors: true, color: 0xffd9a2, transparent: true, opacity: 0,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.BackSide,
+    });
+    const shafts = instancedFrom(
+      lampShaftGeo(0.30, tier === 'hi' ? 2.9 : 2.3, 13),
+      this.shaftMat,
+      this._lampHeads.map((h) => ({ x: h.x, y: h.y, z: h.z, yaw: 0, s: 1 })),
+      null);
+    shafts.renderOrder = 2;
+    this.meshes.push(shafts);
+    this._shafts = shafts;
 
     /* Everything that can be switched off, so setGlow can stop drawing it when
        the preset has it dark. */
     this._lit = [lamp, glow, busLights, taxiLights, bulbs, neon, heads, bakedPools,
-                 busBeam, taxiBeam, busTail, taxiTail].filter(Boolean);
+                 busBeam, taxiBeam, busTail, taxiTail, shafts].filter(Boolean);
     for (const mesh of this.meshes) this.group.add(mesh);
 
     if (tier === 'hi') this.group.add(this._cables(rng));
@@ -1188,6 +1278,99 @@ export class StreetProps {
   }
 
   /**
+   * Guard rails down both edges of the flyover.
+   *
+   * The deck has parapets in the photogrammetry, but the baked navmap is a
+   * single layer of ground heights with no notion of a wall, so walking east
+   * off the deck at z=200 simply stepped from 61.7 to 43.2 — an eighteen-unit
+   * drop with nothing in the way. `_canStand` only ever rejects a step UP, on
+   * the reasoning that walking downhill is walking; on a flyover it is falling
+   * off a bridge.
+   *
+   * The rails are derived from the deck rather than authored: for each slice
+   * across the map the run of cells sitting at deck height is measured, and a
+   * short barrier is dropped just outside each end of that run, turned to the
+   * local heading. The band is anchored at the deck's own height and is only a
+   * few units tall, so it stops anyone on the deck and is invisible to anyone
+   * on the street eighteen units below.
+   *
+   * @param nav the baked navmap, which only exists once play mode has loaded
+   */
+  addDeckRails(nav) {
+    if (this._railsDone || !this.obstacles || !nav) return 0;
+    this._railsDone = true;
+    const LO = 55, HI = 70, MIN_W = 8, STEP = 3;
+    /* Contiguous RUNS, not the first and last elevated cell in the slice. The
+       ramps sit at deck height too, so at some z there are two separate raised
+       surfaces; taking the outermost pair of cells then spans the gap between
+       them and puts both rails outside everything, leaving the real edges of
+       both open. That is why walking west off the deck still worked at z=140. */
+    const slices = [];
+    for (let z = 30; z <= 520; z += STEP) {
+      /* Height-banded to the FLAT deck, not to everything above LO. The ramp
+         shoulders fall away through this window, so a plain threshold walks the
+         run several cells down the slope and plants the rail below the deck —
+         where a body that has already stepped down passes underneath its
+         height band and off the side anyway. Take each slice's median elevated
+         height and keep only what is level with it. */
+      const cells = [];
+      for (let x = -95; x <= 105; x += 1) {
+        const h = nav.heightAt(x, z);
+        if (h === null || h < LO || h > HI || nav.blockedAt(x, z)) { cells.push(null); continue; }
+        cells.push(h);
+      }
+      const present = cells.filter((h) => h !== null).sort((p, q) => p - q);
+      if (!present.length) continue;
+      const med = present[present.length >> 1];
+      const runs = [];
+      let start = null, last = null;
+      for (let i = 0; i < cells.length; i++) {
+        const x = -95 + i;
+        const ok = cells[i] !== null && Math.abs(cells[i] - med) <= 1.6;
+        if (ok) {
+          if (start === null) start = x;
+          last = x;
+        } else if (start !== null && x - last > 2) {   // tolerate a 2-cell nick
+          if (last - start >= MIN_W) runs.push([start, last]);
+          start = null;
+        }
+      }
+      if (start !== null && last - start >= MIN_W) runs.push([start, last]);
+      for (const [x0, x1] of runs) slices.push({ z, x0, x1, y: nav.heightAt((x0 + x1) / 2, z) });
+    }
+    if (slices.length < 3) return 0;
+
+    /* Rail each run's two ends. The heading comes from the nearest slice ahead
+       and behind that belongs to the SAME run — matched by overlap, so a rail
+       never swings across to a neighbouring deck. */
+    const rows = [];
+    const near = (z, edgeX, sign) => {
+      let best = null, bestD = 1e9;
+      for (const t of slices) {
+        if (Math.abs(t.z - z) < 0.5 || Math.abs(t.z - z) > STEP * 2.5) continue;
+        const tx = sign > 0 ? t.x1 : t.x0;
+        const d = Math.abs(tx - edgeX);
+        if (d < bestD && d < 14) { bestD = d; best = { x: tx, z: t.z }; }
+      }
+      return best;
+    };
+    for (const s of slices) {
+      if (s.y === null) continue;
+      for (const sign of [-1, 1]) {
+        const edge = sign > 0 ? s.x1 : s.x0;
+        const n = near(s.z, edge, sign);
+        const yaw = n ? Math.atan2(n.x - edge, n.z - s.z) : 0;
+        // a step outside the last walkable cell, so the edge itself stays walkable
+        rows.push([edge + sign * 1.3, s.y, s.z, yaw]);
+      }
+    }
+    this.obstacles.add(rows, m(0.5), m(3.2), m(4.2), 1);
+    this.obstacles.build();
+    this.deckRails = rows.length;
+    return rows.length;
+  }
+
+  /**
    * Move the real point lights to whichever lamp heads are nearest the camera.
    *
    * Called every frame; costs a pass over ~94 lamp positions and a partial
@@ -1260,6 +1443,7 @@ export class StreetProps {
     this.vehMat.opacity = h * 0.95;
     if (this.neonMat) this.neonMat.opacity = a * 0.85;
     if (this.bakedMat) this.bakedMat.opacity = a * 0.95;
+    if (this.shaftMat) this.shaftMat.opacity = a * 0.055;
 
     /* The beams belong to the traffic, not the grid — in a blackout the road is
        dark and the buses still light it — but a headlight beam laid on sunlit

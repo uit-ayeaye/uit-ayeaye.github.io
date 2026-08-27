@@ -574,6 +574,13 @@ async function ensurePlayAssets(defIndex) {
   if (!play.nav) {
     setPlayStatus('Reading the street map…');
     play.nav = await NavMap.load('models/navmesh.png', 'models/navmesh.json');
+    /* The flyover's parapets exist in the map but not in the baked navmap,
+       which is one layer of heights with no walls in it. Derive rails from the
+       deck's own footprint now that the heights are available. */
+    if (props) {
+      const rails = props.addDeckRails(play.nav);
+      if (rails) console.info(`hledan: ${rails} flyover guard rails`);
+    }
   }
   if (!play.chr || play.chr.def.id !== def.id) {
     setPlayStatus(`Waking ${def.name}…`);
