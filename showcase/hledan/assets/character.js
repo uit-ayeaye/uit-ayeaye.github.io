@@ -61,37 +61,81 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 export const WORLD_SCALE = 1.5;
 const S = WORLD_SCALE;
 
+/**
+ * How much bigger than life the crew are built.
+ *
+ * Their canon heights — Luffy 1.74, Zoro 1.81, Nami 1.70 — are geometrically
+ * correct against this map: measured beside the parked cars, which are 1.56 m
+ * to the roof, Luffy stands 1.11x the roof line, which is exactly where a
+ * 1.74 m person stands beside a hatchback. He still reads SMALL, and the lens
+ * is why. The chase camera is a 55 deg vertical field at 7.2 m, so the frame is
+ * 7.5 m tall at the body and a correctly-sized human fills 23% of it, while
+ * anything between him and the camera — the car he is walking past, most of
+ * all — is a third nearer and renders half again as large. The proportion is
+ * right and the picture is wrong.
+ *
+ * So the crew are built at heroic scale instead, the way an action game builds
+ * a protagonist. EVERYTHING about the body scales together — stature, stride,
+ * speed, jump, the height a kerb can be and still be stepped over — so they
+ * stay internally consistent and only the world is left at life size. At 1.2
+ * Luffy is 2.09 m and stands a clear head over a car roof, which is the read
+ * the camera was flattening.
+ *
+ * One number, deliberately: change it and the whole crew moves together.
+ */
+export const HERO_SCALE = 1.2;
+const K = S * HERO_SCALE;                      // body-sized lengths use this
+
 const GRAVITY      = -18 * S;
 export const SPRINT_MULT = 1.75;
 const ACCEL        = 14;                       // 1/s
 const AIR_ACCEL_K  = 0.35;                     // Elbaf: air accel is 35% of ground
-const BODY_HEIGHT  = 1.7 * S;
-const BODY_RADIUS  = 0.25 * S;
+/* Body-sized: a taller body occupies a taller slice of air, steps over a taller
+   kerb and swings a longer leg. Measured over the built core, only 0.66% of
+   standable cells have less than 3.2 m of headroom — and nearly all of those
+   are kerb artefacts under a metre — so a 2.4 m collision body clears the map
+   exactly as the 2.0 m one did. */
+export const BODY_HEIGHT  = 1.7 * K;
+export const BODY_RADIUS  = 0.25 * K;
 const COYOTE_TIME  = 0.12;
 const AIR_JUMPS    = 1;
 const AIR_JUMP_MULT = 0.92;
-const STEP_UP      = 0.62 * S;
-const SNAP_DOWN    = 0.40 * S;
+export const STEP_UP      = 0.62 * K;
+const SNAP_DOWN    = 0.40 * K;
 /* The steepest face the feet hold on, as |normal.y| — the same 0.55 the
    colliders split floors at, so anything the collider calls a ramp is
    something this slides down. */
 const SLOPE_MIN    = 0.55;
-const SLIDE_ACCEL  = 20 * S;                   // downhill pull on a pitch
+const SLIDE_ACCEL  = 20 * K;                   // downhill pull on a pitch
 /* How fast the body walks itself out of geometry it should never have been
    inside. Slow enough to read as a stumble rather than a teleport. */
-const ESCAPE_SPEED = 7 * S;
+const ESCAPE_SPEED = 7 * K;
 /* Ceiling on the horizontal sub-steps below. Twelve covers the worst frame the
    app will hand over (dt is clamped to 0.1 s) at the fastest speed in the game,
    and it is only ever reached on a frame that has already stopped for a tenth
    of a second. */
 const SUB_STEP_MAX = 12;
+/* Flash Step's perch search — see `findPerch`. Reach is horizontal; climb is
+   how far above the feet a landing may be, and it is NOT a constant: how high
+   the step is willing to go is taken from how steeply the player is looking
+   up. Level, it is a shophouse roof; at the top of the camera's travel it is
+   the roof of the tallest thing on the map. A single fixed ceiling could not
+   serve both — 12 m left the tower unclimbable, and 90 m turned every flat
+   glance down a street into a launch. */
+const PERCH_REACH      = 18 * K;
+const PERCH_CLIMB_LOW  = 9 * K;
+const PERCH_CLIMB_HIGH = 80 * K;
+/* The chase camera's pitch is clamped to +0.35 rad, so `look.y` never gets
+   past about 0.34. This is that range, not a notional one. */
+const PERCH_AIM_LO = -0.05, PERCH_AIM_HI = 0.30;
+const PERCH_STEP   = 1.4 * K;                  // march resolution
 export const YAW_SENS   = 0.0045;
 export const PITCH_SENS = 0.0035;
 export const PITCH_MIN  = -0.85;
 export const PITCH_MAX  = 0.35;
 /** Feet → capsule centre. Every Elbaf height offset is authored against the
     capsule centre (feet + 0.85 m), so effects and the camera key off this. */
-export const CENTER_Y = 0.85 * S;
+export const CENTER_Y = 0.85 * K;
 
 /* Elbaf's crew stats, verbatim, in metres per second. */
 const RAW_CHARACTERS = [
@@ -111,10 +155,16 @@ const RAW_CHARACTERS = [
  */
 const HEAD_RATIO = 0.87;
 
+/**
+ * Stature, stride and reach all scale together — see HERO_SCALE. Speed has to
+ * come with the height or the walk cycle slides: the legs are 20% longer, so at
+ * the old speed the same cadence covers 20% less ground than the feet do.
+ */
 export const CHARACTERS = RAW_CHARACTERS.map((c) => ({
   ...c,
-  speed: c.speed * S,
-  jump: c.jump * S,
+  height: c.height * HERO_SCALE,
+  speed: c.speed * K,
+  jump: c.jump * K,
 }));
 
 /* Elbaf's own frame-rate-independent damp — THREE.MathUtils.damp. */
@@ -1358,6 +1408,27 @@ export class CharacterController {
   update(dt, input, stats, drive = {}) {
     const nav = this.nav;
 
+    /* A warp owns the body outright for its own few frames: position is
+       written, not integrated, and no collision runs. That is only safe
+       because whoever set it verified the DESTINATION as somewhere this body
+       can stand — see `findPerch`. Skipping the resolve is the point, since a
+       flash step is meant to cross the wall rather than be stopped by it. */
+    if (drive.warp) {
+      this.pos.set(drive.warp.x, drive.warp.y, drive.warp.z);
+      this.vel.set(0, 0, 0);
+      this.grounded = false;
+      this.airTime = 0;
+      this.coyote = 0;
+      this.landing = 0;
+      this.sliding = 0;
+      if (drive.faceSet !== undefined) this.facing = drive.faceSet;
+      else if (drive.face === 'look') this.facing = drive.lookYaw;
+      this.speedXZ = 0;
+      this._prevFacing = this.facing;
+      this._prevVy = 0;
+      return this;
+    }
+
     // wish direction in camera-yaw space (Elbaf's basis)
     this._fwd.set(-Math.sin(input.yaw), 0, -Math.cos(input.yaw));
     this._right.set(Math.cos(input.yaw), 0, -Math.sin(input.yaw));
@@ -1609,6 +1680,66 @@ export class CharacterController {
   }
 
   /**
+   * The highest place along a look direction that this body could stand on.
+   *
+   * This is what makes Flash Step a way onto a roof rather than a hop with a
+   * cut in it. Marching HORIZONTALLY matters: standing at the foot of a
+   * building and looking up at it, a march down the actual look vector goes
+   * into the sky over the roof and finds nothing, while a march along the
+   * flattened look goes into the building's own footprint — which is exactly
+   * where its roof is.
+   *
+   * Every candidate is checked as a place to STAND, not merely as a surface:
+   * clear of walls through the body's slice of air, out of the sealed
+   * interiors, and with headroom. That is the whole difference between this
+   * and the teleport this move used to be, which marched a ray that was
+   * allowed to climb over a shopfront and put the body wherever it stopped —
+   * 13.1% of the time inside a building.
+   *
+   * The HIGHEST valid perch wins, nearest breaking the tie. "Get me up there"
+   * is what the move is for, and the alternative rules both misbehave in the
+   * case it exists to serve: nearest-first stops at the awning in front of the
+   * building, and farthest-first skips the roof you are looking at in favour of
+   * whatever ledge happens to be at the end of the march.
+   *
+   * How high it will reach comes from `lookY` — see PERCH_CLIMB_*. Standing at
+   * the foot of the tower and looking up its face, the march goes into the
+   * tower's own footprint and the highest surface in that column is its roof,
+   * a hundred units up; the same march at a level glance stops at the first
+   * shopfront awning.
+   *
+   * @returns {x, y, z, dist} | null
+   */
+  findPerch(lookX, lookY, lookZ, reach = PERCH_REACH) {
+    if (!this.solids) return null;
+    const len = Math.hypot(lookX, lookZ);
+    if (len < 1e-4) return null;
+    const aim = THREE.MathUtils.smoothstep(lookY, PERCH_AIM_LO, PERCH_AIM_HI);
+    const climb = PERCH_CLIMB_LOW + (PERCH_CLIMB_HIGH - PERCH_CLIMB_LOW) * aim;
+    const dx = lookX / len, dz = lookZ / len;
+    const feet = this.pos.y;
+    const ceiling = feet + climb;
+    let best = null;
+    for (let d = PERCH_STEP * 1.5; d <= reach; d += PERCH_STEP) {
+      const x = this.pos.x + dx * d, z = this.pos.z + dz * d;
+      const col = this.solids.surfaces(x, z);
+      /* The highest surface within reach — a roof, not the street under it. The
+         navmap is not consulted: it holds one height per cell and the whole
+         point here is the level it cannot describe. */
+      let y = null;
+      for (let i = col.length - 1; i >= 0; i--) if (col[i] <= ceiling) { y = col[i]; break; }
+      if (y === null || y < feet + 1.0 * K) continue;          // not a climb
+      if (this.interiors && this.interiors.inside(x, z, y)) continue;
+      if (this._walled(x, z, y)) continue;                     // a wall stands in it
+      if (this.obstacles && this.obstacles.blocked(x, z, BODY_RADIUS, y, BODY_HEIGHT)) continue;
+      const roof = this.solids.ceilingOver(x, z, y + 0.2 * K);
+      if (roof !== null && roof - y < BODY_HEIGHT) continue;   // no headroom
+      if (!best || y > best.y + 0.5) best = { x, y, z, dist: d };
+    }
+    return best;
+  }
+
+  /**
    * Walk the body out of anything it is standing inside.
    *
    * Nothing here should ever put a body in a wall, but a 17 m/s dash resolved
@@ -1625,6 +1756,7 @@ export class CharacterController {
     if (!this.solids) return false;
     if (!this._walled(this.pos.x, this.pos.z, bandY)) return false;
     const probe = BODY_RADIUS * 3;
+    const push = Math.min(probe, ESCAPE_SPEED * dt);
     const base = this.speedXZ > 1e-3 ? Math.atan2(this.vel.x, this.vel.z) : this.facing;
     let fallbackX = 0, fallbackZ = 0, fallback = false;
     for (let i = 0; i < 8; i++) {
@@ -1632,24 +1764,31 @@ export class CharacterController {
          nearest way out wins over the first one in an arbitrary sweep. */
       const a = base + (i % 2 ? -1 : 1) * Math.ceil(i / 2) * (Math.PI / 4);
       const dx = Math.sin(a), dz = Math.cos(a);
-      const tx = this.pos.x + dx * probe, tz = this.pos.z + dz * probe;
-      if (this._walled(tx, tz, bandY)) continue;
+      if (this._walled(this.pos.x + dx * probe, this.pos.z + dz * probe, bandY)) continue;
       /* An escape is not a door. Pushing blind put the body through a
          shopfront it had merely brushed — the wall test says the far side is
          clear, and the far side of a shopfront is a sealed shell. Interiors
          are only acceptable as a last resort, when the body is ALREADY in one
-         and every way out leads through more of it. */
-      if (this.interiors && this.interiors.inside(tx, tz, bandY)) {
+         and every way out leads through more of it.
+         Tested where the body will actually END UP, not at the probe: the
+         probe is a body-and-a-half out and the step is a frame's worth, so a
+         mask edge between the two let one cell of shopfront through. */
+      if (this.interiors
+          && this.interiors.inside(this.pos.x + dx * push, this.pos.z + dz * push, bandY)) {
         if (!fallback) { fallback = true; fallbackX = dx; fallbackZ = dz; }
         continue;
       }
-      const push = Math.min(probe, ESCAPE_SPEED * dt);
       this.pos.x += dx * push;
       this.pos.z += dz * push;
       return true;
     }
-    if (fallback) {
-      const push = Math.min(probe, ESCAPE_SPEED * dt);
+    /* The last resort is only a resort for a body that is ALREADY inside one.
+       Pushing indoors to escape a wall is trading a stumble for a trap: at the
+       west edge, where the shell meets the map boundary, every direction out
+       of the wall led into the shophouse behind it and the fallback walked
+       straight in. A body outside stays outside — stuck against a wall is
+       recoverable by walking, being sealed in a white box is not. */
+    if (fallback && this.interiors && this.interiors.inside(this.pos.x, this.pos.z, bandY)) {
       this.pos.x += fallbackX * push;
       this.pos.z += fallbackZ * push;
       return true;

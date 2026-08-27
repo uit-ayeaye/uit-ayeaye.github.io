@@ -79,7 +79,13 @@ export const PRESETS = {
     cloud: 0x2f3a52, cloudAmt: 0.34, cloudSharp: 0.22,
     /* the sodium dome the city throws up off its own streets */
     glow: 0xff8c3c, glowAmt: 0.20,
-    rain: 0, wind: 0, lamps: 1.0, traffic: 0.45, headlights: 1.0, moon: 1, windows: 1, selfLit: 0.035,
+    /* The facades give back more of their own texture here than anywhere else
+       on the dial. 0.035 was a wash you had to look for; the buildings read as
+       daytime geometry standing in the dark, which is the one thing a city at
+       night must not look like. 0.085 is still far below the daylight albedo —
+       it is the block lit by its own signage and the sodium off the road, not
+       a building that has started glowing. */
+    rain: 0, wind: 0, lamps: 1.0, traffic: 0.45, headlights: 1.0, moon: 1, windows: 1, selfLit: 0.085,
   },
 
   blackout: {

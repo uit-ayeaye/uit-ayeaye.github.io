@@ -118,12 +118,36 @@ const IMPACT_KINDS = {
   flash:   { color: 0xe4f6ff, size: 1.2, flat: false, life: .2, alpha: .55 },
 };
 const IMPACT_POOL = 16, DEBRIS_PER = 6, DEBRIS_LIFE = .7;
-/* Flash Step — a jump with a cut in it, driven through the controller rather
-   than teleported, so a wall stops it exactly as it stops a walk. Modest on
-   purpose: it is a traversal beat you can spam, not a way across the junction. */
-const FLASH_DUR   = .30;        // the drive window
-const FLASH_SPEED = 17 * S;     // forward, m/s, AVERAGED over the window
-const FLASH_RISE  = 7.6 * S;    // upward impulse, a shade over Zoro's 6.8 jump
+
+/**
+ * Flash Step, in two modes.
+ *
+ * It was one mode — a thrown arc, integrated through the controller so a wall
+ * stopped it exactly as a wall stops a walk. That is honest and it is slow:
+ * 0.30 s of travel to cover eight metres reads as a RUN, and the thing a flash
+ * step is supposed to read as is arrival. Worse, honesty is what made a roof
+ * unreachable. Thrown at a building the arc hits the facade and stops, so the
+ * only way onto a roof was to spam the move upward next to the wall until the
+ * rise happened to clear it.
+ *
+ * So the move asks a question first: is there anywhere along this look that
+ * this body could STAND? (`findPerch` in character.js.) If there is, the body
+ * does not travel to it, it ARRIVES — 0.13 s of warp with the afterimages
+ * marking the line, and the cut on landing. Nothing can be reached that a
+ * standing body does not fit in, so the sealed buildings stay sealed and the
+ * teleport that used to strand Zoro inside them cannot come back.
+ *
+ * If there is nowhere to perch — open sky, open road — it falls back to the
+ * thrown arc, at roughly twice the old speed over half the window.
+ */
+const FLASH_WARP  = .13;        // arrival window when a perch is found
+const FLASH_DUR   = .18;        // drive window for the thrown fallback
+const FLASH_SPEED = 30 * S;     // forward, m/s, AVERAGED over that window
+const FLASH_RISE  = 8.4 * S;    // upward impulse on the fallback
+/* How high the warp bows above the straight line between here and the perch,
+   as a fraction of the distance. A dead-straight warp reads as a slide along
+   a wire; a bow reads as a leap. */
+const FLASH_ARC   = .16;
 
 /**
  * The step's speed across its own window.
@@ -337,6 +361,10 @@ export class Combat {
     this._ghostSeq = 0;
     this._ghostNext = 0;
     this._ghostLast = new THREE.Vector3();
+    this.warp = null;                     // {t, from, to, rise, yaw} — a perch arrival
+    this._warpFrom = new THREE.Vector3();
+    this._warpTo = new THREE.Vector3();
+    this._warpAt = new THREE.Vector3();
     this.blink = null;                    // {t, dur} — the arrival flourish
   }
 
@@ -349,6 +377,7 @@ export class Combat {
     this.buffer.slot = null;
     this.gatling = 0; this.gatT = 0; this.balloon = 0;
     this.fly = null;
+    this.warp = null;
     this.blink = null;
     for (const g of this.ghosts) { g.life = 0; g.mesh.visible = false; }
     this.gear2 = false; this.gear2T = 0;
@@ -524,19 +553,48 @@ export class Combat {
        it spammable: each press is another beat of height and another cut. */
     const dashFree = !mv.kind || mv.slot === 'dash';
     if (input.queued.has('dash') && kit.dash && sword && dashFree) {
-      this._start('dash', kit.dash, FLASH_DUR);
-      mv.hit = false;
-      /* Never SUBTRACT from a rise that is already going: spamming the button
-         on the way up should stack into a climb, not reset you to one impulse. */
-      ctrl.vel.y = Math.max(ctrl.vel.y, FLASH_RISE);
-      ctrl.grounded = false;
-      ctrl.coyote = 0;
-      ctrl.airTime = 0;
-      ctrl.facing = Math.atan2(look.x, look.z);
-      mv.target.copy(C).addScaledVector(look, 5 * S);
-      this.blink = { t: 0, dur: .2 };
-      this._trailReset(ctrl);
-      this.addShake(.05);
+      /* Somewhere to land, along the flattened look? That decides which of the
+         two moves this press is — and looking DOWN opts out of it, so the
+         player keeps a way to take the flat step across a road rather than
+         always being thrown at the nearest roof. */
+      const perch = (ctrl.findPerch && look.y > -.25)
+        ? ctrl.findPerch(look.x, look.y, look.z) : null;
+      const yaw = Math.atan2(look.x, look.z);
+      if (perch) {
+        this._start('dash', kit.dash, FLASH_WARP);
+        mv.hit = false;
+        this.warp = {
+          t: 0,
+          from: this._warpFrom.set(ctrl.pos.x, ctrl.pos.y, ctrl.pos.z),
+          to: this._warpTo.set(perch.x, perch.y, perch.z),
+          rise: perch.dist * FLASH_ARC,
+          yaw,
+        };
+        ctrl.facing = yaw;
+        mv.target.copy(this._warpTo);
+        this.blink = { t: 0, dur: .18 };
+        this._trailReset(ctrl);
+        this.addShake(.07);
+        this.fovPunch = Math.max(this.fovPunch, .5);
+        /* The departure is its own sound. Both ends of a blink want marking —
+           the leaving as much as the arriving — and with only the landing cut
+           the move had no attack at all. */
+        if (this.onImpact) this.onImpact(ctrl.pos, .5, 'whoosh');
+      } else {
+        this._start('dash', kit.dash, FLASH_DUR);
+        mv.hit = false;
+        /* Never SUBTRACT from a rise that is already going: spamming the button
+           on the way up should stack into a climb, not reset you to one impulse. */
+        ctrl.vel.y = Math.max(ctrl.vel.y, FLASH_RISE);
+        ctrl.grounded = false;
+        ctrl.coyote = 0;
+        ctrl.airTime = 0;
+        ctrl.facing = yaw;
+        mv.target.copy(C).addScaledVector(look, 5 * S);
+        this.blink = { t: 0, dur: .18 };
+        this._trailReset(ctrl);
+        this.addShake(.05);
+      }
     } else if (input.queued.has('dash') && kit.dash && !this.fly) {
       this._start('dash', kit.dash, ROCKET_DUR);
       /* Aim at whatever the ray found, or — when it found nothing, which is
@@ -690,11 +748,40 @@ export class Combat {
       mv.t += dt;
       const k = Math.min(1, mv.t / mv.dur);
 
-      if (mv.slot === 'dash' && sword) {
-        /* Flash Step drives itself. Horizontal only — the rise was an impulse
-           at the start and gravity owns it from there, which is what makes the
-           arc read as a jump rather than a hover — and shaped across the
-           window rather than held flat, so the burst is a burst. */
+      if (mv.slot === 'dash' && sword && this.warp) {
+        /* The warp. Position is written straight to the controller, which is
+           only safe because the destination was verified standable before the
+           move started. Eased hard out of the departure — 80% of the line is
+           gone in the first third of the window, which is what makes it read
+           as arrival rather than as travel. */
+        const w = this.warp;
+        w.t += dt;
+        const q = Math.min(1, w.t / FLASH_WARP);
+        const e = 1 - Math.pow(1 - q, 3);
+        this.drive.warp = this._warpAt;
+        this._warpAt.lerpVectors(w.from, w.to, e);
+        /* A bow over the straight line, so the body leaves the ground rather
+           than sliding up an invisible ramp. */
+        this._warpAt.y += Math.sin(e * Math.PI) * w.rise;
+        this.drive.faceSet = w.yaw;
+        this._trail(ctrl);
+        if (!mv.hit && q >= .82) {
+          mv.hit = true;
+          /* The cut lands ON the perch, at the far end, not at the midpoint of
+             a journey the player never sees. */
+          this._v.copy(w.to);
+          this._v.y += CENTER_Y;
+          this.impact(this._v, 1.3, 'flash');
+          this.addShake(.11);
+          this.hitStop = Math.max(this.hitStop, .04);
+        }
+        if (q >= 1) this.warp = null;
+      } else if (mv.slot === 'dash' && sword) {
+        /* The thrown fallback, for when there was nowhere to land. Horizontal
+           only — the rise was an impulse at the start and gravity owns it from
+           there, which is what makes the arc read as a jump rather than a
+           hover — and shaped across the window rather than held flat, so the
+           burst is a burst. */
         const e = FLASH_SPEED * flashEnvelope(k);
         this.drive.vx = look.x * e;
         this.drive.vz = look.z * e;

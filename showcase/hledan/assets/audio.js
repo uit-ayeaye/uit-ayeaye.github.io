@@ -36,6 +36,14 @@ const IMPACT_SFX = {
   gigant:  { lp: 520,  dur: .75, level: 1,   sweep: .25, thump: 48 },
   haki:    { lp: 340,  dur: 1.2, level: 1,   sweep: .2,  thump: 36 },
   zap:     { lp: 3000, dur: .3,  level: .5,  sweep: .3,  bell: 520 },
+  /* Flash Step's two ends. `whoosh` is the departure — air, no metal, and a
+     downward sweep so it reads as something leaving; `flash` is the arrival,
+     which is a draw-cut, so it is short, bright and carries the blade's ring.
+     Marking both ends is most of what makes a blink read as a blink: with only
+     the landing the move had no attack at all, and the ear heard a hit with
+     nothing before it. */
+  whoosh:  { lp: 2600, dur: .16, level: .34, sweep: .18 },
+  flash:   { lp: 5200, dur: .16, level: .5,  sweep: .3,  bell: 880 },
 };
 
 /**

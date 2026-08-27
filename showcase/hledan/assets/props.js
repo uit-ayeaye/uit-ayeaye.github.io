@@ -1644,6 +1644,122 @@ export class StreetProps {
   }
 
   /**
+   * Neon on the facades, derived the way the windows are.
+   *
+   * The complaint this answers is that the towers go dead after dark. They do:
+   * the map's own texture is a daylight photograph, the night preset gives it
+   * back 3.5% of itself as emissive, and the window layer is a scatter of
+   * halo sprites floating a hand's width off the glass. None of that is what a
+   * Yangon block looks like at night, because what a Yangon block looks like at
+   * night is SIGNAGE — a shopfront band of it at eye level, saturated, and a
+   * scatter of lit boxes further up.
+   *
+   * So: the same triangle walk as `buildWindows`, two height bands, and a small
+   * emissive quad laid flat on each accepted wall face and turned to its
+   * normal. Additive, depth-tested but not depth-writing, one instanced draw
+   * for the lot. The hash gate is deliberately mean — at every eligible face
+   * this reads as wallpaper rather than as a street.
+   *
+   * @returns how many signs were placed
+   */
+  buildNeon(meshes, streetY, tier = 'hi') {
+    if (!meshes || !meshes.length) return 0;
+    /* Coarser than the window grid on purpose: a sign is a metre of wall, not a
+       window's worth, and two of them on one shopfront is a mess. */
+    const GX = 9.5, GY = 7.0;
+    const LOW_A = streetY + m(2.4), LOW_B = streetY + m(9.0);     // the shopfront band
+    const UP_A = streetY + m(13), UP_B = streetY + m(64);         // boxes further up
+    const seen = new Set();
+    const rows = [], colours = [];
+    const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+    const ab = new THREE.Vector3(), ac = new THREE.Vector3(), n = new THREE.Vector3();
+    /* Yangon shopfronts, not a cyberpunk set: hot pink and cyan are real and
+       common, and so are plain warm white and the green of a pharmacy cross.
+       Electric Blue and Firebrick are the studio's own, and they earn their
+       place on the two buildings the board is on. */
+    const PALETTE = [0xff2e88, 0x36e0ff, 0xffd27a, 0x53ff9d, 0xff3030, 0x0066ff, 0xfff0d0];
+
+    for (const mesh of meshes) {
+      const geo = mesh.geometry;
+      const pos = geo && geo.attributes && geo.attributes.position;
+      if (!pos) continue;
+      const index = geo.index;
+      const count = index ? index.count : pos.count;
+      const mw = mesh.matrixWorld;
+      for (let i = 0; i + 2 < count; i += 3) {
+        const i0 = index ? index.getX(i) : i;
+        const i1 = index ? index.getX(i + 1) : i + 1;
+        const i2 = index ? index.getX(i + 2) : i + 2;
+        a.fromBufferAttribute(pos, i0).applyMatrix4(mw);
+        const lowBand = a.y >= LOW_A && a.y <= LOW_B;
+        const upBand = a.y >= UP_A && a.y <= UP_B;
+        if (!lowBand && !upBand) continue;
+        b.fromBufferAttribute(pos, i1).applyMatrix4(mw);
+        c.fromBufferAttribute(pos, i2).applyMatrix4(mw);
+        ab.subVectors(b, a); ac.subVectors(c, a);
+        n.crossVectors(ab, ac);
+        const len = n.length();
+        if (len < 1e-6) continue;
+        n.multiplyScalar(1 / len);
+        if (Math.abs(n.y) > 0.3) continue;              // a wall, not a soffit
+        if (len * 0.5 < 3.0) continue;                  // too small to carry a sign
+        const cx = (a.x + b.x + c.x) / 3;
+        const cy = (a.y + b.y + c.y) / 3;
+        const cz = (a.z + b.z + c.z) / 3;
+        const key = `${Math.floor(cx / GX)},${Math.floor(cy / GY)},${Math.floor(cz / GX)}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const h = Math.abs(Math.imul(Math.floor(cx * 5) ^ Math.floor(cz * 11), 0x9e3779b1)
+                           ^ Math.imul(Math.floor(cy * 3), 0x85ebca6b)) % 1000;
+        /* A third of the shopfront band, a twentieth of everything above it —
+           the street is where the signs are. */
+        if (lowBand ? h > 340 : h > 52) continue;
+        const big = lowBand;
+        rows.push({
+          x: cx + n.x * m(0.22), y: cy, z: cz + n.z * m(0.22),
+          yaw: Math.atan2(n.x, n.z),
+          w: big ? m(2.5 + (h % 7) * 0.28) : m(1.1 + (h % 5) * 0.22),
+          hgt: big ? m(0.62 + (h % 3) * 0.16) : m(0.44),
+        });
+        colours.push(PALETTE[h % PALETTE.length]);
+      }
+    }
+    if (!rows.length) return 0;
+
+    const keep = tier === 'hi' ? rows : rows.filter((_, i) => i % 2 === 0);
+    const keepCol = tier === 'hi' ? colours : colours.filter((_, i) => i % 2 === 0);
+
+    /* Additive and unlit: a sign is a source, and at midday `setGlow` takes it
+       to zero opacity so it costs nothing but a skipped draw. */
+    this.signMat = new THREE.MeshBasicMaterial({
+      vertexColors: true, transparent: true, opacity: 0,
+      blending: THREE.AdditiveBlending, depthWrite: false, fog: true,
+      side: THREE.DoubleSide, toneMapped: false,
+    });
+    const geo = new THREE.PlaneGeometry(1, 1);
+    const mesh = new THREE.InstancedMesh(geo, this.signMat, keep.length);
+    const dummy = new THREE.Object3D();
+    const col = new THREE.Color();
+    keep.forEach((r, i) => {
+      dummy.position.set(r.x, r.y, r.z);
+      dummy.rotation.set(0, r.yaw, 0);
+      dummy.scale.set(r.w, r.hgt, 1);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+      mesh.setColorAt(i, col.setHex(keepCol[i]));
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    mesh.matrixAutoUpdate = false;
+    mesh.frustumCulled = false;
+    mesh.renderOrder = 3;
+    this._signs = mesh;
+    this.group.add(mesh);
+    this.signCount = keep.length;
+    return keep.length;
+  }
+
+  /**
    * Guard rails down both edges of the flyover.
    *
    * The deck has parapets in the photogrammetry, but the baked navmap is a
@@ -1916,6 +2032,14 @@ export class StreetProps {
     this.bulbMat.opacity = a * 0.9;
     this.vehMat.opacity = h * 0.95;
     if (this.neonMat) this.neonMat.opacity = a * 0.85;
+    /* Facade signage is on somebody's own meter, like the windows: it dims
+       with the grid but a blackout street still has a few shopfronts lit off a
+       generator, and a city with every sign dead reads as evacuated. */
+    if (this.signMat) {
+      const sg = Math.max(a, (this.windowFloor || 0) * 0.7);
+      this.signMat.opacity = sg * 0.9;
+      if (this._signs) this._signs.visible = sg > 0.012;
+    }
     if (this.bakedMat) this.bakedMat.opacity = a * 0.95;
     if (this.shaftMat) this.shaftMat.opacity = a * 0.055;
 

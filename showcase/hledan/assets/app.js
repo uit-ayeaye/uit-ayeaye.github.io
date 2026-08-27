@@ -21,8 +21,10 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import {
   CHARACTERS, NavMap, Character, CharacterController, ChaseCamera,
   YAW_SENS, PITCH_SENS, WORLD_SCALE,
+  BODY_RADIUS, BODY_HEIGHT, STEP_UP,
 } from './character.js';
 import { Weather, PRESETS } from './weather.js';
+import { LedBoard } from './ledboard.js';
 import { Combat, MOVES, SLOTS } from './combat.js';
 
 /* ------------------------------------------------------------------ device */
@@ -334,6 +336,7 @@ const groundWide = [];
 const buildings = [];               // walls, for the lit-window pass
 const colliderMeshes = [];          // the map's solid meshes, for MapColliders
 let props = null;                   // instanced street furniture
+let ledBoard = null;                // the Jolly Roger, on Hledan Centre's screen
 
 /* Built now, silent now. The AudioContext inside is not constructed until the
    sound button is pressed, so there is nothing here that could autoplay. */
@@ -421,7 +424,12 @@ new GLTFLoader().load(
     mapRoot.updateMatrixWorld(true);
     const t0 = performance.now();
     const lit = props.buildWindows(buildings, streetY, DEVICE.tier);
-    console.info(`hledan: ${lit} lit windows in ${(performance.now() - t0).toFixed(0)} ms`);
+    const signs = props.buildNeon(buildings, streetY, DEVICE.tier);
+    console.info(`hledan: ${lit} lit windows + ${signs} signs in ${(performance.now() - t0).toFixed(0)} ms`);
+
+    /* The billboard on Hledan Centre. Its position is measured off the facade
+       and baked, so it needs nothing from the map but the scene to sit in. */
+    ledBoard = new LedBoard({ scene, THREE, tier: DEVICE.tier });
 
     weather = new Weather({
       scene, renderer, sky, hemi, ambient, sun, skirt, props,
@@ -620,13 +628,19 @@ async function ensurePlayAssets(defIndex) {
        Deferred to here on purpose: it is ~4 MB and a few tens of milliseconds,
        and a visitor who only spins the model should never pay for it.
 
-       The band is the whole reachable world: the lowest ground on the map sits
-       at 31 and the flyover deck at 62, so 24 to 96 covers standing on either
-       plus every jump from either. The low tier widens the buckets, trading a
-       slightly longer scan per query for a third off the index. */
+       The band is the whole reachable world, and it used to stop at 96 — which
+       was true when the only ways up were a jump and a short step, and false
+       the moment Flash Step could take a roof. Every roof on this map above 96
+       simply had no collision on it, so the tallest tower was not hard to
+       climb, it was NOT THERE: the perch search found the highest surface in
+       its column at 95.96 and nothing over it. 175 clears the tallest building
+       and costs 908 triangles and 0.08 MB — 1.7% — because there is very
+       little of this city above the ninth floor. The low tier widens the
+       buckets, trading a slightly longer scan per query for a third off the
+       index. */
     const t = performance.now();
     play.solids = new MapColliders(colliderMeshes, THREE, {
-      yLo: 24, yHi: 96, cell: DEVICE.tier === 'hi' ? 4 : 6,
+      yLo: 24, yHi: 175, cell: DEVICE.tier === 'hi' ? 4 : 6,
     });
     console.info(`hledan: colliders ${play.solids.wallCount} walls + `
       + `${play.solids.floorCount} floors, `
@@ -637,7 +651,13 @@ async function ensurePlayAssets(defIndex) {
     setPlayStatus('Sealing the buildings…');
     /* The shells have nothing inside them, so being in one is a bug rather
        than a discovery. Work out which ground is sealed in, once. */
-    play.interiors = new InteriorMask(play.nav, play.solids);
+    /* Measured against the body that actually exists. The mask asks "is there
+       a ceiling over this cell", and how high to look is a question about how
+       tall the thing standing there is — leaving it on the defaults meant the
+       crew grew and the mask kept describing the body they used to have. */
+    play.interiors = new InteriorMask(play.nav, play.solids, {
+      bodyR: BODY_RADIUS, stepUp: STEP_UP, bodyH: BODY_HEIGHT,
+    });
     console.info(`hledan: interiors ${play.interiors.sealedCells} sealed `
       + `(${play.interiors.roofedCells} roofed, ${play.interiors.canopyCells} canopies left open) `
       + `of ${play.interiors.groundCells} cells, ${play.interiors.ms.toFixed(0)} ms`);
@@ -1435,6 +1455,7 @@ function paintCombatHud() {
 /* Small inspection surface — handy from the console when tuning the scene. */
 window.__hledan = { THREE, scene, camera, renderer, controls, walk, sound,
                     get props() { return props; }, get weather() { return weather; },
+                    get led() { return ledBoard; },
                     get box() { return mapBox; }, get ground() { return groundBox; },
                     get streetY() { return streetY; }, device: DEVICE,
                     get scale() { return renderScale; }, play, CHARACTERS, IS_TOUCH,
@@ -1464,6 +1485,7 @@ function loop(now) {
 
   if (play.on && play.combat) paintCombatHud();
   if (weather) weather.update(realDt, camera);
+  if (ledBoard) ledBoard.update(realDt);
   /* The handful of real point lights migrate to whichever lamps are nearest,
      so wherever you are on the map is the part that is properly lit. */
   if (props) props.update(camera);
