@@ -76,7 +76,11 @@ function probeDevice() {
 document.body.classList.toggle('touch', IS_TOUCH);
 
 const DEVICE = probeDevice();
-const TARGET_MS = DEVICE.tier === 'hi' ? 1000 / 60 : 1000 / 45;
+/* 60 on both tiers. The low tier used to aim at 45, which is a self-fulfilling
+   budget: the scaler stops giving pixels back the moment the frame fits, so a
+   phone that could have held 55 sat at 45 by construction and looked softer
+   than it needed to for the privilege. */
+const TARGET_MS = 1000 / 60;
 
 /* ------------------------------------------------------------------- scene */
 
@@ -384,7 +388,7 @@ new GLTFLoader().load(
            blues and the pale green are the ones you see most at Hledan. */
         liveries: [0x1f5fa8, 0x2f8f4e, 0xd8482c, 0xe0a52a] },
     ]) {
-      loadVehicleGeometry(`models/vehicles/${v.file}`, { bodyMat: v.bodyMat, size: v.size })
+      loadVehicleGeometry(`models/vehicles/${v.file}`, { bodyMat: v.bodyMat, size: v.size, tier: DEVICE.tier })
         .then((loaded) => { if (props) props.replaceVehicle(v.kind, loaded, v.liveries); })
         .catch((e) => console.warn(`${v.file} unavailable, keeping the built-in one:`, e.message));
     }
@@ -597,13 +601,6 @@ async function ensurePlayAssets(defIndex) {
   if (!play.nav) {
     setPlayStatus('Reading the street map…');
     play.nav = await NavMap.load('models/navmesh.png', 'models/navmesh.json');
-    /* The flyover's parapets exist in the map but not in the baked navmap,
-       which is one layer of heights with no walls in it. Derive rails from the
-       deck's own footprint now that the heights are available. */
-    if (props) {
-      const rails = props.addDeckRails(play.nav);
-      if (rails) console.info(`hledan: ${rails} flyover guard rails`);
-    }
   }
   if (!play.solids && colliderMeshes.length) {
     setPlayStatus('Fitting the colliders…');
@@ -624,6 +621,18 @@ async function ensurePlayAssets(defIndex) {
       + `${play.solids.floorCount} floors, `
       + `${(play.solids.bytes / 1048576).toFixed(1)} MB, `
       + `${(performance.now() - t).toFixed(0)} ms`);
+  }
+  /* The flyover's parapets exist in the map but not in the baked navmap, which
+     is one layer of heights with no walls in it, so rails are derived from the
+     deck's own footprint. AFTER the colliders, not before: given the real
+     geometry the derivation can drop every rail that would have stood inside a
+     parapet the map already has. */
+  if (props && play.nav) {
+    const rails = props.addDeckRails(play.nav, play.solids);
+    if (rails) {
+      console.info(`hledan: ${rails} flyover guard rails`
+        + (props._railsSkipped ? ` (${props._railsSkipped} already walled by the map)` : ''));
+    }
   }
   if (!play.chr || play.chr.def.id !== def.id) {
     setPlayStatus(`Waking ${def.name}…`);
@@ -665,6 +674,12 @@ async function enterPlay() {
   if (!play.combat) {
     play.combat = new Combat(scene, DEVICE.tier);
     play.combat.bindGround((x, z) => play.nav.heightAt(x, z));
+    /* Every ring the move machine spawns gets its noise burst here, at the
+       listener's distance from it. The soundscape stays off until the visitor
+       asks for it, so this is a no-op for anyone who never presses ♪. */
+    play.combat.onImpact = (pos, power, kind) => {
+      if (sound.enabled) sound.impact(pos.x, pos.y, pos.z, power, kind, camera.position);
+    };
   }
   play.combat.setStyle(play.chr.def.style);
   const c = coreBox.getCenter(new THREE.Vector3());
@@ -730,6 +745,11 @@ async function swapCharacter(delta) {
 
 const CHIP_SLOTS = ['strike', 'sustain', 'heavy', 'dash', 'ult', 'gear', 'guard'];
 
+/* Cached [data-move] nodes for the per-frame cooldown painter, invalidated
+   by refreshMoveChips(). Declared here so it is initialised before any of
+   the mode handlers above can reach the refresher. */
+let moveChips = null;
+
 function refreshMoveChips() {
   const def = (play.chr && play.chr.def) || CHARACTERS[play.index];
   const kit = MOVES[def.style] || {};
@@ -751,6 +771,9 @@ function refreshMoveChips() {
     b.classList.toggle('absent', !mv);
     if (mv) b.setAttribute('aria-label', mv.name);
   });
+  /* The per-frame painter caches these nodes and the last value it wrote to
+     each; a kit swap changes what the cooldowns mean, so drop the cache. */
+  moveChips = null;
 }
 
 function refreshCharChips() {
@@ -824,6 +847,20 @@ function updatePlay(dt) {
     style: def.style, move: cb.move.kind, moveK: cb.moveK,
     gatling: cb.gatling, balloon: cb.balloon, haki: cb.haki, gear2: cb.gear2,
   });
+
+  /* Footfalls and the thud of a landing. Speeds go back to metres here — the
+     controller works in map units, the clips were authored in metres, and the
+     stride is a property of the clip. `landed()` above has already put this
+     frame's fall speed in `c0.landing`, and it is non-zero for exactly the one
+     frame the feet touch. */
+  if (sound.enabled) {
+    sound.player(dt, {
+      speed: c0.speedXZ / WORLD_SCALE,
+      grounded: c0.grounded,
+      landing: c0.landing / WORLD_SCALE,
+      stride: play.chr.strideM,
+    });
+  }
 
   // camera: Elbaf's 60° lens, kicked in by the heavy hits
   play.cam.punch(cb.fovPunch);
@@ -900,6 +937,23 @@ addEventListener('keyup', (e) => {
   for (const slot of SLOTS) if (kit[slot] && kit[slot].key === e.code) play.held.delete(slot);
 });
 
+/**
+ * Drop every held key when the window stops receiving them.
+ *
+ * A keyup that happens while another window has focus is delivered to that
+ * window, not this one, so alt-tabbing (or cmd-tabbing, or hitting a system
+ * shortcut) mid-stride left `walk.keys` with the key still down: the character
+ * sprinted off on his own and kept going until you pressed and released the
+ * same key again. Sustained moves held the same way.
+ */
+function releaseAllKeys() {
+  for (const code of Object.keys(walk.keys)) walk.keys[code] = false;
+  play.held.clear();
+  play.sprintHeld = false;
+}
+addEventListener('blur', releaseAllKeys);
+document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAllKeys(); });
+
 /* ---------------------------------------------------------- input layer */
 
 /**
@@ -909,7 +963,7 @@ addEventListener('keyup', (e) => {
  *     events), so mouse, pen and finger all take the same path
  *   - anything inside a [data-ui-button] is a button, not input
  *   - on touch, a press in the LEFT HALF is the thumbstick; everything else
- *     looks. A press in the bottom-right PAD_W x PAD_H corner never becomes
+ *     looks. A press within the action pad's own rectangle never becomes
  *     the stick, so a thumb that misses an action button cannot drag the
  *     joystick out from under the pad (it still looks — that is Elbaf's
  *     behaviour too)
@@ -920,11 +974,35 @@ addEventListener('keyup', (e) => {
  * The constants are Elbaf's verbatim — they are what make it feel the same.
  */
 const STICK_R = 58, STICK_DEAD = 0.12, STICK_SPRINT = 0.8;
-const PAD_W = 250, PAD_H = 265;
+/* How far outside the pad a press still counts as "aimed at the pad". */
+const PAD_MARGIN = 18;
 
 const stickEl = document.getElementById('stick');
 const knobEl = document.getElementById('knob');
 const inputLayer = document.getElementById('input-layer');
+const padEl = document.getElementById('pad');
+
+/**
+ * The rectangle in which a press is a fumbled button rather than a thumbstick.
+ *
+ * This used to be a fixed 250 x 265 box in the bottom-right corner, which is
+ * Elbaf's figure for Elbaf's pad. Here the pad is 234 x 111 and the viewport
+ * can be 375 wide, so that box reached from x=125 to the right edge and 265 px
+ * up — and the stick only exists in the left half, x < 187. The overlap made a
+ * 62 px column of the LEFT thumb's own territory swing the camera instead of
+ * walking, across the whole bottom of the screen. Measuring the pad answers
+ * the question the constant was standing in for.
+ */
+let padRect = null;
+function measurePad() {
+  if (!padEl) { padRect = null; return; }
+  const r = padEl.getBoundingClientRect();
+  padRect = r.width
+    ? { x0: r.left - PAD_MARGIN, y0: r.top - PAD_MARGIN, x1: r.right + PAD_MARGIN, y1: r.bottom + PAD_MARGIN }
+    : null;
+}
+addEventListener('resize', measurePad);
+addEventListener('orientationchange', () => setTimeout(measurePad, 250));
 
 const pointers = new Map();
 let stickId = null;
@@ -955,7 +1033,11 @@ inputLayer.addEventListener('pointerdown', (e) => {
   // the rest of this handler down with it or the press registers as nothing.
   try { inputLayer.setPointerCapture(e.pointerId); } catch (err) { /* not capturable */ }
 
-  const inPad = e.clientX > innerWidth - PAD_W && e.clientY > innerHeight - PAD_H;
+  /* The pad only moves when the layout does, but it does not exist until the
+     play HUD is shown, so measure lazily and keep it. */
+  if (!padRect) measurePad();
+  const inPad = !!padRect && e.clientX > padRect.x0 && e.clientX < padRect.x1
+                          && e.clientY > padRect.y0 && e.clientY < padRect.y1;
   const isStick = IS_TOUCH && e.clientX < innerWidth * 0.5 && !inPad;
 
   pointers.set(e.pointerId, {
@@ -1049,12 +1131,28 @@ function updateWalk(dt) {
 
 /* ------------------------------------------------------- adaptive resolution */
 
-let renderScale = DEVICE.tier === 'hi' ? 1.0 : 0.8;
-const MIN_SCALE = DEVICE.tier === 'hi' ? 0.55 : 0.45, MAX_SCALE = 1.0;
+let renderScale = DEVICE.tier === 'hi' ? 1.0 : 0.9;
+/**
+ * The floor used to be 0.45 on the low tier, and the phone lived on it.
+ *
+ * That floor was set on the assumption that this scene is fill-bound, and it
+ * is not. Measured on the live scene at street level, sweeping the buffer from
+ * 2560x1440 down to 864x486 — 8.8x fewer fragments — moved the GPU frame from
+ * 0.218 ms to 0.140 ms. Eight ninths of the pixels bought 36% of the time,
+ * because the cost is vertex, draw and state, none of which care how big the
+ * buffer is. So the old floor gave up two thirds of the resolution for a sliver
+ * of a frame, and the sliver was never enough to reach the target anyway: the
+ * phone in the bug report was blurred to porridge AND sitting at 35 fps.
+ *
+ * 0.7 is the new floor on both tiers. Anything the scaler cannot buy above it
+ * has to be found in the frame itself, which is where the rest of this pass
+ * went.
+ */
+const MIN_SCALE = 0.7, MAX_SCALE = 1.0;
 /* A phone at devicePixelRatio 3 asks for nine times the fragments of a 1x
    buffer for a screen you hold at arm's length. Cap the low tier at 1.5 —
-   combined with the adaptive scale below the floor is 0.68x native, which is
-   still sharper than most native mobile games render at. */
+   combined with the floor above that is 1.05x native, comfortably sharper
+   than the 0.68x this used to bottom out at. */
 const basePR = Math.min(window.devicePixelRatio || 1, DEVICE.tier === 'hi' ? 2 : 1.5);
 let frames = 0, accum = 0, sinceAdjust = 0;
 
@@ -1254,13 +1352,33 @@ canvas.addEventListener('webglcontextlost', (e) => {
 /* -------------------------------------------------------------------- loop */
 
 const bannerEl = () => document.getElementById('moveBanner');
+/**
+ * Cooldown dials and the move banner.
+ *
+ * Two things this deliberately does NOT do every frame: walk the DOM looking
+ * for the buttons, and write to them. It ran `querySelectorAll` sixty times a
+ * second for a list of thirteen elements that cannot change between character
+ * swaps, then set a custom property on each — and setting a custom property
+ * invalidates style for the element whether or not the value differs, which on
+ * a phone is a style recalc per chip per frame for a number that is 0 the
+ * entire time you are not on cooldown. The nodes are cached and the writes are
+ * gated on an actual change; a swap calls `refreshMoveChips()`.
+ */
 function paintCombatHud() {
   const def = (play.chr && play.chr.def) || CHARACTERS[play.index];
-  document.querySelectorAll('[data-move]').forEach((b) => {
-    const k = play.combat.cooldown(def, b.dataset.move);
-    if (b.classList.contains('movechip')) b.style.setProperty('--cd', (k * 100).toFixed(0) + '%');
-    b.classList.toggle('cooling', k > 0.001);
-  });
+  if (!moveChips) {
+    moveChips = [...document.querySelectorAll('[data-move]')].map((b) => ({
+      el: b, move: b.dataset.move, dial: b.classList.contains('movechip'), last: -1,
+    }));
+  }
+  for (const c of moveChips) {
+    const k = play.combat.cooldown(def, c.move);
+    const shown = Math.round(k * 100);
+    if (shown === c.last) continue;
+    c.last = shown;
+    if (c.dial) c.el.style.setProperty('--cd', shown + '%');
+    c.el.classList.toggle('cooling', k > 0.001);
+  }
   const el = bannerEl();
   if (el) {
     if (play.combat.bannerT > 0) {

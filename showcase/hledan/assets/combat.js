@@ -103,6 +103,15 @@ const IMPACT_KINDS = {
   zap:     { color: 0xcfe8ff, size: 1.1, flat: false, life: .38 },
 };
 const IMPACT_POOL = 16, DEBRIS_PER = 6, DEBRIS_LIFE = .7;
+/* Flash Step. Zoro does not fly to the mark, he is simply already there:
+   the body is moved in one frame and the distance it crossed is paid for
+   afterwards, in afterimages that fade from where he set off. */
+const FLASH_RANGE = 26 * S;     // how far one step reaches
+const FLASH_MIN   = 4 * S;      // below this it is a stumble, not a step
+const FLASH_DUR   = .26;        // the pose/recovery window, not the travel
+const FLASH_PROBE = 0.5 * S;    // march resolution when finding a landing spot
+const GHOST_POOL  = 7;
+const GHOST_LIFE  = .34;
 const GATLING_ARMS = 7;
 const SKIN = new THREE.Color('#f0c191');
 const HAKI_BLACK = new THREE.Color('#23242e');
@@ -178,9 +187,17 @@ export class Combat {
       });
     }
     this._impactCursor = 0;
+    /* Lambert on the low tier, the same rule the map and the vehicles follow.
+       Nothing here has a roughness map, a normal map or any metalness, so the
+       PBR BRDF is being paid for a flat-shaded pebble. */
+    const Lit = (opts) => (tier === 'hi'
+      ? new THREE.MeshStandardMaterial(opts)
+      : new THREE.MeshLambertMaterial({
+          color: opts.color, flatShading: opts.flatShading, side: opts.side,
+        }));
     this.debris = new THREE.InstancedMesh(
       new THREE.IcosahedronGeometry(1, 0),
-      new THREE.MeshStandardMaterial({ color: 0xdfe9f5, roughness: .9, flatShading: true }),
+      Lit({ color: 0xdfe9f5, roughness: .9, flatShading: true }),
       IMPACT_POOL * DEBRIS_PER);
     this.debris.frustumCulled = false;
     g.add(this.debris);
@@ -192,10 +209,10 @@ export class Combat {
     const mkArm = () => {
       const arm = new THREE.Mesh(
         new THREE.CylinderGeometry(.1, .1, 1, 8, 1, true),
-        new THREE.MeshStandardMaterial({ color: SKIN, roughness: .7, flatShading: true, side: THREE.DoubleSide }));
+        Lit({ color: SKIN, roughness: .7, flatShading: true, side: THREE.DoubleSide }));
       const fist = new THREE.Mesh(
         new THREE.SphereGeometry(.26, 10, 8),
-        new THREE.MeshStandardMaterial({ color: SKIN, roughness: .7, flatShading: true }));
+        Lit({ color: SKIN, roughness: .7, flatShading: true }));
       arm.visible = fist.visible = false;
       arm.frustumCulled = fist.frustumCulled = false;
       g.add(arm, fist);
@@ -259,6 +276,20 @@ export class Combat {
       return m;
     });
     this._boltJobs = [];
+
+    /* Flash Step's afterimages. One body-sized slab per station along the
+       blink, laid flat-on to the camera and faded out back-to-front, so what
+       is left behind reads as the places Zoro just WAS rather than as a
+       vapour trail. Pooled at construction like everything else here. */
+    this.ghosts = Array.from({ length: GHOST_POOL }, () => {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1),
+        addMat(0xbfe6ff, { blending: THREE.AdditiveBlending }));
+      m.visible = false; m.renderOrder = 996; m.frustumCulled = false;
+      g.add(m);
+      return { mesh: m, t: 0, life: 0 };
+    });
+    this._ghostSeq = 0;
+    this.blink = null;                    // {t, dur} — the arrival flourish
   }
 
   /* ------------------------------------------------------------- helpers */
@@ -270,6 +301,8 @@ export class Combat {
     this.buffer.slot = null;
     this.gatling = 0; this.gatT = 0; this.balloon = 0;
     this.fly = null;
+    this.blink = null;
+    for (const g of this.ghosts) { g.life = 0; g.mesh.visible = false; }
     this.gear2 = false; this.gear2T = 0;
     this.haki = 0; this.hakiT = 0;
     this.stretch.active = false;
@@ -283,6 +316,12 @@ export class Combat {
     this._impactCursor++;
     slot.age = 0; slot.kind = kind; slot.power = power;
     slot.pos.copy(pos);
+    /* One hook, set by app.js, so the sound arrives with the ring rather than
+       being discovered a frame later by something polling the pool. Elbaf
+       polls a sequence counter for this; a callback is the same thing without
+       the counter, and a move that lands three hits gets three sounds spaced
+       exactly as the hits are. */
+    if (this.onImpact) this.onImpact(pos, power, kind);
   }
 
   addShake(x) { this.shake = Math.min(1.3, this.shake + x); }
@@ -357,6 +396,12 @@ export class Combat {
     // cooldowns
     for (const k of Object.keys(this.cd)) if (this.cd[k] > 0) this.cd[k] = Math.max(0, this.cd[k] - dt);
 
+    // the arrival flourish, which outlives the move's own pose window
+    if (this.blink) {
+      this.blink.t += dt;
+      if (this.blink.t >= this.blink.dur) this.blink = null;
+    }
+
     // the 0.2 s input buffer: one slot deep, latest press wins
     if (this.buffer.slot) {
       this.buffer.t -= dt;
@@ -402,7 +447,19 @@ export class Combat {
     /* ---- move starts. Dash first (it can interrupt nothing but itself),
        then the buffered strikes, exactly Elbaf's order. ---- */
     const free = !mv.kind;
-    if (input.queued.has('dash') && kit.dash && !this.fly) {
+    if (input.queued.has('dash') && kit.dash && sword && !this.fly) {
+      /* ---- Flash Step: a blink, not a flight ----
+         Soru is a step so fast the body is not seen crossing the gap, and the
+         flight this used to be read as the opposite of that: a slow arc that
+         shoved you through whatever stood between you and the mark, which is
+         what "penetrates into the target object" was describing. So the body
+         is placed at the far end in ONE frame, at the last spot along the aim
+         it could legally stand — the wall stops the step instead of being
+         swallowed by it — and the crossing is sold afterwards with a row of
+         afterimages down the path. */
+      this._start('dash', kit.dash, FLASH_DUR);
+      this._flashStep(ctrl, look);
+    } else if (input.queued.has('dash') && kit.dash && !this.fly) {
       this._start('dash', kit.dash, ROCKET_DUR);
       /* Aim at whatever the ray found, or — when it found nothing, which is
          what happens every time you point at open sky over the junction —
@@ -677,6 +734,83 @@ export class Combat {
     this.holdSlow = this.speedMul() / (this.gear2 ? GEAR2_SPEED : 1);
   }
 
+  /**
+   * Move the body one Flash Step down `look`, and leave the crossing behind
+   * as afterimages.
+   *
+   * The landing spot is found by marching, not by a raycast, because "can I
+   * stand here" is a different question from "did a ray hit something": the
+   * step has to clear the body's own radius, land on a surface within a step
+   * of the one it left, and miss the parked buses that are not in the map mesh
+   * at all. `ctrl._canStand` already answers exactly that question, so the
+   * march asks it — the last cell that says yes is where Zoro appears. A step
+   * that cannot clear FLASH_MIN is refused outright and the move is dropped,
+   * which is better than a blink that lands you back where you started.
+   *
+   * Horizontal only. The aim points wherever the camera does, and letting the
+   * step follow it upward turns a ground technique into flight; Zoro steps
+   * ACROSS the junction, and gravity keeps its say.
+   */
+  _flashStep(ctrl, look) {
+    const dx = look.x, dz = look.z;
+    const len = Math.hypot(dx, dz);
+    const mv = this.move;
+    if (len < 1e-4) { mv.kind = null; mv.slot = null; return false; }
+    const ux = dx / len, uz = dz / len;
+
+    const x0 = ctrl.pos.x, z0 = ctrl.pos.z, y0 = ctrl.pos.y;
+    let bestX = x0, bestZ = z0, bestD = 0;
+    for (let d = FLASH_PROBE; d <= FLASH_RANGE; d += FLASH_PROBE) {
+      const px = x0 + ux * d, pz = z0 + uz * d;
+      /* From the feet, so the step can cross a railing it is currently
+         standing above — the same band rule the walk uses. */
+      if (!ctrl._canStand(px, pz, ctrl.groundY, ctrl.grounded ? ctrl.groundY : y0)) break;
+      bestX = px; bestZ = pz; bestD = d;
+    }
+    if (bestD < FLASH_MIN) { mv.kind = null; mv.slot = null; return false; }
+
+    // afterimages first, while the old position is still the current one
+    this._spawnGhosts(x0, y0, z0, bestX, bestZ, ctrl.facing);
+
+    ctrl.pos.x = bestX;
+    ctrl.pos.z = bestZ;
+    const gy = ctrl._groundAt(bestX, bestZ, ctrl.groundY);
+    if (gy !== null) {
+      ctrl.groundY = gy;
+      // land on the new surface rather than hanging at the old height
+      if (ctrl.grounded || ctrl.pos.y < gy) { ctrl.pos.y = gy; ctrl.vel.y = 0; ctrl.grounded = true; }
+    }
+    /* Kill the carried momentum. A blink has no run-up to spend, and leaving
+       the old velocity in makes Zoro slide on arrival like the flight did. */
+    ctrl.vel.x = 0; ctrl.vel.z = 0;
+    ctrl.facing = Math.atan2(ux, uz);
+
+    mv.target.set(bestX, y0 + CENTER_Y, bestZ);
+    mv.hit = true;
+    this.blink = { t: 0, dur: .22 };
+    this.impact(mv.target, 1.25, 'slash');
+    this.addShake(.12);
+    this.fovPunch = Math.max(this.fovPunch, .26);
+    return true;
+  }
+
+  /** Lay the pool down the path just crossed, oldest-first so it fades away from you. */
+  _spawnGhosts(x0, y0, z0, x1, z1, facing) {
+    const n = this.ghosts.length;
+    for (let i = 0; i < n; i++) {
+      const k = i / (n - 1 || 1);
+      const g = this.ghosts[i];
+      g.t = 0;
+      /* Stagger the lives so the trail dissolves from the tail end instead of
+         blinking out all at once. */
+      g.life = GHOST_LIFE * (0.45 + 0.55 * (1 - k));
+      g.mesh.position.set(x0 + (x1 - x0) * k, y0 + CENTER_Y, z0 + (z1 - z0) * k);
+      g.mesh.rotation.set(0, facing, 0);
+      g.k = k;
+    }
+    this._ghostSeq++;
+  }
+
   _start(slot, def, dur) {
     const mv = this.move;
     mv.kind = def.id;
@@ -822,6 +956,31 @@ export class Combat {
       this._armTo(pair, fx, fy, fz, tx, ty, tz, w, .8, .85, SKIN);
     }
 
+    /* Flash Step's trail: one thin vertical streak at each place Zoro was.
+       These were body-WIDE slabs first, and the reason they are not is worth
+       keeping. The trail is laid down behind the character, which is exactly
+       where the chase camera is, so the camera flies through the whole row of
+       them as it catches up — at body width that is four grey panes filling
+       the screen at the one moment the move is meant to be legible. A streak
+       a fifth of that width occludes almost nothing, and reads as speed
+       rather than as a mistake, which a featureless silhouette always does.
+       The near fade still takes out anything about to touch the lens. */
+    for (const g of this.ghosts) {
+      if (g.life <= 0) { if (g.mesh.visible) g.mesh.visible = false; continue; }
+      g.t += dt;
+      const k = g.t / g.life;
+      if (k >= 1) { g.life = 0; g.mesh.visible = false; continue; }
+      const near = g.mesh.position.distanceTo(camera.position) / S;
+      const clear = Math.min(1, Math.max(0, (near - 3.0) / 4.0));
+      if (clear <= 0.001) { g.mesh.visible = false; continue; }
+      g.mesh.visible = true;
+      g.mesh.quaternion.copy(camera.quaternion);
+      // narrows and lengthens as it goes, the way a light trail smears
+      g.mesh.scale.set(.16 * S * (1 - k * .5), 1.5 * S * (1 + k * .35), 1);
+      /* Brightest at the tail (where he left) so the eye is pulled forward. */
+      g.mesh.material.opacity = (1 - k) * (1 - k) * .5 * (1 - g.k * .4) * clear;
+    }
+
     // Zoro's dressing
     const dashLines = sword && (this.move.kind === 'onigiri' || this.move.kind === 'sanzen' || this.move.kind === 'flash');
     for (let i = 0; i < 3; i++) {
@@ -831,9 +990,14 @@ export class Combat {
       const back = (.6 + i * .9) * S;
       m.position.set(px - Math.sin(ctrl.facing) * back, py + CENTER_Y - .2 * S + i * .28 * S, pz - Math.cos(ctrl.facing) * back);
       m.rotation.set(0, ctrl.facing + (i - 1) * .3, .5 + i * .5);
-      const big = this.move.kind === 'sanzen' ? 1.8 : 1;
+      /* The blink's own window, not the move's: on arrival the lines snap to
+         full and fall away, which is what sells "he is already there". Kept
+         to a fifth extra length and a brightness lift — scaling these by
+         2.1x, as a first pass did, put a white bar across the whole frame. */
+      const flash = this.blink ? 1 - this.blink.t / this.blink.dur : 0;
+      const big = this.move.kind === 'sanzen' ? 1.8 : (1 + flash * 0.2);
       m.scale.set((2.4 + i * .8) * big * S, (.5 + i * .14) * big * S, 1);
-      m.material.opacity = (.5 - i * .12) * (.6 + Math.sin(elapsed * 40 + i * 2) * .4);
+      m.material.opacity = (.5 - i * .12) * (.6 + Math.sin(elapsed * 40 + i * 2) * .4) * (1 + flash * .5);
     }
     const spin = sword ? this.gatling : 0;
     for (let i = 0; i < 2; i++) {

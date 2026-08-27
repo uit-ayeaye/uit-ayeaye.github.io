@@ -24,6 +24,38 @@ import { ANCHORS } from './props.js';
 const VOICES = { hi: 12, lo: 5 };          // concurrent one-shots
 
 /**
+ * Elbaf's impact dictionary, verbatim (`jr` in its bundle): the filter corner,
+ * the length, the level and how far the corner sweeps down over that length,
+ * plus an optional sine `thump` under the noise for the heavy ones.
+ */
+const IMPACT_SFX = {
+  punch:   { lp: 1500, dur: .16, level: .5,  sweep: .4 },
+  slash:   { lp: 4200, dur: .2,  level: .42, sweep: .25 },
+  land:    { lp: 700,  dur: .26, level: .5,  sweep: .5,  thump: 90 },
+  bazooka: { lp: 900,  dur: .5,  level: .8,  sweep: .3,  thump: 70 },
+  gigant:  { lp: 520,  dur: .75, level: 1,   sweep: .25, thump: 48 },
+  haki:    { lp: 340,  dur: 1.2, level: 1,   sweep: .2,  thump: 36 },
+  zap:     { lp: 3000, dur: .3,  level: .5,  sweep: .3,  bell: 520 },
+};
+
+/**
+ * How far a footstep is, in metres.
+ *
+ * Elbaf hard-codes 1.39, but that number is not arbitrary and copying it
+ * blindly would desynchronise the sound from these legs: it is `1.3 * walkDur`
+ * for a 1.07 s clip. Character computes the real figure from its own clip and
+ * passes it in (see `strideM` there); this is only the fallback.
+ */
+const DEFAULT_STRIDE = 1.39;   // Elbaf's own figure, for a rig that has no clip
+
+/** Elbaf's inverse-square-ish rolloff: silent past `far`, quadratic inside it. */
+function rolloff(d2, far) {
+  if (d2 > far * far) return 0;
+  const k = 1 - Math.sqrt(d2) / far;
+  return k * k;
+}
+
+/**
  * Pink-ish noise, looped. Voss-McCartney with four running poles — cheaper than
  * a proper filter bank and indistinguishable here.
  *
@@ -94,6 +126,10 @@ export class Soundscape {
     this._probeIn = 0;
     this._near = { road: 999, tea: 999 };
     this._wasFlash = 0;
+    /* Metres travelled since the last footfall. Parked at a stride so the
+       first step of a walk lands on the first frame of it. */
+    this._stride = DEFAULT_STRIDE;
+    this._rain = 0;               // last rain value seen, for wet footsteps
   }
 
   /**
@@ -255,8 +291,102 @@ export class Soundscape {
     o.start(t); o.stop(t + 0.3);
   }
 
+  /**
+   * A sine that drops a fifth and a bit as it decays — Elbaf's `w0`.
+   *
+   * This is the body under a heavy impact. The noise burst alone is a slap;
+   * what makes a landing feel like weight is the low end arriving with it, and
+   * a phone speaker that cannot reproduce 48 Hz still reproduces its envelope.
+   */
+  _thump(level, hz, dur) {
+    if (!this.ctx || !this.nodes || !this._budget() || level < 0.004) return;
+    this.voices++;
+    const ctx = this.ctx, t = ctx.currentTime;
+    const o = ctx.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(hz, t);
+    o.frequency.exponentialRampToValueAtTime(hz * 0.4, t + dur);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(level, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(1e-4, t + dur);
+    o.connect(g); g.connect(this.nodes.master);
+    o.onended = () => { this.voices--; };
+    o.start(t); o.stop(t + dur + 0.02);
+  }
+
   thunder(power = 1) {
     this._burst(0.55 * power, { lp: 260, dur: 2.4, sweep: 0.22 });
+  }
+
+  /* ------------------------------------------------------- the player */
+
+  /**
+   * Footfalls, and the thud at the end of a drop.
+   *
+   * Elbaf's stride model exactly: distance is accumulated, not time, so the
+   * cadence follows the legs at every speed without a single timer — walk,
+   * sprint and the slow-motion bite of a hit stop all come out right because
+   * they are all just metres travelled. Standing still parks the accumulator
+   * ON the threshold rather than at zero, so the first step lands the instant
+   * you move instead of half a stride later.
+   *
+   * @param dt   seconds, real clock
+   * @param mo   {speed, grounded, landing, stride} — speed and landing in
+   *             metres/s, stride in metres (Character.strideM)
+   */
+  player(dt, mo) {
+    if (!this.enabled || !this.ctx || !this.nodes) return;
+    const a = Math.min(dt, 0.05);
+    const speed = mo.speed || 0;
+    const stride = mo.stride || DEFAULT_STRIDE;
+
+    if (mo.grounded && speed > 0.4) {
+      this._stride += speed * a;
+      if (this._stride >= stride) {
+        this._stride = 0;
+        /* Wet tarmac is brighter and shorter — the corner opens and the tail
+           clips. Same burst, different room. */
+        const wet = this._rain;
+        this._burst(0.05 + Math.min(0.05, speed * 0.008), {
+          lp: (1800 + Math.random() * 900) * (1 + wet * 0.5),
+          dur: 0.11 * (1 - wet * 0.25),
+          sweep: 0.35,
+        });
+        if (wet > 0.25) this._burst(0.02 * wet, { lp: 5200, dur: 0.05, sweep: 0.6 });
+      }
+    } else {
+      this._stride = stride;
+    }
+
+    /* The landing. `landing` is the fall speed on the frame the feet touch,
+       so it is non-zero for exactly one frame and needs no edge detection. */
+    const fall = mo.landing || 0;
+    if (fall > 2.5) {
+      const k = Math.min(1, fall / 16);
+      const s = IMPACT_SFX.land;
+      this._burst(s.level * (0.25 + 0.6 * k), { lp: s.lp, dur: s.dur, sweep: s.sweep });
+      this._thump(s.level * 0.5 * (0.3 + 0.7 * k), s.thump, s.dur * 1.4);
+    }
+  }
+
+  /**
+   * One combat impact, attenuated by how far it landed from the listener.
+   *
+   * Called from the effect spawner rather than polled, so a move that fires
+   * three hits gets three sounds with the right spacing for free.
+   */
+  impact(x, y, z, power, kind, view) {
+    if (!this.enabled || !this.ctx || !this.nodes) return;
+    const s = IMPACT_SFX[kind] || IMPACT_SFX.punch;
+    const dx = x - view.x, dy = y - view.y, dz = z - view.z;
+    const k = rolloff(dx * dx + dy * dy + dz * dz, kind === 'haki' ? 160 : 90);
+    if (k <= 0) return;
+    this._burst(s.level * k * (0.5 + 0.5 * power), {
+      lp: s.lp * (0.35 + 0.65 * k), dur: s.dur, sweep: s.sweep,
+    });
+    if (s.thump) this._thump(s.level * k * 0.5, s.thump, s.dur * 1.4);
+    if (s.bell) this._clink(0.16 * k);
   }
 
   /* --------------------------------------------------------------- update */
@@ -272,6 +402,7 @@ export class Soundscape {
     if (!this.enabled || !this.ctx || !this.nodes || this.ctx.state !== 'running') return;
     const n = this.nodes, t = this.ctx.currentTime;
     const rain = w.rain || 0;
+    this._rain = rain;                  // footsteps read this for the wet variant
     const traf = w.traffic === undefined ? 1 : w.traffic;
 
     /* Proximity at 4 Hz. Every layer below reads these, and a full pass over

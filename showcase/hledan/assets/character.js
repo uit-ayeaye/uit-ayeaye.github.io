@@ -749,6 +749,15 @@ export class Character {
     this.def = def;
     Object.assign(this, parts);   // root(holder), model, mixer, walk, run, …
     this.modelHeight = BODY_HEIGHT;
+    /* Metres per footfall for this rig, so the footstep sound lands with the
+       foot rather than on a fixed timer. update() runs the walk clip at
+       `timeScale = speed / 2.6`, so a cycle takes walkDur * 2.6 / speed
+       seconds and covers 2.6 * walkDur metres at ANY speed; the run clip is
+       scaled by runDur/walkDur precisely so its cycle is the same length. A
+       cycle is two steps, hence half. Computed here rather than imported from
+       audio.js: that module pulls in props.js, which pulls in this one, and
+       the cycle would put WORLD_SCALE in the temporal dead zone. */
+    this.strideM = 1.3 * (this.walkDur || 1.07);
 
     // damped animation state
     this._air = 0;        // 0 grounded → 1 airborne
@@ -1238,13 +1247,18 @@ export class CharacterController {
        stutter — the body alternated blocked/free through the bilinear noise.
        Creeping up to the obstruction instead keeps the speed continuous. */
     const from = this.groundY;
+    /* Where the body actually is, for the wall band. On the ground that is the
+       ground; in the air it is the feet, so a jump clears what it looks like it
+       clears. Never below `from`: falling into a pit must not let the torso
+       phase through the wall it is sliding down. */
+    const band = this.grounded ? from : Math.max(from, this.pos.y);
     const stepX = this.vel.x * dt, stepZ = this.vel.z * dt;
     const tryX = (dx) => {
-      if (!this._canStand(this.pos.x + dx, this.pos.z, from)) return false;
+      if (!this._canStand(this.pos.x + dx, this.pos.z, from, band)) return false;
       this.pos.x += dx; return true;
     };
     const tryZ = (dz) => {
-      if (!this._canStand(this.pos.x, this.pos.z + dz, from)) return false;
+      if (!this._canStand(this.pos.x, this.pos.z + dz, from, band)) return false;
       this.pos.z += dz; return true;
     };
     if (stepX !== 0 && !(tryX(stepX) || tryX(stepX * 0.5) || tryX(stepX * 0.25))) this.vel.x *= 0.2;
@@ -1345,10 +1359,23 @@ export class CharacterController {
     return under === null ? nav : under;
   }
 
-  /** Open cell, nothing solid parked in it, and not a step taller than a kerb. */
-  _canStand(x, z, fromY) {
-    if (this._walled(x, z, fromY)) return false;
-    if (this.obstacles && this.obstacles.blocked(x, z, BODY_RADIUS, fromY, BODY_HEIGHT)) return false;
+  /**
+   * Open cell, nothing solid parked in it, and not a step taller than a kerb.
+   *
+   * `bandY` is where the BODY is, which is only the same as `fromY` while the
+   * feet are on the ground. In the air they are not the same thing, and taking
+   * the band from the ground the whole time meant a jump cleared nothing: the
+   * body was tested against the fence it was sailing over, so the only way
+   * past a 0.9 m railing was to find a gap in it. Measured against the fence
+   * line at x≈98: walking stops at 97.73, and jumping stopped at 97.73 too —
+   * the leap bought exactly zero ground. Every low wall, kerb-height barrier,
+   * planter and bonnet on the map read as an invisible wall of unlimited
+   * height. The ground query keeps `fromY`, because which SURFACE you are over
+   * is still a question about the level you set off from.
+   */
+  _canStand(x, z, fromY, bandY = fromY) {
+    if (this._walled(x, z, bandY)) return false;
+    if (this.obstacles && this.obstacles.blocked(x, z, BODY_RADIUS, bandY, BODY_HEIGHT)) return false;
     const y = this._groundAt(x, z, fromY);
     if (y === null) return false;
     if (!this.grounded) return true;

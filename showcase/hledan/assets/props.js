@@ -742,7 +742,7 @@ function wheelProxies(geo, hex) {
   return out;
 }
 
-export async function loadVehicleGeometry(url, { bodyMat, length, size }) {
+export async function loadVehicleGeometry(url, { bodyMat, length, size, tier = 'hi' }) {
   const gltf = await new GLTFLoader().loadAsync(url);
   gltf.scene.updateWorldMatrix(true, true);
 
@@ -837,6 +837,28 @@ export async function loadVehicleGeometry(url, { bodyMat, length, size }) {
   // length must run along Z, the axis the road yaw is applied about
   if (longAxis === 'x') merged.rotateY(Math.PI / 2);
   merged.computeVertexNormals();
+
+  /* A downloaded model brings whatever material its author exported, and glTF
+     exports PBR. That is fine on the high tier, but on the low tier the map
+     itself is Lambert — so the heaviest instanced thing in the scene was the
+     ONLY object still running a full GGX BRDF on the phone that can least
+     afford it (measured at street level: the bus fleet is ~20k of the frame's
+     130k triangles). Carry the texture over to Lambert and keep the look;
+     these are flat-painted panels with a 256px palette map, and there is no
+     metalness, roughness map or normal map to lose. */
+  if (textured && tier !== 'hi' && textured.isMeshStandardMaterial) {
+    const lam = new THREE.MeshLambertMaterial({
+      map: textured.map,
+      color: textured.color,
+      side: textured.side,
+      transparent: textured.transparent,
+      alphaTest: textured.alphaTest,
+      vertexColors: textured.vertexColors,
+      name: textured.name,
+    });
+    textured.dispose();
+    textured = lam;
+  }
   return { geometry: merged, material: textured };
 }
 
@@ -1636,9 +1658,16 @@ export class StreetProps {
    * few units tall, so it stops anyone on the deck and is invisible to anyone
    * on the street eighteen units below.
    *
-   * @param nav the baked navmap, which only exists once play mode has loaded
+   * @param nav    the baked navmap, which only exists once play mode has loaded
+   * @param solids the mesh colliders. Optional, and only ever used to leave a
+   *               rail OUT: a third of the deck's edge already has parapet in
+   *               the photogrammetry (117 of 330 rails measured), and an
+   *               invisible box on top of a wall that is already solid is a
+   *               query the controller runs twenty times a frame for nothing.
+   *               Every box that survives this test is one the player can walk
+   *               into with no wall on screen, so the fewer the better.
    */
-  addDeckRails(nav) {
+  addDeckRails(nav, solids = null) {
     if (this._railsDone || !this.obstacles || !nav) return 0;
     this._railsDone = true;
     const LO = 55, HI = 70, MIN_W = 8, STEP = 3;
@@ -1696,6 +1725,10 @@ export class StreetProps {
       }
       return best;
     };
+    /* The body band the controller will actually test against, so "is there
+       already a wall here" is asked exactly the way the wall is later used. */
+    const R = 0.25 * S, STEP_UP = 0.62 * S, BODY_H = 1.8 * S;
+    let skipped = 0;
     for (const s of slices) {
       if (s.y === null) continue;
       for (const sign of [-1, 1]) {
@@ -1703,9 +1736,12 @@ export class StreetProps {
         const n = near(s.z, edge, sign);
         const yaw = n ? Math.atan2(n.x - edge, n.z - s.z) : 0;
         // a step outside the last walkable cell, so the edge itself stays walkable
-        rows.push([edge + sign * 1.3, s.y, s.z, yaw]);
+        const px = edge + sign * 1.3;
+        if (solids && solids.blocked(px, s.z, R, s.y + STEP_UP, s.y + BODY_H)) { skipped++; continue; }
+        rows.push([px, s.y, s.z, yaw]);
       }
     }
+    this._railsSkipped = skipped;
     this.obstacles.add(rows, m(0.5), m(3.2), m(4.2), 1);
     this.obstacles.build();
     this.deckRails = rows.length;
