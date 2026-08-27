@@ -1158,6 +1158,10 @@ export class StreetProps {
        instancedLayer() and update(). */
     const cull = [];
     this._cull = cull;
+    /* Squared draw distance for those layers, or 0 for "no limit". See
+       _cullPass: the low tier stops submitting street furniture past 180 units
+       because at that range it is a pixel or two of a bollard. */
+    this._propFar2 = tier === 'hi' ? 0 : 180 * 180;
 
     /* A prop whose tint must not spread over its whole body is built as two
        meshes sharing one resolved transform list, so the tarp lands on its own
@@ -1781,14 +1785,29 @@ export class StreetProps {
     const dummy = this._cullDummy || (this._cullDummy = new THREE.Object3D());
     const col = this._cullColor || (this._cullColor = new THREE.Color());
 
+    /* On the low tier, drop what is too far away to read as anything.
+       The frustum test alone keeps every bollard, planter and tarp out to the
+       far edge of a 1765-unit map, and at street level most of them land on
+       one or two pixels each — real vertex and instance cost for detail the
+       phone cannot resolve. The cut is on the SQUARED distance so the whole
+       pass stays multiply-only, and it is generous enough (180 units, 120 m)
+       that the thinning happens in the haze rather than in front of you. The
+       high tier keeps the lot. */
+    const far2 = this._propFar2;
     for (const layer of list) {
       const { mesh, place, colours } = layer;
-      if (!mesh.visible) continue;
+      // a layer this pass hid is still ours to reconsider; anything else that
+      // is invisible was switched off deliberately and stays off
+      if (!mesh.visible && !layer.hidden) continue;
       cullSphere(layer);
       const oy = layer.oy, r = layer.r;
       let n = 0;
       for (let i = 0; i < place.length; i++) {
         const pl = place[i];
+        if (far2 > 0) {
+          const dx = pl.x - p.x, dz = pl.z - p.z;
+          if (dx * dx + dz * dz > far2) continue;
+        }
         sph.center.set(pl.x, pl.y + oy * pl.s, pl.z);
         sph.radius = r * pl.s;
         if (!fr.intersectsSphere(sph)) continue;
@@ -1803,6 +1822,15 @@ export class StreetProps {
         n++;
       }
       mesh.count = n;
+      /* An InstancedMesh with count 0 still costs a draw call: three.js binds
+         the program, uploads the uniforms and issues drawElementsInstanced for
+         nothing. Six of those were going out per frame at street level once the
+         distance cut started emptying whole layers, so an empty layer hides
+         itself instead. The `hidden` flag rather than `visible` alone because
+         a layer may also be switched off by the weather, and this pass must
+         not switch that back on. */
+      if (n === 0) { mesh.visible = false; layer.hidden = true; }
+      else if (layer.hidden) { mesh.visible = true; layer.hidden = false; }
       mesh.instanceMatrix.needsUpdate = true;
       if (colours && mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
       /* The bounding sphere three.js would otherwise recompute is worthless

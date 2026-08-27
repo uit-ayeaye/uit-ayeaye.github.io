@@ -36,6 +36,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { clone as skeletonClone } from 'three/addons/utils/SkeletonUtils.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 /**
  * The map is not in metres — it is about 1.5x life size (two dimensions of the
@@ -641,60 +642,94 @@ function sheathGeos() {
 let SWORD_TIER = 'hi';
 function swordMat(opts) {
   if (SWORD_TIER === 'hi') return new THREE.MeshStandardMaterial(opts);
-  const { color, emissive, emissiveIntensity, flatShading } = opts;
-  return new THREE.MeshLambertMaterial({ color, emissive, emissiveIntensity, flatShading });
+  const { color, emissive, emissiveIntensity, flatShading, vertexColors, side } = opts;
+  return new THREE.MeshLambertMaterial({
+    color, emissive, emissiveIntensity, flatShading, vertexColors, side,
+  });
+}
+
+
+/**
+ * Bake a colour and a Z offset into a copy of `geo`, ready to be merged.
+ *
+ * Zoro's three katanas were 51 separate meshes for 1,596 triangles between
+ * them — thirteen parts per sheath, five per drawn blade — which cost about
+ * thirty draw calls to put a sword on his back. Draw calls are the expensive
+ * axis on a phone, and thirty of them for 1.6k triangles is the worst ratio
+ * anywhere in this scene. Merging needs one material per mesh, so the part
+ * colours move into a vertex attribute and the material carries white.
+ */
+function tinted(geo, hex, z = 0) {
+  const g = geo.clone();
+  if (z) g.translate(0, 0, z);
+  const c = new THREE.Color(hex);
+  const n = g.attributes.position.count;
+  const col = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b; }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  return g;
 }
 
 function sheathedKatana(spec) {
   const g = sheathGeos();
-  const group = new THREE.Group();
-  group.name = spec.name;
-  const mSaya = swordMat({ color: spec.saya, roughness: .35, metalness: .08, flatShading: true });
-  const mFit = swordMat({ color: spec.fitting, roughness: .35, metalness: .65, flatShading: true });
-  const mWrap = swordMat({ color: spec.wrap, roughness: .85, flatShading: true });
-  const mCross = swordMat({ color: spec.cross, roughness: .6, metalness: .3, flatShading: true });
-  const add = (geo, mat, z) => {
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.z = z; mesh.frustumCulled = false;
-    group.add(mesh);
-    return mesh;
-  };
-  add(g.koiguchi, mFit, -.02); add(g.saya, mSaya, -.41); add(g.band, mFit, -.3);
-  add(g.band, mFit, -.54); add(g.kojiri, mFit, -.79); add(g.tsuba, mFit, .005);
-  add(g.tsuka, mWrap, .155);
-  for (const z of [.065, .12, .175, .23]) add(g.cross, mCross, z);
-  add(g.kashira, mFit, .3);
-  return group;
+  const parts = [
+    tinted(g.koiguchi, spec.fitting, -.02), tinted(g.saya, spec.saya, -.41),
+    tinted(g.band, spec.fitting, -.3), tinted(g.band, spec.fitting, -.54),
+    tinted(g.kojiri, spec.fitting, -.79), tinted(g.tsuba, spec.fitting, .005),
+    tinted(g.tsuka, spec.wrap, .155), tinted(g.kashira, spec.fitting, .3),
+    ...[.065, .12, .175, .23].map((z) => tinted(g.cross, spec.cross, z)),
+  ];
+  const merged = mergeGeometries(parts, false);
+  parts.forEach((x) => x.dispose());
+  const mesh = new THREE.Mesh(merged, swordMat({
+    color: 0xffffff, vertexColors: true, roughness: .4, metalness: .3, flatShading: true,
+  }));
+  mesh.name = spec.name;
+  mesh.frustumCulled = false;
+  return mesh;
 }
 
 function drawnKatana(spec, mouth = false) {
   const group = new THREE.Group();
   group.name = `drawn-${spec.name}`;
-  const steel = swordMat({
+  const dz = mouth ? .1 : 0;
+  const along = (g) => { g.rotateX(Math.PI / 2); return g; };
+
+  /* The furniture merges into one vertex-coloured mesh; the steel keeps its
+     own material because it is the one part that glows, and an emissive shared
+     with the grip would light the whole hilt. Two draws a blade, not five. */
+  const furniture = [
+    tinted(along(new THREE.CylinderGeometry(.023, .02, .26, 8)), spec.wrap, -.14 + dz),
+    tinted(along(new THREE.CylinderGeometry(.024, .024, .03, 8)), spec.fitting, -.27 + dz),
+    tinted(along(new THREE.CylinderGeometry(.052, .052, .014, 12)), spec.fitting, .005 + dz),
+  ];
+  const fMesh = new THREE.Mesh(mergeGeometries(furniture, false), swordMat({
+    color: 0xffffff, vertexColors: true, roughness: .35, metalness: .55, flatShading: true,
+  }));
+  furniture.forEach((x) => x.dispose());
+  fMesh.frustumCulled = false;
+  group.add(fMesh);
+
+  const bladeGeo = new THREE.BoxGeometry(.017, .055, BLADE_LEN - .17);
+  bladeGeo.translate(0, 0, (BLADE_LEN - .17) * .5 + .01 + dz);
+  /* The mesh this replaces carried rotation (x PI/2, z PI/4) and scale
+     (.31, 1, 1), and a matrix applies T*R*S — scale first, then Rz, then Rx.
+     Baking them into the geometry has to follow the same order or the tip
+     comes out a flattened lozenge pointing the wrong way. */
+  const tipGeo = new THREE.ConeGeometry(.0275, .2, 4);
+  tipGeo.scale(.31, 1, 1);
+  tipGeo.rotateZ(Math.PI / 4);
+  tipGeo.rotateX(Math.PI / 2);
+  tipGeo.translate(0, 0, BLADE_LEN - .1 + dz);
+  const steelGeo = mergeGeometries([bladeGeo, tipGeo], false);
+  bladeGeo.dispose(); tipGeo.dispose();
+  const sMesh = new THREE.Mesh(steelGeo, swordMat({
     color: spec.steel, roughness: .16, metalness: .9,
     emissive: new THREE.Color(spec.steel).multiplyScalar(.4), emissiveIntensity: 1,
     flatShading: true,
-  });
-  const mFit = swordMat({ color: spec.fitting, roughness: .35, metalness: .65, flatShading: true });
-  const mWrap = swordMat({ color: spec.wrap, roughness: .85, flatShading: true });
-  const add = (geo, mat, z, rot = true) => {
-    if (rot) geo.rotateX(Math.PI / 2);
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.z = z; mesh.frustumCulled = false;
-    group.add(mesh);
-    return mesh;
-  };
-  add(new THREE.CylinderGeometry(.023, .02, .26, 8), mWrap, -.14);
-  add(new THREE.CylinderGeometry(.024, .024, .03, 8), mFit, -.27);
-  add(new THREE.CylinderGeometry(.052, .052, .014, 12), mFit, .005);
-  const blade = new THREE.Mesh(new THREE.BoxGeometry(.017, .055, BLADE_LEN - .17), steel);
-  blade.position.z = (BLADE_LEN - .17) * .5 + .01; blade.frustumCulled = false;
-  group.add(blade);
-  const tip = new THREE.Mesh(new THREE.ConeGeometry(.0275, .2, 4), steel);
-  tip.rotation.x = Math.PI / 2; tip.rotation.z = Math.PI / 4;
-  tip.scale.set(.31, 1, 1); tip.position.z = BLADE_LEN - .1; tip.frustumCulled = false;
-  group.add(tip);
-  if (mouth) group.children.forEach((c) => { c.position.z += .1; });
+  }));
+  sMesh.frustumCulled = false;
+  group.add(sMesh);
   return group;
 }
 

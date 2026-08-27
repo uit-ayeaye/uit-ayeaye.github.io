@@ -116,7 +116,10 @@ const camera = new THREE.PerspectiveCamera(55, 1, 0.6, 9000);
 camera.position.set(430, 300, 520);
 
 const sky = new THREE.Mesh(
-  new THREE.SphereGeometry(6000, 32, 16),
+  /* The dome is shaded entirely in the fragment stage — the vertices carry
+     nothing but a direction — so its tessellation buys precisely nothing and
+     the low tier takes a quarter of it. */
+  new THREE.SphereGeometry(6000, DEVICE.tier === 'hi' ? 32 : 16, DEVICE.tier === 'hi' ? 16 : 8),
   new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false,
     /* fbm's amplitude series sums to 1 - 2^-n, so two octaves land at 0.75 of
