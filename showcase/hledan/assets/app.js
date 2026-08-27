@@ -674,6 +674,7 @@ async function enterPlay() {
   if (!play.combat) {
     play.combat = new Combat(scene, DEVICE.tier);
     play.combat.bindGround((x, z) => play.nav.heightAt(x, z));
+    play.combat.bindSolids(play.solids, props ? props.obstacles : null);
     /* Every ring the move machine spawns gets its noise burst here, at the
        listener's distance from it. The soundscape stays off until the visitor
        asks for it, so this is a no-op for anyone who never presses ♪. */

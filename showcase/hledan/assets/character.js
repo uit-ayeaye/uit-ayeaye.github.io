@@ -1364,17 +1364,86 @@ export class CharacterController {
   /**
    * The surface the body is standing on at (x, z), on ITS level.
    *
-   * The navmap holds one height per cell, so under the flyover it reports the
-   * deck — eighteen units of thin air above the road the body is actually on.
-   * When the height it names is out of reach upward, ask the geometry for the
-   * highest surface the body could be standing on instead; that is the whole
-   * of what makes the lower carriageway walkable.
+   * The navmap holds ONE height per cell and knows only the ground, which is
+   * wrong in both directions on this map:
+   *
+   *  - under the flyover it reports the deck, eighteen units of thin air above
+   *    the road the body is actually on. That is the case this started as.
+   *  - on a rooftop it reports the street, so anything standing on a roof was
+   *    told the floor was twelve units below it and fell through. Flash Step
+   *    can put you on a roof now, so this is no longer hypothetical.
+   *
+   * The mesh colliders know every surface in the column, so they settle both:
+   * take the highest floor the body could be standing on, and fall back to the
+   * navmap when the geometry has nothing. Ordinary ground still comes from the
+   * navmap — it is bilinear and smooth where the triangles are faceted, and
+   * the mesh only wins when it names a surface a clear step ABOVE what the
+   * navmap thinks the ground is, which is exactly a roof, a ledge or a deck.
    */
   _groundAt(x, z, fromY) {
     const nav = this.nav.heightAt(x, z);
-    if (!this.solids || nav === null || nav <= fromY + STEP_UP) return nav;
-    const under = this.solids.floorUnder(x, z, fromY + STEP_UP);
-    return under === null ? nav : under;
+    if (!this.solids) return nav;
+    const lim = fromY + STEP_UP;
+    const mesh = this.solids.floorUnder(x, z, lim);
+    if (nav === null) return mesh;
+    if (nav > lim) return mesh === null ? nav : mesh;      // navmap out of reach: under a deck
+    if (mesh !== null && mesh > nav + STEP_UP) return mesh; // a roof or ledge over the ground
+    return nav;
+  }
+
+  /**
+   * The surface a body dropped at (x, z, fromY) would come to rest on, or null.
+   *
+   * Unlike `_groundAt` this asks about an ARBITRARY point in space rather than
+   * about the level the body is already standing on, and it checks the body
+   * would actually fit once it landed. That is what lets Flash Step aim at a
+   * rooftop: the march wants "is there a ledge under this station of the ray,
+   * and could I stand on it", and the answer has to be the ledge — not the
+   * street twenty units below it, which is what `maxDrop` bounds.
+   *
+   * Both layers are consulted. The mesh colliders know every surface at an
+   * (x, z), roofs and the lower carriageway included; the baked navmap knows
+   * only one, but it is the authority on the ground itself, so it stands in
+   * wherever the geometry has nothing to say.
+   */
+  _standingSurface(x, z, fromY, maxDrop) {
+    let best = null;
+    if (this.solids) {
+      const f = this.solids.floorUnder(x, z, fromY);
+      if (f !== null && fromY - f <= maxDrop) best = f;
+    }
+    if (best === null) {
+      const n = this.nav.heightAt(x, z);
+      if (n !== null && n <= fromY && fromY - n <= maxDrop) best = n;
+    }
+    if (best === null) return null;
+    if (this._walled(x, z, best)) return null;
+    if (this.obstacles && this.obstacles.blocked(x, z, BODY_RADIUS, best, BODY_HEIGHT)) return null;
+    return best;
+  }
+
+  /**
+   * The lowest height above `fromY` at (x, z) where the body FITS, or null.
+   *
+   * Not "the top of the thing you hit" — the first gap big enough to be in.
+   * Flash Step marches the body's volume along the aim, and when that volume
+   * runs into something the useful question is how far up it would have to go
+   * to clear it. Asking the floor grid for a surface to stand on instead only
+   * answers for obstructions that have a walkable top: a bus does, a boundary
+   * wall does, but the wire fence around the field at z=510 has surfaces
+   * [43.2, 43.2] and nothing else, so mounting found nothing and the step
+   * stopped at a waist-high fence. Scanning for clearance answers for all of
+   * them, and lets the step pass OVER a low obstruction and land beyond it.
+   */
+  _clearAbove(x, z, fromY, maxUp) {
+    if (!this.solids) return null;
+    const step = 0.4 * S;
+    for (let y = fromY + step; y <= fromY + maxUp; y += step) {
+      if (this.solids.blocked(x, z, BODY_RADIUS, y, y + BODY_HEIGHT)) continue;
+      if (this.obstacles && this.obstacles.blocked(x, z, BODY_RADIUS, y, BODY_HEIGHT)) continue;
+      return y;
+    }
+    return null;
   }
 
   /**
