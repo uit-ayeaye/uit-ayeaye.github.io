@@ -458,6 +458,14 @@
           re-exported, cleaned up, and pushed straight to WebGL.
         </p>
         <p>
+          If you know Hledan, you know it by the shape of an ordinary evening:
+          buses stacking up under the flyover, tea-shop stools out on the
+          pavement by four, the bookstalls, and a crossing everybody learns to
+          time. Half the people who grew up on that corner are somewhere else
+          now. This is here so you can walk it again from wherever that is —
+          set it to golden hour and it is about right.
+        </p>
+        <p>
           The original export carried twelve cameras, nine lights and five ground
           planes stacked twelve millimetres apart. All of it is gone here; what is
           left is the city.
@@ -466,14 +474,22 @@
           <b>Play</b> drops a Straw Hat onto the street. Movement, kit and
           cooldowns are the same model as the <a href="../elbaf/">Elbaf</a>
           build — 5.6 m/s, sprint at 1.75x, gravity −18, coyote time, one air
-          jump — running on a ground-height and collision map baked into a
-          171 KB PNG instead of a physics engine.
+          jump — with no physics engine anywhere in it.
         </p>
         <p>
-          The map is not in metres: measured against a real flyover clearance and
-          kerb it runs about <b>3x life size</b>, so the character and every one
-          of its motion constants are scaled by the same factor. That keeps the
-          proportions honest without breaking the baked navmap.
+          Ground height comes from a 171 KB PNG; what you can walk into comes
+          from the map's own triangles, sorted at load into walls and floors.
+          That is why you can walk <i>under</i> the flyover rather than on top
+          of it, and why the pavements under the trees are open: a height field
+          with one layer per cell cannot hold a road beneath a bridge, and the
+          canopy overhead was closing streets you could plainly see were empty.
+        </p>
+        <p>
+          The map is not in metres: measured against the parked buses, whose
+          length and height agree independently, it runs about
+          <b>1.5x life size</b> — so the character and every one of its motion
+          constants are scaled by the same factor. That keeps the proportions
+          honest without re-baking anything.
         </p>
         <p>
           <b>Controls</b> — Elbaf's, key for key: <kbd>WASD</kbd> move,
@@ -491,6 +507,7 @@
           <dt>Materials</dt><dd>4</dd>
           <dt>Footprint</dt><dd>826 × 1785 m</dd>
           <dt>Geometry</dt><dd>3.1 MB → 1.3 MB gz</dd>
+          <dt>Collision</dt><dd>mesh, from the map itself</dd>
           <dt>Quality</dt><dd id="tier">—</dd>
           <dt>Crew</dt><dd>Luffy · Zoro · Nami</dd>
           <dt>Scale</dt><dd>map ≈ 1.5× life size</dd>
