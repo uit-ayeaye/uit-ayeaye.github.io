@@ -525,6 +525,15 @@
         #views { padding: 0 46px 0 6px; gap: 4px; }
         #views .chip { padding: 6px 3px; font-size: 9px; letter-spacing: .02em; }
       }
+      /* Narrower than any phone, and reachable anyway: a webview in a split
+         screen, or a desktop window dragged small. The dock is the row that
+         runs out of width first, and a dock that scrolls has a control hidden
+         behind a gesture — so it gives up its letter-spacing and most of its
+         padding before it gives up Fullscreen. */
+      @media (max-width: 300px) {
+        .dock { gap: 0; padding: 3px; }
+        .btn { padding: 9px 1px; font-size: 8px; letter-spacing: 0; }
+      }
 
       /* ------------------------------------------------------------ combat */
       .pad-row { display: flex; gap: 10px; align-items: center; }
