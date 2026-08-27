@@ -2021,8 +2021,11 @@ const bannerEl = () => document.getElementById('moveBanner');
 function paintCombatHud() {
   const def = (play.chr && play.chr.def) || CHARACTERS[play.index];
   if (!moveChips) {
+    /* `--cd` goes to every move control now, not only the desktop kit chips:
+       the action pad draws the same cooldown as a wipe up its face, so a thumb
+       can see what is ready instead of guessing from a 38% fade. */
     moveChips = [...document.querySelectorAll('[data-move]')].map((b) => ({
-      el: b, move: b.dataset.move, dial: b.classList.contains('movechip'), last: -1,
+      el: b, move: b.dataset.move, last: -1,
     }));
   }
   for (const c of moveChips) {
@@ -2030,7 +2033,7 @@ function paintCombatHud() {
     const shown = Math.round(k * 100);
     if (shown === c.last) continue;
     c.last = shown;
-    if (c.dial) c.el.style.setProperty('--cd', shown + '%');
+    c.el.style.setProperty('--cd', shown + '%');
     c.el.classList.toggle('cooling', k > 0.001);
   }
   const el = bannerEl();
@@ -2087,8 +2090,13 @@ function frame(now) {
   /* The handful of real point lights migrate to whichever lamps are nearest,
      so wherever you are on the map is the part that is properly lit. */
   if (props) props.update(camera);
+  /* `strike` is set for one frame when a bolt fires, and carries how far away
+     it was in metres — the thunder is delayed by the time sound takes to cover
+     that. `flash` is still passed for anything that wants the sky's brightness,
+     but it is no longer what triggers the clap: it flickers with the bolt's
+     return strokes now, and every flicker was another clap. */
   if (sound.enabled) sound.update(realDt, camera.position, { rain: weather ? weather.cur.rain : 0, flash: weather ? weather.flash : 0,
-      traffic: weather ? weather.cur.traffic : 1 });
+      strike: weather ? weather.strike : 0, traffic: weather ? weather.cur.traffic : 1 });
   sky.position.copy(camera.position);
   skirt.position.x = camera.position.x;
   skirt.position.z = camera.position.z;

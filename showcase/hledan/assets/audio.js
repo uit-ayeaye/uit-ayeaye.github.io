@@ -133,7 +133,6 @@ export class Soundscape {
     this._clinkIn = 2 + Math.random() * 4;
     this._probeIn = 0;
     this._near = { road: 999, tea: 999 };
-    this._wasFlash = 0;
     /* Metres travelled since the last footfall. Parked at a stride so the
        first step of a walk lands on the first frame of it. */
     this._stride = DEFAULT_STRIDE;
@@ -206,11 +205,18 @@ export class Soundscape {
 
   _budget() { return this.voices < VOICES[this.tier]; }
 
-  /** Filtered noise burst — used for thunder and for the wet slap of tyres. */
-  _burst(level, { lp = 1200, dur = 0.3, sweep = 0 }) {
+  /**
+   * Filtered noise burst — used for thunder and for the wet slap of tyres.
+   *
+   * `delay` schedules it into the future on the audio clock rather than the
+   * main loop's, which is what thunder needs: the clap is seconds behind the
+   * light, and a setTimeout for it would jitter with the frame rate and drift
+   * if the tab were throttled.
+   */
+  _burst(level, { lp = 1200, dur = 0.3, sweep = 0, delay = 0 }) {
     if (!this.ctx || !this.nodes || !this._budget() || level < 0.004) return;
     this.voices++;
-    const ctx = this.ctx, t = ctx.currentTime;
+    const ctx = this.ctx, t = ctx.currentTime + delay;
     const src = ctx.createBufferSource();
     src.buffer = this.nodes.noise;
     const f = ctx.createBiquadFilter();
@@ -323,8 +329,41 @@ export class Soundscape {
     o.start(t); o.stop(t + dur + 0.02);
   }
 
-  thunder(power = 1) {
-    this._burst(0.55 * power, { lp: 260, dur: 2.4, sweep: 0.22 });
+  /**
+   * Thunder, at the distance it came from.
+   *
+   * It used to be one 2.4 s low-passed burst fired on the frame the sky lit up,
+   * which is a lightning strike happening on top of you, every time. Real
+   * thunder is late and it rolls: the crack arrives first and only if the bolt
+   * is close, then the sound bounces off cloud base and terrain and comes back
+   * as a couple of swells over several seconds.
+   *
+   * Three layers, staggered on the audio clock. Distance does three things at
+   * once and they all matter: it delays everything by `metres / 343`, it takes
+   * the level down, and it eats the top end — a near bolt is a whip-crack, a
+   * far one is all rumble with no crack left in it. That last part is why the
+   * crack's level is scaled by `near`, and why the low tier drops the third
+   * layer rather than shortening the others; five concurrent voices is the
+   * whole phone budget and the roll is what carries the sound.
+   *
+   * @param metres how far the bolt was
+   * @param power  0..1, the bolt's own brightness
+   */
+  thunder(metres = 900, power = 1) {
+    const travel = Math.max(0, metres) / 343;
+    /* 1 up close, 0 by about three kilometres. */
+    const near = Math.max(0, 1 - metres / 3000);
+    const lvl = 0.5 * power * (0.35 + 0.65 * near);
+    /* The crack: only really there for a close strike. */
+    this._burst(lvl * 0.85 * near, {
+      lp: 900 + 2600 * near, dur: 0.45 + 0.35 * near, sweep: 0.18, delay: travel,
+    });
+    /* The body, and the roll behind it. Each swell is darker and later than
+       the last, which is the sound losing its top end to the trip. */
+    this._burst(lvl, { lp: 210 + 180 * near, dur: 2.2, sweep: 0.3, delay: travel + 0.12 });
+    if (this.tier === 'hi') {
+      this._burst(lvl * 0.6, { lp: 140, dur: 2.4, sweep: 0.45, delay: travel + 1.5 });
+    }
   }
 
   /* ------------------------------------------------------- the player */
@@ -438,10 +477,11 @@ export class Soundscape {
     n.rainHiss.gain.gain.setTargetAtTime(rain * 0.055, t, 0.9);
     n.rainLow.gain.gain.setTargetAtTime(rain * 0.030, t, 0.9);
 
-    // thunder rides the same flash the sky does, on the flash's rising edge
-    const flash = w.flash || 0;
-    if (flash > 0.35 && this._wasFlash <= 0.35) this.thunder(0.6 + Math.random() * 0.5);
-    this._wasFlash = flash;
+    /* Thunder comes off the strike itself, which carries the bolt's distance.
+       It used to edge-detect `flash` — and `flash` now flickers with the drawn
+       bolt's return strokes, so every flicker would have been another clap. */
+    const strike = w.strike || 0;
+    if (strike > 0) this.thunder(strike, 0.65 + Math.random() * 0.45);
 
     // horns: constant near the carriageway, rare away from it
     this._hornIn -= dt;

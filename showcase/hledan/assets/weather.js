@@ -10,7 +10,8 @@
  *     camera, so the particle count is independent of how big the map is
  *   - the wet-street look is a colour multiply on the existing materials
  *     rather than a second pass or a reflection probe
- *   - lightning is an exposure pulse plus a hemisphere tint — no extra light
+ *   - lightning is a drawn bolt plus an exposure pulse and a hemisphere tint —
+ *     one LineSegments draw and no extra light in the scene
  *
  * Presets cross-fade rather than snapping: a hard cut between noon and a storm
  * reads as a bug, and the fade is free (it is just lerping the same numbers).
@@ -155,6 +156,14 @@ export class Weather {
     this.fade = 1.6;
     this.flash = 0;
     this.nextBolt = 6 + Math.random() * 10;
+    /* The bolt's own clock, separate from `flash`. The sky's exposure pulse
+       decays smoothly; a bolt strobes, and one number cannot do both. */
+    this.boltT = 0;
+    /* Set for exactly one frame when a bolt fires, to the distance in METRES
+       so audio can delay the thunder by the time sound takes to cover it.
+       A flag rather than an edge on `flash`, which is what audio used to watch
+       — `flash` now flickers, and every flicker was another clap. */
+    this.strike = 0;
     this._c = new THREE.Color();
     this._baseTint = new Map();
     for (const m of refs.mapMaterials) this._baseTint.set(m, m.color.clone());
@@ -162,6 +171,8 @@ export class Weather {
     refs.scene.add(this.rain.points);
     this.moon = this._buildMoon();
     refs.sky.add(this.moon);          // the sky rides the camera; so must the moon
+    this.bolt = this._buildBolt();
+    refs.sky.add(this.bolt);          // and so must the lightning
     this.apply(this.cur, 1);
   }
 
@@ -209,6 +220,161 @@ export class Weather {
     moon.scale.setScalar(520);
     moon.visible = false;
     return moon;
+  }
+
+  /**
+   * The bolt itself.
+   *
+   * The storm has always had lightning, and it has never had a lightning BOLT:
+   * the sky brightened, the thunder rolled, and there was nothing to look at.
+   * This is the thing to look at, for one draw call.
+   *
+   * A ribbon, not a line. `LineBasicMaterial` ignores `linewidth` on every
+   * WebGL renderer there is, so a line bolt is one physical pixel wide — on a
+   * phone at devicePixelRatio 3 that is a third of a CSS pixel of lightning,
+   * across the whole sky. Each segment is instead a quad standing in the
+   * bolt's own vertical plane, and because that plane contains the viewer, its
+   * width axis is already perpendicular to the line of sight: the ribbon faces
+   * the camera without a billboard shader. 37 segments is 148 vertices and 74
+   * triangles, rewritten in place on each strike — no allocation after
+   * construction, no geometry churn every few seconds.
+   *
+   * A trunk descending from high in the sky to just above the horizon as a
+   * random walk, tapering as it goes, plus a few thinner forks peeling off it.
+   * Parented to the sky sphere, which rides the camera, so a bolt is always
+   * somewhere in the sky rather than somewhere on the map — and it depth-tests,
+   * so a tower in front of it still cuts it off.
+   *
+   * Additive and unlit. It contributes no light: the exposure pulse in update()
+   * is what lights the scene, exactly as before, and that discipline is the
+   * whole reason a storm on this map costs nothing.
+   */
+  _buildBolt() {
+    /* Budget. A bolt is legible at 22 trunk segments; the low tier takes 14 and
+       two forks instead of three — 96 vertices against 148. */
+    const hi = this.tier === 'hi';
+    this._boltTrunk = hi ? 22 : 14;
+    this._boltForks = hi ? 3 : 2;
+    this._boltForkLen = hi ? 5 : 4;
+    const segs = this._boltTrunk + this._boltForks * this._boltForkLen;
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(segs * 12), 3));
+    /* Indices never change — segment i is always the quad over vertices
+       4i..4i+3 — so they are written once here. */
+    const idx = new Uint16Array(segs * 6);
+    for (let i = 0; i < segs; i++) {
+      const v = i * 4, o = i * 6;
+      idx[o] = v; idx[o + 1] = v + 1; idx[o + 2] = v + 2;
+      idx[o + 3] = v; idx[o + 4] = v + 2; idx[o + 5] = v + 3;
+    }
+    geo.setIndex(new THREE.BufferAttribute(idx, 1));
+    geo.setDrawRange(0, 0);
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0xdce8ff, transparent: true, opacity: 0, side: THREE.DoubleSide,
+      depthWrite: false, fog: false, blending: THREE.AdditiveBlending,
+    });
+    const bolt = new THREE.Mesh(geo, mat);
+    /* Additive with depthWrite off, so order only matters against its own
+       siblings inside the sky group — the moon and the sky shell. */
+    bolt.renderOrder = 2;
+    bolt.frustumCulled = false;        // the geometry is rewritten under it
+    bolt.visible = false;
+    return bolt;
+  }
+
+  /**
+   * Strike: lay a new bolt into the existing buffer and start its clock.
+   *
+   * @returns the bolt's distance in map units, for the thunder delay
+   */
+  _strike() {
+    const pos = this.bolt.geometry.attributes.position;
+    const arr = pos.array;
+    const az = Math.random() * Math.PI * 2;
+    /* Kept inside the sky. The shell is a 6000-radius sphere and the camera's
+       far plane is 9000, and an earlier version scaled the bolt's height off
+       its distance without a ceiling — bolts came out with their tops at 7500,
+       outside the sky shell entirely and most of the way to the far plane. */
+    const dist = 1400 + Math.random() * 1200;
+    const topY = dist * (0.9 + Math.random() * 0.6);      // ~42-56 degrees up
+    /* Below eye level, not above it. Stopping just over the horizon left the
+       bolt ending in mid-air whenever the camera was high enough to see past
+       the rooflines; taking it under means it always goes behind something. */
+    const botY = -dist * 0.03;
+    const ca = Math.cos(az), sa = Math.sin(az);
+    /* The walk happens in the vertical plane at this azimuth: `u` is the
+       horizontal offset within that plane, so a bolt jitters sideways across
+       the sky rather than towards and away from the viewer, which from a fixed
+       eye would read as nothing at all. */
+    const spread = dist * 0.09;
+    /* Wide enough to be a few pixels at this range: `dist * 0.006` is about
+       0.34 degrees, which is a bolt you can see and not a bolt you could land
+       an aircraft on. */
+    const wide = dist * 0.006;
+    const N = this._boltTrunk;
+    let w = 0;
+    const trunk = [];               // (u, y) samples, kept for the forks
+    /* One quad per segment, standing in the plane. `hw0`/`hw1` taper it. */
+    const put = (u0, y0, u1, y1, hw0, hw1) => {
+      const x = (u) => ca * dist - sa * u, z = (u) => sa * dist + ca * u;
+      arr[w++] = x(u0 - hw0); arr[w++] = y0; arr[w++] = z(u0 - hw0);
+      arr[w++] = x(u0 + hw0); arr[w++] = y0; arr[w++] = z(u0 + hw0);
+      arr[w++] = x(u1 + hw1); arr[w++] = y1; arr[w++] = z(u1 + hw1);
+      arr[w++] = x(u1 - hw1); arr[w++] = y1; arr[w++] = z(u1 - hw1);
+    };
+    let u = (Math.random() - 0.5) * spread * 0.5;
+    let y = topY;
+    const step = (topY - botY) / N;
+    for (let i = 0; i < N; i++) {
+      const u2 = u + (Math.random() - 0.5) * spread;
+      const y2 = y - step;
+      /* Thickest a third of the way down, thinning to a point at the ground —
+         a bolt that is one width all the way down reads as a drawn stroke. */
+      const k0 = 1 - i / N, k1 = 1 - (i + 1) / N;
+      put(u, y, u2, y2, wide * (0.45 + k0 * 0.55), wide * (0.45 + k1 * 0.55));
+      trunk.push([u2, y2]);
+      u = u2; y = y2;
+    }
+    /* Forks, off the upper two thirds — a fork from the last segment has
+       nowhere to go and reads as a frayed end. Half the trunk's width. */
+    for (let f = 0; f < this._boltForks; f++) {
+      const at = trunk[Math.floor(Math.random() * (N * 0.66)) | 0];
+      let fu = at[0], fy = at[1];
+      const lean = (Math.random() < 0.5 ? -1 : 1) * spread * (0.5 + Math.random() * 0.7);
+      const L = this._boltForkLen;
+      for (let i = 0; i < L; i++) {
+        const nu = fu + lean * 0.5 + (Math.random() - 0.5) * spread * 0.5;
+        const ny = fy - step * (0.7 + Math.random() * 0.6);
+        put(fu, fy, nu, ny, wide * 0.5 * (1 - i / L), wide * 0.5 * (1 - (i + 1) / L));
+        fu = nu; fy = ny;
+      }
+    }
+    pos.needsUpdate = true;
+    /* drawRange counts INDICES on an indexed geometry: six per quad. */
+    this.bolt.geometry.setDrawRange(0, (w / 12) * 6);
+    this.boltT = 1;
+    this.bolt.visible = true;
+    return dist;
+  }
+
+  /**
+   * How bright the bolt is, `t` seconds into its life (t counts 1 -> 0).
+   *
+   * Real lightning is two or three return strokes a few tens of milliseconds
+   * apart, which is why a bolt reads as a stutter and not a fade. A fast decay
+   * with a strobe on top of it, and the strobe never reaches zero — a bolt that
+   * blinks fully out and back looks like a dropped frame.
+   *
+   * The rate matters more than it looks. `t` runs 1 to 0 over the bolt's life,
+   * so the strobe's coefficient is cycles-times-2-pi over that whole life: 46
+   * put seven cycles into 0.28 s, which is 25 Hz and reads as a buzzing
+   * fluorescent tube rather than lightning. 17 over a 0.36 s life is about
+   * three strokes, which is what a bolt actually does.
+   */
+  _boltGlow(t) {
+    if (t <= 0) return 0;
+    const strobe = 0.55 + 0.45 * Math.sin(t * 17);
+    return t * t * strobe;
   }
 
   /* One Points cloud in a box around the camera. Because the box moves with the
@@ -354,12 +520,34 @@ export class Weather {
       this.cur.label = this.to.label;
     }
 
-    // lightning: an exposure + hemisphere pulse, no extra light in the scene
+    /* Lightning: a drawn bolt, an exposure pulse and a hemisphere tint. Still
+       no extra light in the scene. */
+    this.strike = 0;
     if (this.cur.rain > 0.55) {
       this.nextBolt -= dt;
-      if (this.nextBolt <= 0) { this.flash = 1; this.nextBolt = 5 + Math.random() * 13; }
+      if (this.nextBolt <= 0) {
+        this.nextBolt = 4 + Math.random() * 12;
+        const dist = this._strike();
+        this.flash = 1;
+        /* Metres, for the thunder delay. The map is authored at WORLD_SCALE
+           1.5, and sound covers 343 m/s — a bolt at 3000 units is 2 km away
+           and its clap is six seconds behind the light. That gap is most of
+           what makes a storm feel like weather rather than a light switch. */
+        this.strike = dist / 1.5;
+      }
     }
-    if (this.flash > 0) this.flash = Math.max(0, this.flash - dt * 3.2);
+    if (this.boltT > 0) {
+      this.boltT = Math.max(0, this.boltT - dt * 2.8);
+      const glow = this._boltGlow(this.boltT);
+      this.bolt.material.opacity = glow;
+      if (this.boltT <= 0) this.bolt.visible = false;
+      /* The sky flickers WITH the bolt rather than fading independently — the
+         two used to disagree, and a smooth glow behind a stuttering bolt reads
+         as two different events. */
+      this.flash = Math.max(this.flash - dt * 3.2, glow * 0.9);
+    } else if (this.flash > 0) {
+      this.flash = Math.max(0, this.flash - dt * 3.2);
+    }
 
     this.clock = (this.clock || 0) + dt;
     const su = this.refs.sky.material.uniforms;
@@ -394,5 +582,10 @@ export class Weather {
     this.rain.geo.dispose();
     this.rain.mat.dispose();
     this.refs.scene.remove(this.rain.points);
+    if (this.bolt) {
+      this.refs.sky.remove(this.bolt);
+      this.bolt.geometry.dispose();
+      this.bolt.material.dispose();
+    }
   }
 }

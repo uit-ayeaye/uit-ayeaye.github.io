@@ -380,16 +380,37 @@
          for testing) and a hybrid laptop with a touchscreen, which reports
          hover:hover and so never got the pad at all. */
       body:not(.touch) #pad { display: none !important; }
+      /* The action pad speaks the same language as the rest of the HUD now:
+         corners cut rather than rounded, mono caps, and a cooldown that DRAINS
+         instead of the whole button going translucent. Sizes are untouched —
+         68px and 46px are thumb targets and the look was never the problem
+         with them. */
       .pad-btn {
         appearance: none; border: 1.5px solid #ffffff2e; cursor: pointer;
-        width: 68px; height: 68px; border-radius: 50%;
-        font: inherit; font-size: 12px; font-weight: 800; letter-spacing: .08em;
-        color: #dbe6f6; background: #101a2eb3; backdrop-filter: blur(10px);
+        position: relative; overflow: hidden;
+        width: 66px; height: 66px; border-radius: 3px;
+        clip-path: polygon(13px 0, 100% 0, 100% calc(100% - 13px),
+                           calc(100% - 13px) 100%, 0 100%, 0 13px);
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 11px; font-weight: 800; letter-spacing: .1em;
+        color: #dbe6f6; background: #0c1424c4; backdrop-filter: blur(10px);
         user-select: none; -webkit-user-select: none; touch-action: none;
+        transition: transform .07s, filter .12s;
       }
-      .pad-btn.primary { background: #f0c66bd9; color: #17233a; border-color: #ffffff40; }
-      .pad-btn.held { transform: scale(.93); filter: brightness(1.25); }
-      .pad-btn.cooling { opacity: .38; }
+      .pad-btn.primary { background: linear-gradient(180deg, #f6d488, var(--hud-gold-deep));
+                         color: #16202f; border-color: #ffffff45; }
+      .pad-btn.held { transform: scale(.93); filter: brightness(1.3); }
+      /* The dial, as a wipe up the face of the button. `--cd` is the same
+         property the desktop kit chips use and the same loop writes it, so
+         there is one cooldown mechanism on this page and not two. The button
+         stays legible while it fills, which the old 38% opacity did not. */
+      .pad-btn::after {
+        content: ''; position: absolute; left: 0; right: 0; bottom: 0;
+        height: var(--cd, 0%); background: #060a12b3;
+        border-top: 1px solid #f0c66b3d; pointer-events: none;
+      }
+      .pad-btn.cooling { color: #93a7c4; }
+      .pad-btn.cooling.primary { color: #4a4130; }
 
       /* The action pad lands exactly where the info button sits. Reading the
          about panel is not something anyone does mid-run, so on touch the
@@ -548,14 +569,20 @@
 
       /* ------------------------------------------------------------ combat */
       .pad-row { display: flex; gap: 10px; align-items: center; }
-      .pad-btn.sm { width: 46px; height: 46px; font-size: 16px; }
-      .pad-btn.pill { width: 60px; height: 46px; border-radius: 999px; font-size: 10px; }
+      .pad-btn.sm { width: 46px; height: 46px; font-size: 15px;
+                    clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px),
+                                       calc(100% - 9px) 100%, 0 100%, 0 9px); }
+      .pad-btn.pill { width: 60px; height: 46px; font-size: 9.5px; letter-spacing: .12em;
+                      clip-path: polygon(9px 0, 100% 0, 100% calc(100% - 9px),
+                                         calc(100% - 9px) 100%, 0 100%, 0 9px); }
       #pad { gap: 9px; align-items: flex-end; }
       .pad-row { gap: 8px; }
       @media (max-width: 380px) {
-        .pad-btn { width: 62px; height: 62px; font-size: 12px; }
-        .pad-btn.sm { width: 42px; height: 42px; font-size: 15px; }
-        .pad-btn.pill { width: 54px; height: 42px; font-size: 9px; }
+        .pad-btn { width: 60px; height: 60px; font-size: 10.5px;
+                   clip-path: polygon(11px 0, 100% 0, 100% calc(100% - 11px),
+                                      calc(100% - 11px) 100%, 0 100%, 0 11px); }
+        .pad-btn.sm { width: 42px; height: 42px; font-size: 14px; }
+        .pad-btn.pill { width: 54px; height: 42px; font-size: 8.5px; }
         #pad { right: 10px; gap: 7px; }
         .pad-row { gap: 6px; }
       }
@@ -586,8 +613,10 @@
       #kit {
         position: absolute; left: 14px;
         bottom: calc(max(16px, env(safe-area-inset-bottom)) + 92px);
-        display: none; flex-direction: column; gap: 4px; align-items: flex-start;
+        display: none; flex-direction: column; gap: 3px; align-items: flex-start;
       }
+      #kit .grouplabel, #kitState .grouplabel { margin-bottom: 3px; }
+      #kitState .grouplabel { align-self: flex-end; }
       body.playing #kit { display: flex; }
 
       /* Gear Second and Haki are toggled states rather than swings, so they get
@@ -596,31 +625,44 @@
         position: absolute; right: 14px;
         /* clear of the info button, which owns the corner just above the dock */
         bottom: calc(max(16px, env(safe-area-inset-bottom)) + 110px);
-        display: none; flex-direction: column; gap: 4px; align-items: flex-end;
+        display: none; flex-direction: column; gap: 3px; align-items: flex-end;
       }
       body.playing #kitState { display: flex; }
       body.touch #kitState { display: none !important; }   /* the pad has them */
+      /* The move list, in the HUD's own hand. Same cut corner, same tracked mono
+         caps, and the keycap badge squared off to match — it is a keyboard
+         legend, and a rounded pill for one is the least keyboard-looking shape
+         there is. */
       .movechip {
         position: relative; overflow: hidden;
-        display: inline-flex; align-items: center; gap: 5px;
-        appearance: none; border: 1px solid #ffffff1f; cursor: pointer;
-        font: inherit; font-size: 10.5px; font-weight: 600; letter-spacing: .02em;
-        color: #dbe6f6; background: #101a2ecc; backdrop-filter: blur(10px);
-        padding: 5px 9px; border-radius: 7px; white-space: nowrap;
+        display: inline-flex; align-items: center; gap: 6px;
+        appearance: none; border: 1px solid var(--hud-line); cursor: pointer;
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 9.5px; font-weight: 600; letter-spacing: .07em;
+        text-transform: uppercase;
+        color: #dbe6f6; background: var(--hud-bg); backdrop-filter: blur(10px);
+        padding: 5px 9px; border-radius: 2px; white-space: nowrap;
+        clip-path: var(--hud-cut);
+      }
+      @media (hover: hover) and (pointer: fine) {
+        .movechip:hover { background: var(--hud-bg-hi); border-color: var(--hud-line-lit); }
       }
       .movechip kbd {
-        font: inherit; font-size: 8.5px; font-weight: 700; line-height: 1;
-        color: #8fa6c8; background: #ffffff14; border: 1px solid #ffffff1a;
-        border-radius: 3px; padding: 2px 3.5px; min-width: 11px; text-align: center;
+        font-family: inherit; font-size: 8.5px; font-weight: 700; line-height: 1;
+        color: #f0c66bcc; background: #f0c66b14; border: 1px solid #f0c66b33;
+        border-radius: 1px; padding: 2px 4px; min-width: 12px; text-align: center;
+        letter-spacing: 0;
       }
-      .movechip.cooling kbd { color: #5a6a86; }
+      .movechip.cooling kbd { color: #6d7f9c; background: #ffffff0d; border-color: #ffffff14; }
       /* cooldown drains left-to-right using a single custom property the loop
-         writes; no extra element, no layout thrash */
+         writes; no extra element, no layout thrash. The lit right edge is what
+         turns a dark block into a gauge you can read at a glance. */
       .movechip::after {
         content: ''; position: absolute; inset: 0; width: var(--cd, 0%);
-        background: #0a0e1acc; pointer-events: none; transition: none;
+        background: #060a12c4; border-right: 1px solid #f0c66b4d;
+        pointer-events: none; transition: none;
       }
-      .movechip.cooling { color: #6d80a0; }
+      .movechip.cooling { color: #93a7c4; }
       body.touch #kit { display: none !important; }   /* the pad already shows them */
 
       #playStatus {
@@ -752,6 +794,7 @@
       <div id="moveBanner" aria-live="polite"></div>
 
       <div data-ui-button id="kit">
+        <span class="grouplabel">Moves</span>
         <button data-ui-button class="movechip" data-move="strike">—</button>
         <button data-ui-button class="movechip" data-move="sustain">—</button>
         <button data-ui-button class="movechip" data-move="heavy">—</button>
@@ -763,6 +806,7 @@
            row: they mirror the weather group on the other side and stop the
            attack row from wrapping. -->
       <div data-ui-button id="kitState">
+        <span class="grouplabel">States</span>
         <button data-ui-button class="movechip" data-move="gear">—</button>
         <button data-ui-button class="movechip" data-move="guard">—</button>
       </div>
