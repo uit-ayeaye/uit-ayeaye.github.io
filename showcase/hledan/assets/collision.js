@@ -19,22 +19,37 @@
  *    units overhead as the ground, so you cannot walk under the bridge at all
  *    (and the chase camera used to be lifted straight into the slab).
  *
- * So collision comes from the geometry instead. Two grids over the same
+ * So collision comes from the geometry instead. Three grids over the same
  * triangle array, split by facing:
  *
- *   walls  — |normal.y| < 0.55. These are what stop a body, and they carry
+ *   floors — |normal.y| >= 0.55. Ground you walk on. Sampling a column gives
+ *            every surface at an (x, z), which is what makes two-level ground
+ *            work.
+ *   ramps  — 0.25 <= |normal.y| < 0.55, so 57 deg to 76 deg of pitch. These
+ *            HOLD the body up but do not stop it, and splitting them out is
+ *            what makes the roofs standable. Lumped in with the walls they did
+ *            both of the wrong things at once: they were not in the floor set,
+ *            so a column query found nothing and the body dropped through the
+ *            roof; and they were in the wall set, so the body it had just
+ *            dropped into was then wedged, with every direction blocked by the
+ *            shell around it. Measured over the built core, 0.58% of columns
+ *            have a face this steep on top — the mall's barrel roof, the
+ *            tower's sloped glass, every pitched shophouse — and all of them
+ *            behaved that way. Nothing walks UP one: past the walk limit the
+ *            controller slides you back down, which is the same answer a
+ *            wall gives without the body having to be inside anything.
+ *   walls  — |normal.y| < 0.25. These are what stop a body, and they carry
  *            their own height, so nothing can block in mid-air: a canopy at
  *            +6 m is simply not in the band a standing body occupies.
- *   floors — everything else. Sampling a column gives every surface at an
- *            (x, z), which is what makes two-level ground work.
  *
- * Cost, measured on this map (53k triangles in, 52k kept — 34.5k walls and
- * 17.9k floors): build 145 ms cold and ~70 ms warm at cell 4 for 3.7 MB;
- * 43 ms for 2.9 MB at cell 6, which is what the low tier takes. Queries are
- * `blocked()` 0.43 us and `floorUnder()` 0.37 us, and a whole controller frame
- * goes from 1.8 us on the navmap alone to 5 us — 0.03% of a 60 fps budget for
- * collision that is actually correct. It is built lazily with the navmap, so a
- * visitor who only orbits the model never pays for it.
+ * Cost, measured on this map (53k triangles in, 52.5k kept — 29.4k walls,
+ * 5.1k ramps and 17.9k floors): 3.95 MB at cell 4, and 3.0 MB at cell 6, which
+ * is what the low tier takes. Splitting the ramps out of the walls costs
+ * 0.1 MB and a third bucket sweep at build time; a whole controller frame is
+ * around 13 us walking and 20 us through a Flash Step, against roughly 10 us
+ * before — 0.08% of a 60 fps budget, and the Flash Step figure is the
+ * sub-stepping in character.js rather than anything here. It is built lazily
+ * with the navmap, so a visitor who only orbits the model never pays for it.
  *
  * XZ buckets, not an octree: this is a city, 825 x 1765 units of ground and
  * only ~170 tall, so the vertical axis buys almost no separation.
@@ -48,6 +63,10 @@
 
 const CELL = 4;                    // map units; the body is 0.75 across
 const FLAT = 0.55;                 // |normal.y| above this counts as floor
+/* Below this a face is a wall: it stops the body and holds nothing up. Between
+   RAMP and FLAT it is a pitched surface — support without obstruction. 0.25 is
+   76 deg, past which a photogrammetry face is a facade rather than a roof. */
+const RAMP = 0.25;
 
 /**
  * One XZ bucket set over a shared triangle array.
@@ -210,7 +229,7 @@ export class MapColliders {
       total += ((geo.index ? geo.index.count : pos.count) / 3) | 0;
     }
     const tmp = new Float32Array(total * 9);
-    const walls = [], floors = [];
+    const walls = [], floors = [], ramps = [];
     let w = 0;                                        // write cursor, triangles
 
     for (const mesh of meshes) {
@@ -261,7 +280,8 @@ export class MapColliders {
         const nz = e1x * e2y - e1y * e2x;
         const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
         if (len < 1e-12) continue;                    // degenerate; collides with nothing
-        (Math.abs(ny / len) < FLAT ? walls : floors).push(w);
+        const up = Math.abs(ny / len);
+        (up >= FLAT ? floors : up >= RAMP ? ramps : walls).push(w);
         const o = w * 9;
         tmp[o] = ax; tmp[o + 1] = ay; tmp[o + 2] = az;
         tmp[o + 3] = bx; tmp[o + 4] = by; tmp[o + 5] = bz;
@@ -274,13 +294,20 @@ export class MapColliders {
     this.tris = tris;
     this.wall = new Buckets(tris, walls, cell);
     this.floor = new Buckets(tris, floors, cell);
+    this.ramp = new Buckets(tris, ramps, cell);
     this.wallCount = walls.length;
     this.floorCount = floors.length;
-    this._col = [];                                   // scratch for surfaces()
+    this.rampCount = ramps.length;
+    this._col = [];                                   // scratch for surfaces(): heights
+    this._src = [];                                   // and the triangle each came from
     this._stamp = null;                               // per-ray visit marks
     this._tick = 0;
+    /* The facing of whatever `floorUnder` last settled on, so the controller
+       can tell a floor from a pitch without asking a second question. */
+    this.hitUp = 1;
+    this.hitNx = 0; this.hitNz = 0;
     this.buildMs = (typeof performance !== 'undefined' ? performance.now() : 0) - t0;
-    this.bytes = tris.byteLength + this.wall.bytes + this.floor.bytes;
+    this.bytes = tris.byteLength + this.wall.bytes + this.floor.bytes + this.ramp.bytes;
   }
 
   /**
@@ -310,42 +337,76 @@ export class MapColliders {
   }
 
   /**
-   * Every horizontal surface directly over (x, z), lowest first.
+   * Every surface directly over (x, z) that can hold a body up, lowest first.
+   *
+   * Floors and ramps both, because a barrel roof is somewhere to stand even
+   * where it has tipped past walkable — see the class note. `this._src` holds
+   * the triangle each height came from, so `floorUnder` can recover the facing
+   * of the one it picks without this pass storing a normal per triangle.
    *
    * Returns a scratch array that is reused on the next call — a query this hot
-   * must not allocate, and no caller needs two columns at once.
+   * must not allocate, and no caller needs two columns at once. The two sets
+   * are merged by insertion as they are read: a column holds a handful of
+   * surfaces, and inserting them in order is cheaper than sorting twice.
    */
   surfaces(x, z) {
-    const g = this.floor, T = this.tris, out = this._col;
-    out.length = 0;
-    const c = g._cz(z) * g.nx + g._cx(x);
-    const end = g.start[c + 1];
-    for (let p = g.start[c]; p < end; p++) {
-      const o = g.items[p] * 9;
-      const ax = T[o], az = T[o + 2];
-      const bx = T[o + 3], bz = T[o + 5];
-      const cx = T[o + 6], cz = T[o + 8];
-      // barycentric containment in XZ, then interpolate the height
-      const d = (bz - cz) * (ax - cx) + (cx - bx) * (az - cz);
-      if (d > -1e-9 && d < 1e-9) continue;                    // edge-on triangle
-      const l1 = ((bz - cz) * (x - cx) + (cx - bx) * (z - cz)) / d;
-      if (l1 < -1e-4) continue;
-      const l2 = ((cz - az) * (x - cx) + (ax - cx) * (z - cz)) / d;
-      if (l2 < -1e-4) continue;
-      const l3 = 1 - l1 - l2;
-      if (l3 < -1e-4) continue;
-      out.push(l1 * T[o + 1] + l2 * T[o + 4] + l3 * T[o + 7]);
+    const T = this.tris, out = this._col, src = this._src;
+    out.length = 0; src.length = 0;
+    for (let b = 0; b < 2; b++) {
+      const g = b ? this.ramp : this.floor;
+      const c = g._cz(z) * g.nx + g._cx(x);
+      const end = g.start[c + 1];
+      for (let p = g.start[c]; p < end; p++) {
+        const t = g.items[p], o = t * 9;
+        const ax = T[o], az = T[o + 2];
+        const bx = T[o + 3], bz = T[o + 5];
+        const cx = T[o + 6], cz = T[o + 8];
+        // barycentric containment in XZ, then interpolate the height
+        const d = (bz - cz) * (ax - cx) + (cx - bx) * (az - cz);
+        if (d > -1e-9 && d < 1e-9) continue;                  // edge-on triangle
+        const l1 = ((bz - cz) * (x - cx) + (cx - bx) * (z - cz)) / d;
+        if (l1 < -1e-4) continue;
+        const l2 = ((cz - az) * (x - cx) + (ax - cx) * (z - cz)) / d;
+        if (l2 < -1e-4) continue;
+        const l3 = 1 - l1 - l2;
+        if (l3 < -1e-4) continue;
+        const y = l1 * T[o + 1] + l2 * T[o + 4] + l3 * T[o + 7];
+        let i = out.length;
+        while (i > 0 && out[i - 1] > y) { out[i] = out[i - 1]; src[i] = src[i - 1]; i--; }
+        out[i] = y; src[i] = t;
+      }
     }
-    out.sort((p, q) => p - q);
     return out;
   }
 
-  /** The highest surface at or below `y`, or null if there is none. */
+  /**
+   * The highest surface at or below `y`, or null if there is none.
+   *
+   * Also leaves the facing of that surface in `hitUp` (|normal.y|) and its
+   * downhill direction in `hitNx`/`hitNz`, which is what the controller reads
+   * to decide whether the thing under the feet is standable or a slide.
+   */
   floorUnder(x, z, y) {
     const s = this.surfaces(x, z);
-    let best = null;
-    for (let i = s.length - 1; i >= 0; i--) if (s[i] <= y) { best = s[i]; break; }
-    return best;
+    for (let i = s.length - 1; i >= 0; i--) {
+      if (s[i] > y) continue;
+      const o = this._src[i] * 9, T = this.tris;
+      const ax = T[o], ay = T[o + 1], az = T[o + 2];
+      const e1x = T[o + 3] - ax, e1y = T[o + 4] - ay, e1z = T[o + 5] - az;
+      const e2x = T[o + 6] - ax, e2y = T[o + 7] - ay, e2z = T[o + 8] - az;
+      let nx = e1y * e2z - e1z * e2y;
+      let ny = e1z * e2x - e1x * e2z;
+      let nz = e1x * e2y - e1y * e2x;
+      const len = Math.hypot(nx, ny, nz) || 1;
+      // point it up, so the horizontal part is always the downhill direction
+      const sign = ny < 0 ? -1 : 1;
+      this.hitUp = Math.abs(ny) / len;
+      this.hitNx = (nx * sign) / len;
+      this.hitNz = (nz * sign) / len;
+      return s[i];
+    }
+    this.hitUp = 1; this.hitNx = 0; this.hitNz = 0;
+    return null;
   }
 
   /** The lowest surface above `y` — headroom, for anything that needs it. */
@@ -366,8 +427,9 @@ export class MapColliders {
    * the terrain backdrop is ground and the camera has a height clamp for
    * ground. It is not only ground: **the flyover's piers are in `Environment`**,
    * so walking under the bridge put the eye inside a pier with nothing to push
-   * it out, and the screen filled with grey slab. Walls and floors both count
-   * here — the deck's underside is a ceiling the camera must not rise through.
+   * it out, and the screen filled with grey slab. All three sets count here —
+   * the deck's underside is a ceiling the camera must not rise through, and a
+   * ramp is as opaque as anything else.
    */
   raycast(origin, dir, maxLen) {
     const T = this.tris;
@@ -375,8 +437,8 @@ export class MapColliders {
     const tick = ++this._tick;
     let best = maxLen, found = false;
 
-    for (let g = 0; g < 2; g++) {
-      const B = g ? this.floor : this.wall;
+    for (let g = 0; g < 3; g++) {
+      const B = g === 0 ? this.wall : g === 1 ? this.floor : this.ramp;
       const ex = origin.x + dir.x * maxLen, ez = origin.z + dir.z * maxLen;
       const x0 = B._cx(Math.min(origin.x, ex)), x1 = B._cx(Math.max(origin.x, ex));
       const z0 = B._cz(Math.min(origin.z, ez)), z1 = B._cz(Math.max(origin.z, ez));

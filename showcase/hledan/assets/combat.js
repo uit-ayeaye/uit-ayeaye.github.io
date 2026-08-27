@@ -26,6 +26,13 @@
  * Nami has no Elbaf kit (she is an NPC there), so her staff moves are mapped
  * onto the same slots and the same machine — identical timings, gates and
  * buffering — with thunder for visuals.
+ *
+ * Flash Step is the one move that is more than a port. It keeps Elbaf's window
+ * and its reach to the metre, but the speed inside that window is shaped
+ * rather than flat, the afterimages are laid along the path the body actually
+ * took, the arrival ring is a cut rather than a plate, and the pose it drives
+ * is two shapes with the handover on the frame the hit lands. See
+ * `flashSpeedShape` and `_trail` below, and `flashCut` in character.js.
  */
 import * as THREE from 'three';
 import { WORLD_SCALE, CENTER_Y } from './character.js';
@@ -101,15 +108,54 @@ const IMPACT_KINDS = {
   land:    { color: 0xe8f0fa, size: 1.3, flat: true,  life: .45 },
   slash:   { color: 0xd8f2ff, size: 2.4, flat: false, life: .35 },
   zap:     { color: 0xcfe8ff, size: 1.1, flat: false, life: .38 },
+  /* Flash Step's own cut. The generic `slash` ring is 2.4 m and lives for a
+     third of a second, which at this power grows to about thirteen metres
+     across — nearly five times Zoro's height — of pale, alpha-blended disc
+     laid flat on the camera. On a step that ENDS with the camera right behind
+     him it is a grey plate over the whole frame at the one moment the move is
+     supposed to be legible. Half the size, two thirds the life and a third of
+     the opacity: a cut, not a plate. */
+  flash:   { color: 0xe4f6ff, size: 1.2, flat: false, life: .2, alpha: .55 },
 };
 const IMPACT_POOL = 16, DEBRIS_PER = 6, DEBRIS_LIFE = .7;
 /* Flash Step — a jump with a cut in it, driven through the controller rather
    than teleported, so a wall stops it exactly as it stops a walk. Modest on
    purpose: it is a traversal beat you can spam, not a way across the junction. */
 const FLASH_DUR   = .30;        // the drive window
-const FLASH_SPEED = 17 * S;     // forward, m/s
+const FLASH_SPEED = 17 * S;     // forward, m/s, AVERAGED over the window
 const FLASH_RISE  = 7.6 * S;    // upward impulse, a shade over Zoro's 6.8 jump
-const FLASH_TRAIL = 5.5 * S;    // how far the afterimages are laid out
+
+/**
+ * The step's speed across its own window.
+ *
+ * A flat 17 m/s for 0.30 s is a shove: it starts at full speed, ends at full
+ * speed, and the only thing that changes in between is where the body is. A
+ * step is the opposite shape — a beat of coil, a burst that is over almost
+ * before it starts, and a plant to stand the cut on. This is that shape, and
+ * because the reach of the move is a tuned number the curve is normalised to
+ * mean 1 below, so the body still covers exactly 17 * 0.30 map units. Only the
+ * distribution changes.
+ */
+function flashSpeedShape(k) {
+  if (k < .10) return .34 + (k / .10) * 1.9;             // coil, then go
+  if (k < .52) return 2.24 - ((k - .10) / .42) * .54;    // the burst, easing
+  return 1.70 * Math.pow(1 - (k - .52) / .48, 1.4);      // plant for the cut
+}
+/* Numerically, once, rather than by hand: the shape can then be edited without
+   the reach of the move silently moving with it. */
+const FLASH_SHAPE_MEAN = (() => {
+  let a = 0; const N = 512;
+  for (let i = 0; i < N; i++) a += flashSpeedShape((i + .5) / N);
+  return a / N;
+})();
+const flashEnvelope = (k) => flashSpeedShape(k) / FLASH_SHAPE_MEAN;
+
+/* Afterimage spacing along the real path, in map units. The trail used to be
+   laid down once, at the start, along a straight line predicted from the look
+   vector — so it pointed at where the step was AIMED rather than at where the
+   body went, and any wall, kerb or roof edge that turned the step left the
+   ghosts hanging in the air off to one side. */
+const GHOST_STEP  = 1.05 * S;
 const GHOST_POOL  = 7;
 const GHOST_LIFE  = .34;
 const GATLING_ARMS = 7;
@@ -286,9 +332,11 @@ export class Combat {
         addMat(0xbfe6ff, { blending: THREE.AdditiveBlending }));
       m.visible = false; m.renderOrder = 996; m.frustumCulled = false;
       g.add(m);
-      return { mesh: m, t: 0, life: 0 };
+      return { mesh: m, t: 0, life: 0, seq: 0 };
     });
     this._ghostSeq = 0;
+    this._ghostNext = 0;
+    this._ghostLast = new THREE.Vector3();
     this.blink = null;                    // {t, dur} — the arrival flourish
   }
 
@@ -486,11 +534,8 @@ export class Combat {
       ctrl.airTime = 0;
       ctrl.facing = Math.atan2(look.x, look.z);
       mv.target.copy(C).addScaledVector(look, 5 * S);
-      this.blink = { t: 0, dur: .22 };
-      this._spawnGhosts(ctrl.pos.x, ctrl.pos.y, ctrl.pos.z,
-                        ctrl.pos.x + look.x * FLASH_TRAIL,
-                        ctrl.pos.y + FLASH_TRAIL * 0.35,
-                        ctrl.pos.z + look.z * FLASH_TRAIL, ctrl.facing);
+      this.blink = { t: 0, dur: .2 };
+      this._trailReset(ctrl);
       this.addShake(.05);
     } else if (input.queued.has('dash') && kit.dash && !this.fly) {
       this._start('dash', kit.dash, ROCKET_DUR);
@@ -648,15 +693,18 @@ export class Combat {
       if (mv.slot === 'dash' && sword) {
         /* Flash Step drives itself. Horizontal only — the rise was an impulse
            at the start and gravity owns it from there, which is what makes the
-           arc read as a jump rather than a hover. */
-        this.drive.vx = look.x * FLASH_SPEED;
-        this.drive.vz = look.z * FLASH_SPEED;
+           arc read as a jump rather than a hover — and shaped across the
+           window rather than held flat, so the burst is a burst. */
+        const e = FLASH_SPEED * flashEnvelope(k);
+        this.drive.vx = look.x * e;
+        this.drive.vz = look.z * e;
         this.drive.face = 'look';
         this.drive.lookYaw = Math.atan2(look.x, look.z);
+        this._trail(ctrl);
         if (!mv.hit && k >= .45) {
           mv.hit = true;
           this._v.copy(C).addScaledVector(look, 3.2 * S);
-          this.impact(this._v, 1.15, 'slash');
+          this.impact(this._v, 1.15, 'flash');
           this.addShake(.09);
         }
       } else if (mv.slot === 'dash') {
@@ -781,23 +829,40 @@ export class Combat {
     this.holdSlow = this.speedMul() / (this.gear2 ? GEAR2_SPEED : 1);
   }
 
-  /** Lay the pool down the path just crossed, oldest-first so it fades away from you. */
-  _spawnGhosts(x0, y0, z0, x1, y1, z1, facing) {
+  /**
+   * Open a trail at the body, and drop an afterimage every GHOST_STEP of ground
+   * actually covered from then on.
+   *
+   * The pool is a ring, and the ring is never cleared — the oldest slab is the
+   * one recycled, and it is the one already fading out. That matters because
+   * the step is meant to be spammed: wiping the pool on every press left a
+   * climb of five steps showing one or two slabs at a time, where letting the
+   * ring run keeps the whole climb behind you. Age comes from the drop counter,
+   * so the fade runs away from the body however many have been laid.
+   */
+  _trailReset(ctrl) {
+    this._ghostLast.set(ctrl.pos.x, ctrl.pos.y, ctrl.pos.z);
+    this._trailDrop(ctrl);
+  }
+
+  _trail(ctrl) {
+    const p = ctrl.pos, L = this._ghostLast;
+    const dx = p.x - L.x, dy = p.y - L.y, dz = p.z - L.z;
+    if (dx * dx + dy * dy + dz * dz < GHOST_STEP * GHOST_STEP) return;
+    L.set(p.x, p.y, p.z);
+    this._trailDrop(ctrl);
+  }
+
+  _trailDrop(ctrl) {
     const n = this.ghosts.length;
-    for (let i = 0; i < n; i++) {
-      const k = i / (n - 1 || 1);
-      const g = this.ghosts[i];
-      g.t = 0;
-      /* Stagger the lives so the trail dissolves from the tail end instead of
-         blinking out all at once. */
-      g.life = GHOST_LIFE * (0.45 + 0.55 * (1 - k));
-      /* Interpolate the height too, now the step climbs — a trail left flat on
-         the departure level reads as unrelated to a Zoro standing on a roof. */
-      g.mesh.position.set(x0 + (x1 - x0) * k, y0 + (y1 - y0) * k + CENTER_Y, z0 + (z1 - z0) * k);
-      g.mesh.rotation.set(0, facing, 0);
-      g.k = k;
-    }
-    this._ghostSeq++;
+    const g = this.ghosts[this._ghostNext % n];
+    this._ghostNext++;
+    g.t = 0;
+    g.life = GHOST_LIFE;
+    g.mesh.position.set(ctrl.pos.x, ctrl.pos.y + CENTER_Y, ctrl.pos.z);
+    g.mesh.rotation.set(0, ctrl.facing, 0);
+    g.seq = this._ghostNext;
+    this._ghostSeq = this._ghostNext;
   }
 
   _start(slot, def, dur) {
@@ -867,7 +932,7 @@ export class Combat {
         if (spec.flat) im.mesh.rotation.set(-Math.PI / 2, 0, 0);
         else im.mesh.quaternion.copy(camera.quaternion);
         im.mesh.material.color.setHex(spec.color);
-        im.mesh.material.opacity = .85 * (1 - x);
+        im.mesh.material.opacity = (spec.alpha ?? .85) * (1 - x);
       }
       // rocks
       const throwing = im.age < DEBRIS_LIFE && im.kind !== 'haki' && im.kind !== 'land';
@@ -967,8 +1032,11 @@ export class Combat {
       g.mesh.quaternion.copy(camera.quaternion);
       // narrows and lengthens as it goes, the way a light trail smears
       g.mesh.scale.set(.16 * S * (1 - k * .5), 1.5 * S * (1 + k * .35), 1);
-      /* Brightest at the tail (where he left) so the eye is pulled forward. */
-      g.mesh.material.opacity = (1 - k) * (1 - k) * .5 * (1 - g.k * .4) * clear;
+      /* Brightest at the tail (where he left) so the eye is pulled forward.
+         Position in the trail is now age, counted back from the newest slab
+         laid — the ring has no fixed head or tail of its own. */
+      const back = Math.min(1, (this._ghostSeq - g.seq) / this.ghosts.length);
+      g.mesh.material.opacity = (1 - k) * (1 - k) * .5 * (.6 + back * .4) * clear;
     }
 
     // Zoro's dressing

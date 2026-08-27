@@ -31,6 +31,19 @@
  *
  * Elbaf gets collision from Rapier; here the ground height and blocked cells
  * are baked into navmesh.png and sampled from two flat arrays. See navmap.py.
+ *
+ * What is NOT Elbaf's, because Rapier does it and a height field does not:
+ *
+ *   - the vertical step is swept off the body's own feet, so a jump can land
+ *     on the thing it is jumping onto — a rooftop, or the flyover deck — and
+ *     the head is stopped by a slab it is rising into instead of passing
+ *     through it. Both halves of that are in `update`.
+ *   - the horizontal step is sub-stepped to the body's own radius, so a fast
+ *     move behaves the same at 12 fps as at 60. It did not: `_canStand` tests
+ *     the destination, and one frame of a Flash Step at 30 fps is four radii,
+ *     which steps clean over any wall thinner than that.
+ *   - a face too steep to walk on carries the body down instead of holding it
+ *     still, and a body that ends up inside geometry walks itself back out.
  */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -59,6 +72,19 @@ const AIR_JUMPS    = 1;
 const AIR_JUMP_MULT = 0.92;
 const STEP_UP      = 0.62 * S;
 const SNAP_DOWN    = 0.40 * S;
+/* The steepest face the feet hold on, as |normal.y| — the same 0.55 the
+   colliders split floors at, so anything the collider calls a ramp is
+   something this slides down. */
+const SLOPE_MIN    = 0.55;
+const SLIDE_ACCEL  = 20 * S;                   // downhill pull on a pitch
+/* How fast the body walks itself out of geometry it should never have been
+   inside. Slow enough to read as a stumble rather than a teleport. */
+const ESCAPE_SPEED = 7 * S;
+/* Ceiling on the horizontal sub-steps below. Twelve covers the worst frame the
+   app will hand over (dt is clamped to 0.1 s) at the fastest speed in the game,
+   and it is only ever reached on a frame that has already stopped for a tenth
+   of a second. */
+const SUB_STEP_MAX = 12;
 export const YAW_SENS   = 0.0045;
 export const PITCH_SENS = 0.0035;
 export const PITCH_MIN  = -0.85;
@@ -412,11 +438,25 @@ const MOVE_POSE_SPECS = {
     armL: { aim: [-.5, -.56, .66] }, foreArmL: { aim: [-.3, -.28, .91] },
     chest: [0, 1, 0, -.34], spine: [0, 1, 0, -.16], head: [1, 0, 0, -.26],
   },
+  /* Flash Step is two shapes, not one. Held on a single pose for its whole
+     window the move read as a shove: the body leaned into the direction of
+     travel and stayed there, and the cut that lands at 45% happened somewhere
+     inside a silhouette that never changed. `flash` is the coil and the launch
+     — blade drawn back across the body, weight low, shoulder leading — and
+     `flashCut` is the finish, taken over in about a tenth of a second at the
+     moment the hit registers. */
   flash: {
-    armR: { aim: [-.56, -.22, -.8] }, foreArmR: { aim: [-.42, -.12, -.9] },
-    armL: { aim: [.3, -.26, .92] }, foreArmL: { aim: [.14, -.1, .98] },
-    chest: [1, 0, 0, .36], spine: [1, 0, 0, .2],
-    upLegL: { aim: [.2, -.56, .8] }, upLegR: { aim: [-.16, -.86, -.48] },
+    armR: { aim: [-.62, -.26, -.74] }, foreArmR: { aim: [-.5, -.16, -.85] },
+    armL: { aim: [.34, -.3, .89] }, foreArmL: { aim: [.16, -.12, .98] },
+    chest: [1, 0, 0, .46], spine: [1, 0, 0, .26], head: [1, 0, 0, .16],
+    upLegL: { aim: [.22, -.5, .84] }, upLegR: { aim: [-.14, -.9, -.42] },
+  },
+  flashCut: {
+    // the blade has gone through and out past the far shoulder
+    armR: { aim: [.84, -.14, .52] }, foreArmR: { aim: [.95, -.06, .3] },
+    armL: { aim: [-.58, -.34, -.74] }, foreArmL: { aim: [-.4, -.2, -.89] },
+    chest: [0, 1, 0, -.66], spine: [0, 1, 0, -.3], head: [0, 1, 0, -.34],
+    upLegL: { aim: [.26, -.92, .3] }, upLegR: { aim: [-.32, -.7, -.64] },
   },
   sanzen: {
     armR: { aim: [-.96, .1, .26] }, foreArmR: { aim: [-.99, .04, .12] },
@@ -809,7 +849,13 @@ const _rootQuat = new THREE.Quaternion();
 
 /** Every layer the move system can drive, Elbaf's list minus the quest ones. */
 const MOVE_LAYERS = ['gear2', 'balloon', 'gatling', 'tatsumaki', 'haki', 'asura',
-  'punch', 'bazooka', 'rocket', 'flash', 'onigiri', 'wavecast', 'sanzen', 'gigant'];
+  'punch', 'bazooka', 'rocket', 'flash', 'flashCut', 'onigiri', 'wavecast', 'sanzen', 'gigant'];
+/* Elbaf blends every move layer in at 26 and out at 10. That is right for a
+   pose the body settles into and wrong for one that is meant to CRACK: at 26
+   the cut takes a tenth of a second to arrive, which is a third of the step.
+   Only the two halves of Flash Step override it. */
+const MOVE_RATE = { flash: [40, 18], flashCut: [46, 15] };
+const DEFAULT_MOVE_RATE = [26, 10];
 
 export class Character {
   constructor(def, parts) {
@@ -833,6 +879,7 @@ export class Character {
     this._idle = 1;       // 1 still → 0 moving
     this._lean = { f: 0, s: 0, prevSpeed: 0 };
     this._moveW = Object.fromEntries(MOVE_LAYERS.map((k) => [k, 0]));
+    this._want = Object.fromEntries(MOVE_LAYERS.map((k) => [k, 0]));
     this._gearGlow = 0;
     this._glowDirty = false;
     this._sword = 0;      // drawn-blades blend
@@ -1138,25 +1185,34 @@ export class Character {
     const sword = cb.style === 'sword';
     const mv = cb.move;
     const poseKey = POSE_FOR_MOVE[mv];
-    const want = {
-      punch: poseKey === 'punch' ? 1 : 0,
-      gigant: poseKey === 'gigant' ? 1 : 0,
-      bazooka: poseKey === 'bazooka' ? 1 : 0,
-      rocket: poseKey === 'rocket' ? 1 : 0,
-      onigiri: poseKey === 'onigiri' ? 1 : 0,
-      sanzen: poseKey === 'sanzen' ? 1 : 0,
-      wavecast: poseKey === 'wavecast' ? 1 : 0,
-      flash: poseKey === 'flash' ? 1 : 0,
-      gatling: sword ? 0 : cb.gatling,
-      tatsumaki: sword && cb.gatling > .15 ? 1 : 0,
-      balloon: cb.balloon,
-      haki: !sword && cb.haki > 0 ? 1 : 0,
-      asura: sword && cb.haki > 0 ? 1 : 0,
-      gear2: !sword && cb.gear2 && !mv && cb.gatling < .15 ? 1 : 0,
-    };
+    const flashCut = poseKey === 'flash' && sword
+      ? THREE.MathUtils.smoothstep(cb.moveK ?? 0, .34, .52) : 0;
+    /* Filled, not built. This was an object literal of fifteen properties
+       allocated sixty times a second for a shape that never changes; the
+       object is per-character now and every field is written below. */
+    const want = this._want;
+    want.punch = poseKey === 'punch' ? 1 : 0;
+    want.gigant = poseKey === 'gigant' ? 1 : 0;
+    want.bazooka = poseKey === 'bazooka' ? 1 : 0;
+    want.rocket = poseKey === 'rocket' ? 1 : 0;
+    want.onigiri = poseKey === 'onigiri' ? 1 : 0;
+    want.sanzen = poseKey === 'sanzen' ? 1 : 0;
+    want.wavecast = poseKey === 'wavecast' ? 1 : 0;
+    /* The cut takes over at the same instant the hit lands, so the shape and
+       the impact are one event. Nami's mirage borrows the flash pose and has
+       no blade in it, so it keeps the single shape. */
+    want.flash = poseKey === 'flash' ? 1 - flashCut : 0;
+    want.flashCut = flashCut;
+    want.gatling = sword ? 0 : cb.gatling;
+    want.tatsumaki = sword && cb.gatling > .15 ? 1 : 0;
+    want.balloon = cb.balloon;
+    want.haki = !sword && cb.haki > 0 ? 1 : 0;
+    want.asura = sword && cb.haki > 0 ? 1 : 0;
+    want.gear2 = !sword && cb.gear2 && !mv && cb.gatling < .15 ? 1 : 0;
     for (const key of MOVE_LAYERS) {
       const target = want[key] ?? 0;
-      this._moveW[key] = damp(this._moveW[key], target, target > this._moveW[key] ? 26 : 10, dt);
+      const rate = MOVE_RATE[key] || DEFAULT_MOVE_RATE;
+      this._moveW[key] = damp(this._moveW[key], target, target > this._moveW[key] ? rate[0] : rate[1], dt);
       if (this._moveW[key] > .004 && this.movePoses[key]) {
         applyPose(this.movePoses[key], Math.min(1, this._moveW[key]), _rootQuat, null);
       }
@@ -1245,6 +1301,9 @@ export class CharacterController {
     this.airTime = 0;
     this.landing = 0;          // fall speed on the landing frame, map u/s
     this.turn = 0;             // damped facing rate, rad/s
+    this.groundUp = 1;         // |normal.y| of the surface underfoot
+    this.sliding = 0;          // 0..1, how far past the walk limit that is
+    this._gnx = 0; this._gnz = 0;   // its downhill direction
     this._prevVy = 0;
     this._prevFacing = 0;
     this._fwd = new THREE.Vector3();
@@ -1285,6 +1344,8 @@ export class CharacterController {
     this.grounded = true;
     this.airJumps = AIR_JUMPS;
     this.landing = 0;
+    this.groundUp = 1;
+    this.sliding = 0;
   }
 
   /**
@@ -1314,8 +1375,11 @@ export class CharacterController {
       const k = 1 - Math.exp(-ACCEL * (this.grounded ? 1 : AIR_ACCEL_K) * dt);
       let vx = this.vel.x + (wantX - this.vel.x) * k;
       let vz = this.vel.z + (wantZ - this.vel.z) * k;
-      // Elbaf pins the body when grounded with no input and nearly stopped
-      if (this.grounded && mag < .01 && Math.hypot(vx, vz) < .6 * S) { vx = 0; vz = 0; }
+      /* Elbaf pins the body when grounded with no input and nearly stopped —
+         except on a pitch, where standing still is the thing that must not
+         happen. Pinning there re-froze the body on the barrel roof one frame
+         after the slide started it moving. */
+      if (this.grounded && !this.sliding && mag < .01 && Math.hypot(vx, vz) < .6 * S) { vx = 0; vz = 0; }
       this.vel.x = vx;
       this.vel.z = vz;
     }
@@ -1347,6 +1411,13 @@ export class CharacterController {
        clears. Never below `from`: falling into a pit must not let the torso
        phase through the wall it is sliding down. */
     const band = this.grounded ? from : Math.max(from, this.pos.y);
+    /* If the body is standing in something solid, every axis test below fails
+       against the thing it is already inside and it can never move again. That
+       is not hypothetical on a map with a Flash Step in it: the step arcs over
+       parapets and plant rooms, and landing a hair inside one used to be
+       permanent. Walk out of it first, then move normally. */
+    this._escape(dt, band);
+
     const stepX = this.vel.x * dt, stepZ = this.vel.z * dt;
     const tryX = (dx) => {
       if (!this._canStand(this.pos.x + dx, this.pos.z, from, band)) return false;
@@ -1356,14 +1427,57 @@ export class CharacterController {
       if (!this._canStand(this.pos.x, this.pos.z + dz, from, band)) return false;
       this.pos.z += dz; return true;
     };
-    if (stepX !== 0 && !(tryX(stepX) || tryX(stepX * 0.5) || tryX(stepX * 0.25))) this.vel.x *= 0.2;
-    if (stepZ !== 0 && !(tryZ(stepZ) || tryZ(stepZ * 0.5) || tryZ(stepZ * 0.25))) this.vel.z *= 0.2;
+    /* Sub-stepped, so no single test spans more than the body is wide.
+       `_canStand` asks whether the DESTINATION is clear, and that is the right
+       question only while nothing can hide between here and there. Flash Step
+       moves 43 units a second: one frame of it at 30 fps is 1.4 units, nearly
+       four times the body's radius, and a wall thinner than that is stepped
+       clean over — the retries only ever make the step SHORTER, so a
+       destination on the far side is simply accepted. Measured against 200
+       walls, the same step went through 5 of them at 60 fps and 92 at 30, and
+       123 at 12 — solid on a desktop, porous on a phone, which is the worst way
+       for this to present. Walking never spans a radius, so it still costs one
+       test per axis exactly as before. */
+    const span = Math.max(Math.abs(stepX), Math.abs(stepZ));
+    const sub = span > BODY_RADIUS
+      ? Math.min(SUB_STEP_MAX, Math.ceil(span / BODY_RADIUS)) : 1;
+    const dx = stepX / sub, dz = stepZ / sub;
+    let liveX = stepX !== 0, liveZ = stepZ !== 0;
+    for (let i = 0; i < sub && (liveX || liveZ); i++) {
+      if (liveX && !(tryX(dx) || tryX(dx * 0.5) || tryX(dx * 0.25))) { this.vel.x *= 0.2; liveX = false; }
+      if (liveZ && !(tryZ(dz) || tryZ(dz * 0.5) || tryZ(dz * 0.25))) { this.vel.z *= 0.2; liveZ = false; }
+    }
 
-    // vertical
+    /* Vertical, swept — and the level it sweeps FROM is the body's own feet,
+       not the ground it last stood on. That one substitution is both halves of
+       the bridge bug. `_groundAt` will not name a surface more than a step
+       above the level it is given, so with `from` pinned to the launch ground
+       a jump could never see anything it was jumping ONTO: measured over 61
+       columns with a deck above a road, the body landed on the deck 0 times.
+       It rose through the slab, hung over it, and fell back through it to the
+       road — which is exactly what "jumping at the flyover puts you inside it"
+       looks like from the outside. Off the feet it lands on all 61. */
     const prevVy = this.vel.y;
+    const prevY = this.pos.y;
     this.pos.y += this.vel.y * dt;
-    const gy = this._groundAt(this.pos.x, this.pos.z, from);
+
+    /* Rising, the head is what a slab stops. Without this the fix above only
+       moves the problem: clearing the deck's own thickness from underneath
+       would now LAND you on a bridge you had just flown through. */
+    if (this.solids && this.vel.y > 0) {
+      const hit = this.solids.ceilingOver(this.pos.x, this.pos.z, prevY + BODY_HEIGHT);
+      if (hit !== null && hit <= this.pos.y + BODY_HEIGHT) {
+        this.pos.y = hit - BODY_HEIGHT;
+        this.vel.y = 0;
+      }
+    }
+
+    const gy = this._groundAt(this.pos.x, this.pos.z, prevY);
     if (gy !== null) this.groundY = gy;
+    /* The facing of that surface, read straight back out of the query that
+       just found it. `_groundAt` sets these; the navmap's own ground is
+       bilinear and always counts as flat. */
+    const gUp = this.groundUp, gnx = this._gnx, gnz = this._gnz;
 
     /* Ground snap: the height field is photogrammetry, so the surface drops a
        few centimetres underfoot constantly. Anything within SNAP_DOWN while
@@ -1399,6 +1513,22 @@ export class CharacterController {
       this.airTime += dt;
       this.coyote = Math.max(0, this.coyote - dt);
     }
+
+    /* A pitch too steep to stand on does not stop the body, it carries it.
+       The colliders hand back roof faces down to 76 deg so the body has
+       something to land on at all (see collision.js); past the walk limit,
+       gravity along the face is what keeps a barrel roof from being a shelf
+       you can park on. The horizontal part of an upward normal IS the steepest
+       descent, so no extra maths is needed to aim it. */
+    if (this.grounded && gUp < SLOPE_MIN) {
+      const h = Math.hypot(gnx, gnz);
+      if (h > 1e-4) {
+        this.sliding = Math.min(1, (SLOPE_MIN - gUp) / SLOPE_MIN);
+        const a = SLIDE_ACCEL * this.sliding * dt;
+        this.vel.x += (gnx / h) * a;
+        this.vel.z += (gnz / h) * a;
+      } else this.sliding = 0;
+    } else this.sliding = 0;
 
     // facing: toward the input direction — or the camera, while fighting
     this.speedXZ = Math.hypot(this.vel.x, this.vel.z);
@@ -1459,13 +1589,72 @@ export class CharacterController {
    */
   _groundAt(x, z, fromY) {
     const nav = this.nav.heightAt(x, z);
+    this.groundUp = 1; this._gnx = 0; this._gnz = 0;
     if (!this.solids) return nav;
     const lim = fromY + STEP_UP;
     const mesh = this.solids.floorUnder(x, z, lim);
-    if (nav === null) return mesh;
-    if (nav > lim) return mesh === null ? nav : mesh;      // navmap out of reach: under a deck
-    if (mesh !== null && mesh > nav + STEP_UP) return mesh; // a roof or ledge over the ground
-    return nav;
+    /* Whether the mesh wins, decided first — this runs several times a frame
+       and the branch used to be three early returns with a closure to carry
+       the facing out of each, which is a closure allocated per call. */
+    const meshWins = mesh !== null
+      && (nav === null || nav > lim || mesh > nav + STEP_UP);
+    if (!meshWins) return nav === null ? mesh : nav;
+    /* Carry the facing out with the height. Only the mesh can report a pitch —
+       the navmap is a bilinear height field and the surface it describes is
+       walkable by construction. */
+    this.groundUp = this.solids.hitUp;
+    this._gnx = this.solids.hitNx;
+    this._gnz = this.solids.hitNz;
+    return mesh;
+  }
+
+  /**
+   * Walk the body out of anything it is standing inside.
+   *
+   * Nothing here should ever put a body in a wall, but a 17 m/s dash resolved
+   * one axis at a time over photogrammetry can end a frame a few centimetres
+   * inside a parapet, and from in there `_canStand` refuses every direction —
+   * including the one back out. The body is stuck for good, on a roof, which
+   * is the worst place to be stuck because it is where the step puts you.
+   *
+   * Eight directions, tried from the current heading outwards so the escape
+   * keeps whatever momentum it had, and a step small enough that being nudged
+   * loose reads as a stumble.
+   */
+  _escape(dt, bandY) {
+    if (!this.solids) return false;
+    if (!this._walled(this.pos.x, this.pos.z, bandY)) return false;
+    const probe = BODY_RADIUS * 3;
+    const base = this.speedXZ > 1e-3 ? Math.atan2(this.vel.x, this.vel.z) : this.facing;
+    let fallbackX = 0, fallbackZ = 0, fallback = false;
+    for (let i = 0; i < 8; i++) {
+      /* Alternate either side of the heading: 0, +45, -45, +90 ... so the
+         nearest way out wins over the first one in an arbitrary sweep. */
+      const a = base + (i % 2 ? -1 : 1) * Math.ceil(i / 2) * (Math.PI / 4);
+      const dx = Math.sin(a), dz = Math.cos(a);
+      const tx = this.pos.x + dx * probe, tz = this.pos.z + dz * probe;
+      if (this._walled(tx, tz, bandY)) continue;
+      /* An escape is not a door. Pushing blind put the body through a
+         shopfront it had merely brushed — the wall test says the far side is
+         clear, and the far side of a shopfront is a sealed shell. Interiors
+         are only acceptable as a last resort, when the body is ALREADY in one
+         and every way out leads through more of it. */
+      if (this.interiors && this.interiors.inside(tx, tz, bandY)) {
+        if (!fallback) { fallback = true; fallbackX = dx; fallbackZ = dz; }
+        continue;
+      }
+      const push = Math.min(probe, ESCAPE_SPEED * dt);
+      this.pos.x += dx * push;
+      this.pos.z += dz * push;
+      return true;
+    }
+    if (fallback) {
+      const push = Math.min(probe, ESCAPE_SPEED * dt);
+      this.pos.x += fallbackX * push;
+      this.pos.z += fallbackZ * push;
+      return true;
+    }
+    return false;
   }
 
   /**

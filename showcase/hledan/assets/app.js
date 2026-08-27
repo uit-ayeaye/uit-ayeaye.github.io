@@ -70,7 +70,15 @@ function probeDevice() {
      of overwhelming evidence gets the 1024/Lambert path. It looks near
      identical at phone pixel density and costs a third of the GPU memory. */
   const need = IS_TOUCH ? 7 : 4;
-  return { tier: score >= need ? 'hi' : 'lo', cores, mem, gpu, score, need };
+  /* ?tier=lo / ?tier=hi pins the choice. The probe is a guess about a device it
+     cannot see, and there was no way to look at what a phone actually gets
+     without holding a phone: the low tier picks different materials, different
+     textures, a coarser sky and a coarser collision grid, and none of that was
+     reachable from a desktop. It is also the honest answer when the probe is
+     wrong about a particular machine in either direction. */
+  const forced = new URLSearchParams(location.search).get('tier');
+  const tier = forced === 'lo' || forced === 'hi' ? forced : (score >= need ? 'hi' : 'lo');
+  return { tier, cores, mem, gpu, score, need, forced: !!forced && forced === tier };
 }
 
 document.body.classList.toggle('touch', IS_TOUCH);
@@ -907,12 +915,14 @@ function setMode(m) {
   syncModeButtons(play.on ? 'play' : walk.on ? 'walk' : 'orbit');
 }
 
+const _rayFrom = new THREE.Vector3();
+const _walkEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+
 function sampleGround(force) {
   if (!force && (walk.tick++ % 3)) return;
-  walk.ray.set(
-    new THREE.Vector3(camera.position.x, groundBox.max.y + 60, camera.position.z),
-    walk.down
-  );
+  /* Reused: this runs every third frame for as long as anyone is in walk mode,
+     and a Vector3 a frame is a Vector3 a frame. */
+  walk.ray.set(_rayFrom.set(camera.position.x, groundBox.max.y + 60, camera.position.z), walk.down);
   let hit = walk.ray.intersectObjects(groundFast, false);
   if (!hit.length) hit = walk.ray.intersectObjects(groundWide, false);  // 10.8k tris, only on a miss
   // On a genuine miss, hold the last known height. Falling back to a constant
@@ -1139,7 +1149,7 @@ function updateWalk(dt) {
   const wantY = walk.ground + walk.eye;
   camera.position.y += (wantY - camera.position.y) * Math.min(1, dt * 6);
 
-  camera.quaternion.setFromEuler(new THREE.Euler(walk.pitch, walk.yaw, 0, 'YXZ'));
+  camera.quaternion.setFromEuler(_walkEuler.set(walk.pitch, walk.yaw, 0, 'YXZ'));
 }
 
 /* ------------------------------------------------------- adaptive resolution */
@@ -1162,12 +1172,23 @@ let renderScale = DEVICE.tier === 'hi' ? 1.0 : 0.9;
  * went.
  */
 const MIN_SCALE = 0.7, MAX_SCALE = 1.0;
+/* Half a second of frames at 60. Both arrays live for the page: the scaler runs
+   its statistic twice a second and must not be a source of garbage itself. */
+const FRAME_MS = new Float64Array(30);
+const FRAME_SORTED = new Float64Array(30);
+function medianOf(a) {
+  FRAME_SORTED.set(a);
+  FRAME_SORTED.sort();
+  const n = FRAME_SORTED.length;
+  return n % 2 ? FRAME_SORTED[(n - 1) / 2]
+               : (FRAME_SORTED[n / 2 - 1] + FRAME_SORTED[n / 2]) / 2;
+}
 /* A phone at devicePixelRatio 3 asks for nine times the fragments of a 1x
    buffer for a screen you hold at arm's length. Cap the low tier at 1.5 —
    combined with the floor above that is 1.05x native, comfortably sharper
    than the 0.68x this used to bottom out at. */
 const basePR = Math.min(window.devicePixelRatio || 1, DEVICE.tier === 'hi' ? 2 : 1.5);
-let frames = 0, accum = 0, sinceAdjust = 0;
+let frames = 0, sinceAdjust = 0;
 
 function applySize() {
   const w = innerWidth, h = innerHeight;
@@ -1189,13 +1210,22 @@ const fpsEl = document.getElementById('fps');
  * GPU missing the refresh while the JS side looks idle.
  */
 function adapt(frameMs) {
-  accum += frameMs; frames++; sinceAdjust++;
-  if (frames < 30) return;
-  const avg = accum / frames;
-  accum = 0; frames = 0;
+  FRAME_MS[frames % FRAME_MS.length] = frameMs;
+  frames++; sinceAdjust++;
+  if (frames < FRAME_MS.length) return;
+  /* The MEDIAN frame, not the mean. A mean over half a second is hostage to
+     whatever single frame was worst in it, and this page has real ones: a
+     texture upload, the collision build, the first frame after a character
+     swap, a GC. One 250 ms hitch drags a 16 ms average to 24 and spends a
+     resolution step buying back time that was never the renderer's to begin
+     with — then the scale climbs at 0.05 a step and takes several seconds to
+     return. The median ignores a hitch entirely and still tracks a genuine
+     slide, which is the thing worth reacting to. */
+  const mid = medianOf(FRAME_MS);
+  frames = 0;
 
-  // two rAF callbacks can land in the same millisecond, which makes avg 0
-  const shown = Math.min(999, Math.round(1000 / Math.max(avg, 1)));
+  // two rAF callbacks can land in the same millisecond, which makes mid 0
+  const shown = Math.min(999, Math.round(1000 / Math.max(mid, 1)));
   /* The render-scale figure is in its own element so a narrow phone can drop it
      without losing the frame rate: at 360 px the two together push the readout
      off the right edge of the top bar. */
@@ -1209,8 +1239,8 @@ function adapt(frameMs) {
      not afford. 1.12x closes that: below ~40 fps it gives pixels back until
      the frame fits. The gap between the two thresholds still has to be wider
      than one step, or the scale oscillates between two values forever. */
-  if (avg > TARGET_MS * 1.12 && renderScale > MIN_SCALE) renderScale = Math.max(MIN_SCALE, renderScale - 0.1);
-  else if (avg < TARGET_MS * 0.80 && renderScale < MAX_SCALE) renderScale = Math.min(MAX_SCALE, renderScale + 0.05);
+  if (mid > TARGET_MS * 1.12 && renderScale > MIN_SCALE) renderScale = Math.max(MIN_SCALE, renderScale - 0.1);
+  else if (mid < TARGET_MS * 0.80 && renderScale < MAX_SCALE) renderScale = Math.min(MAX_SCALE, renderScale + 0.05);
   if (prev !== renderScale) { applySize(); sinceAdjust = 0; }
 }
 
@@ -1349,7 +1379,8 @@ document.getElementById('infoBtn').addEventListener('click', () => infoPanel.cla
 document.getElementById('infoClose').addEventListener('click', () => infoPanel.classList.remove('open'));
 
 document.getElementById('tier').textContent =
-  `${DEVICE.tier === 'hi' ? '2048' : '1024'} textures · ${DEVICE.cores} cores`;
+  `${DEVICE.tier === 'hi' ? '2048' : '1024'} textures · ${DEVICE.cores} cores`
+  + (DEVICE.forced ? ' · pinned' : '');
 
 /* Pause the loop when the tab is hidden — no point burning a phone battery. */
 let running = true;
