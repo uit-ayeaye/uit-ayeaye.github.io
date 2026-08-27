@@ -175,8 +175,24 @@
               text-align: center; white-space: nowrap; pointer-events: none;
               opacity: 0; transition: opacity .3s; }
       body.walking .hint { opacity: 1; }
+      /* Orbit's own line, and only orbit's: the walk hint describes a mode you
+         are not in, and showing both at once is how a hint stops being read. */
+      /* Clear of the viewpoint row, which owns the space just over the dock.
+         The base hint sits at 62px because in walk mode nothing else is there. */
+      #hintOrbit { opacity: 0; white-space: normal; line-height: 1.5;
+                   bottom: calc(max(16px, env(safe-area-inset-bottom)) + 112px); }
+      body.orbiting #hintOrbit { opacity: 1; }
+      body.walking #hintOrbit, body.playing #hintOrbit { opacity: 0; }
+      #hintOrbit .narrow { display: none; }
+      @media (max-width: 640px) {
+        #hintOrbit .wide { display: none; }
+        #hintOrbit .narrow { display: inline; }
+      }
 
       /* ------------------------------------------------------------- play */
+      #hintWalk .narrow { display: none; }
+      body.touch #hintWalk .wide { display: none; }
+      body.touch #hintWalk .narrow { display: inline; }
       #playHint { opacity: 0; }
       body.playing #playHint { opacity: 1; }
       body.playing .hint#hintWalk { opacity: 0; }
@@ -255,7 +271,10 @@
       /* --------------------------------------------------------------- lift */
       #lift {
         position: absolute; right: 16px;
-        bottom: calc(96px + env(safe-area-inset-bottom));
+        /* Clear of the info button, which owns the corner just above the dock —
+           measured, they overlapped by 18px and the lower one swallowed taps
+           meant for the other. */
+        bottom: calc(152px + env(safe-area-inset-bottom));
         display: none; flex-direction: column; gap: 8px;
       }
       body.walking.touch #lift { display: flex; }
@@ -282,7 +301,14 @@
       @media (max-width: 560px) {
         #views { bottom: calc(58px + env(safe-area-inset-bottom)); gap: 4px; }
         #views .chip { font-size: 10px; padding: 4px 9px; }
+        /* Two rows of chips on a narrow screen, so the hint has to clear both. */
+        #hintOrbit { bottom: calc(max(16px, env(safe-area-inset-bottom)) + 138px);
+                     font-size: 10.5px; }
       }
+      /* A landscape phone is about 380px of height for everything. The hint is
+         the one element here that has done its job after it is read once, so
+         it is what goes when the screen runs out of room. */
+      @media (max-height: 520px) { #hintOrbit, #hintWalk { display: none; } }
 
       /* ------------------------------------------------------------ combat */
       .pad-row { display: flex; gap: 10px; align-items: center; }
@@ -430,9 +456,17 @@
         <button data-ui-button class="liftbtn" id="liftDown" aria-label="Descend">▼</button>
       </div>
 
+      <div class="hint" id="hintOrbit">
+        <span class="wide">Drag to turn · scroll or pinch to zoom · right-drag or two fingers to slide ·
+          double-click to pivot there · <kbd>↑↓←→</kbd> to orbit</span>
+        <span class="narrow">Drag to turn · pinch to zoom · two fingers to slide · double-tap to pivot</span>
+      </div>
+
       <div class="hint" id="hintWalk">
-        Drag to look · <kbd>W A S D</kbd> move · <kbd>Space</kbd>/<kbd>C</kbd> up &amp; down ·
-        <kbd>Shift</kbd> faster · <kbd>Esc</kbd> to orbit
+        <span class="wide">Move the mouse to look · <kbd>W A S D</kbd> move ·
+          <kbd>Space</kbd>/<kbd>C</kbd> up &amp; down · <kbd>Shift</kbd> faster ·
+          <kbd>Alt</kbd> slower · <kbd>Esc</kbd> to orbit</span>
+        <span class="narrow">Drag to look · thumbstick to move · two fingers up &amp; down</span>
       </div>
 
       <div class="hint" id="playHint">

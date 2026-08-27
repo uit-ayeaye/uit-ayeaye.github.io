@@ -482,6 +482,24 @@ controls.autoRotateSpeed = 0.17;
    wide the difference is the whole feel of it: without this, closing in on the
    billboard means zoom, re-orbit, zoom, re-orbit. */
 controls.zoomToCursor = true;
+/* Spelled out rather than left on the defaults, because the defaults are what
+   they are and this is a contract with the visitor: one finger turns the model,
+   two pinch and slide it. Same on a trackpad — drag orbits, two-finger scroll
+   zooms, right-drag or shift-drag slides. */
+controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+controls.mouseButtons = {
+  LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN,
+};
+controls.enablePan = true;
+/* Panning in screen space is what a visitor expects from a drag — the world
+   should follow the finger. The ground-plane version slides faster the higher
+   the camera is, which over a map this tall reads as the model running away. */
+controls.screenSpacePanning = true;
+/* Let the eye get under the flyover deck and inside the junction rather than
+   stopping just above the horizon. Not all the way to the pole: below the
+   ground plane there is nothing to see but the underside of the map. */
+controls.maxPolarAngle = Math.PI * 0.499;
+controls.minPolarAngle = 0.02;
 /* 40 was far enough away that nothing on the map could be looked AT — the
    board is 16 units across and the mall doorway smaller. */
 controls.minDistance = 14;
@@ -518,6 +536,64 @@ function flyTo(name) {
   flight = { t: 0, dur: 1.5 };
   document.querySelectorAll('[data-view]').forEach((b) =>
     b.classList.toggle('on', b.dataset.view === name));
+}
+
+/**
+ * Keyboard orbit, for a laptop without a mouse.
+ *
+ * A trackpad can orbit and zoom but it is a poor instrument for either, and
+ * arrow keys are dead in this mode anyway — walk and play own them, and neither
+ * is running. Applied through the controls' own spherical maths rather than by
+ * moving the camera, so damping, the distance limits and the polar clamps all
+ * still hold.
+ */
+const _orbSph = new THREE.Spherical(), _orbOff = new THREE.Vector3();
+function updateOrbitKeys(dt) {
+  const k = walk.keys;
+  const yaw = (k.ArrowRight || k.KeyD ? 1 : 0) - (k.ArrowLeft || k.KeyA ? 1 : 0);
+  const pit = (k.ArrowDown || k.KeyS ? 1 : 0) - (k.ArrowUp || k.KeyW ? 1 : 0);
+  const zoom = (k.Minus || k.NumpadSubtract ? 1 : 0) - (k.Equal || k.NumpadAdd ? 1 : 0);
+  if (!yaw && !pit && !zoom) return false;
+  controls.autoRotate = false;
+  document.getElementById('spin')?.classList.remove('on');
+  _orbOff.copy(camera.position).sub(controls.target);
+  _orbSph.setFromVector3(_orbOff);
+  _orbSph.theta -= yaw * dt * 0.9;
+  _orbSph.phi = THREE.MathUtils.clamp(_orbSph.phi + pit * dt * 0.7,
+                                      controls.minPolarAngle, controls.maxPolarAngle);
+  _orbSph.radius = THREE.MathUtils.clamp(_orbSph.radius * (1 + zoom * dt * 1.4),
+                                         controls.minDistance, controls.maxDistance);
+  camera.position.copy(controls.target).add(_orbOff.setFromSpherical(_orbSph));
+  camera.lookAt(controls.target);
+  return true;
+}
+
+/**
+ * Double-click or double-tap the model to pivot on what was clicked.
+ *
+ * The single most useful freedom an orbit view can give: the whole control
+ * scheme turns around one point, and until now that point was the middle of the
+ * map for the entire visit. Distance is kept, so it reframes rather than zooms.
+ */
+const _pickRay = new THREE.Raycaster();
+const _pickNdc = new THREE.Vector2();
+function focusAt(clientX, clientY) {
+  if (!mapRoot) return;
+  _pickNdc.set((clientX / innerWidth) * 2 - 1, -(clientY / innerHeight) * 2 + 1);
+  _pickRay.setFromCamera(_pickNdc, camera);
+  const hit = _pickRay.intersectObject(mapRoot, true);
+  if (!hit.length) return;
+  const p = hit[0].point;
+  const keep = camera.position.distanceTo(controls.target);
+  const dir = _orbOff.copy(camera.position).sub(controls.target).normalize();
+  controls.autoRotate = false;
+  document.getElementById('spin')?.classList.remove('on');
+  _flyFrom.copy(camera.position);
+  _flyFromT.copy(controls.target);
+  _flyToT.copy(p);
+  _flyTo.copy(p).addScaledVector(dir, keep);
+  flight = { t: 0, dur: 0.75 };
+  document.querySelectorAll('[data-view]').forEach((b) => b.classList.remove('on'));
 }
 
 function updateFlight(dt) {
@@ -567,6 +643,7 @@ const walk = {
   lift: 0,
   liftVel: 0,
   liftStick: 0,          // -1 / 0 / +1 from the touch buttons
+  liftGesture: 0,        // -1..1 from a two-finger drag
   ground: 0,
   tick: 0,
   ray: new THREE.Raycaster(),
@@ -1158,6 +1235,7 @@ inputLayer.addEventListener('pointerdown', (e) => {
   pointers.set(e.pointerId, {
     mode: isStick ? 'stick' : 'look',
     lastX: e.clientX, lastY: e.clientY,
+    startX: e.clientX, startY: e.clientY,
     startT: performance.now(), drift: 0,
     mouse: e.pointerType === 'mouse',
   });
@@ -1172,14 +1250,38 @@ inputLayer.addEventListener('pointerdown', (e) => {
   }
 });
 
+/**
+ * Two fingers in walk mode: drag up to rise, down to descend.
+ *
+ * The buttons cover it, but a gesture is what a hand reaches for first, and on
+ * a phone the whole upper half of this model was unreachable without finding a
+ * control. Two fingers because one is already look and the left half is already
+ * the stick — there is no unclaimed single-finger territory left. Pitch is
+ * suppressed while it runs, or the camera tips over as the fingers travel.
+ */
+function walkPinch() {
+  if (!walk.on || pointers.size < 2) return false;
+  let sum = 0, n = 0, prev = 0;
+  for (const p of pointers.values()) { sum += p.lastY; prev += p.startY; n++; }
+  if (n < 2) return false;
+  const drift = (sum / n) - (prev / n);
+  /* Dead zone, so a two-finger look does not become a lift. */
+  walk.liftGesture = Math.abs(drift) > 14 ? THREE.MathUtils.clamp(-drift / 140, -1, 1) : 0;
+  return true;
+}
+
 inputLayer.addEventListener('pointermove', (e) => {
   const p = pointers.get(e.pointerId);
   if (!p) return;
 
   if (p.mode === 'look') {
-    applyLook(e.clientX - p.lastX, e.clientY - p.lastY);
-    p.drift += Math.abs(e.clientX - p.lastX) + Math.abs(e.clientY - p.lastY);
+    const dx = e.clientX - p.lastX, dy = e.clientY - p.lastY;
     p.lastX = e.clientX; p.lastY = e.clientY;
+    p.drift += Math.abs(dx) + Math.abs(dy);
+    /* A second finger down turns the pair into a lift, not two looks. */
+    if (walk.on && pointers.size >= 2) { walkPinch(); return; }
+    walk.liftGesture = 0;
+    applyLook(dx, dy);
     return;
   }
   if (e.pointerId !== stickId) return;
@@ -1202,12 +1304,40 @@ inputLayer.addEventListener('pointermove', (e) => {
   knobEl.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
 });
 
+/**
+ * Mouse look under pointer lock.
+ *
+ * Walk mode has asked for pointer lock since it was written and nothing ever
+ * read the result: the only look path was `pointermove`, which measures
+ * `clientX` deltas, and under lock the cursor does not move so those deltas are
+ * zero. Every desktop visitor who was granted the lock got a camera that could
+ * not turn at all, and the fallback — drag to look — was equally dead, because
+ * dragging a locked pointer moves it no more than not dragging one does.
+ * `movementX/Y` is the only thing that carries the motion.
+ */
+addEventListener('mousemove', (e) => {
+  if (!document.pointerLockElement || !inputActive()) return;
+  applyLook(e.movementX || 0, e.movementY || 0);
+});
+
+/* Click the world to take the lock back after Escape, so walk mode does not
+   need re-entering to get its mouse look. Play keeps the pointer free: a click
+   there is a strike, and a mode that swallows the cursor to attack with it is
+   two controls fighting over one button. */
+addEventListener('pointerdown', (e) => {
+  if (!walk.on || IS_TOUCH || document.pointerLockElement) return;
+  if (e.target.closest && e.target.closest('[data-ui-button]')) return;
+  try { renderer.domElement.requestPointerLock?.()?.catch?.(() => {}); }
+  catch (err) { /* older signature returns undefined */ }
+});
+
 function endPointer(e) {
   const p = pointers.get(e.pointerId);
   if (p && p.mode === 'look' && p.mouse && p.drift < 7 && performance.now() - p.startT < 240) {
     if (play.on) play.queued.add('strike');    // Elbaf: a mouse tap is a pistol
   }
   pointers.delete(e.pointerId);
+  if (pointers.size < 2) walk.liftGesture = 0;
   if (e.pointerId === stickId) clearStick();
 }
 inputLayer.addEventListener('pointerup', endPointer);
@@ -1250,6 +1380,7 @@ function updateWalk(dt) {
   const upKey = (k.Space || k.KeyE ? 1 : 0) - (k.KeyC || k.KeyQ ? 1 : 0);
   let liftWant = upKey * speed * 0.8;
   if (walk.liftStick) liftWant += walk.liftStick * speed * 0.8;
+  if (walk.liftGesture) liftWant += walk.liftGesture * speed * 0.9;
   walk.liftVel += (liftWant - walk.liftVel) * Math.min(1, dt * 9);
   walk.lift = THREE.MathUtils.clamp(walk.lift + walk.liftVel * dt, 0, 420);
 
@@ -1487,6 +1618,25 @@ document.getElementById('full').addEventListener('click', () => {
 document.querySelectorAll('[data-view]').forEach((b) =>
   b.addEventListener('click', () => flyTo(b.dataset.view)));
 
+/* Pivot on what was double-clicked. On touch the same thing, hand-rolled:
+   `dblclick` is unreliable across mobile browsers and a 300 ms two-tap test is
+   not. Both are gated on orbit, where the pivot is the whole control scheme. */
+renderer.domElement.addEventListener('dblclick', (e) => {
+  if (play.on || walk.on) return;
+  focusAt(e.clientX, e.clientY);
+});
+let lastTap = 0, lastTapX = 0, lastTapY = 0;
+renderer.domElement.addEventListener('pointerup', (e) => {
+  if (play.on || walk.on || e.pointerType === 'mouse') return;
+  const now = performance.now();
+  if (now - lastTap < 320 && Math.hypot(e.clientX - lastTapX, e.clientY - lastTapY) < 32) {
+    focusAt(e.clientX, e.clientY);
+    lastTap = 0;
+    return;
+  }
+  lastTap = now; lastTapX = e.clientX; lastTapY = e.clientY;
+});
+
 /* Walk's vertical, for a thumb. Held, not tapped — the same pointer handling
    the action pad uses, including pointercancel, which iOS fires whenever a
    gesture is stolen by a scroll or a system edge swipe. */
@@ -1601,7 +1751,7 @@ function loop(now) {
   if (play.on && play.ctrl && play.chr) updatePlay(dt);
   else if (walk.on) updateWalk(dt);
   else if (flight) updateFlight(dt);
-  else controls.update();
+  else { updateOrbitKeys(dt); controls.update(); }
 
   if (play.on && play.combat) paintCombatHud();
   if (weather) weather.update(realDt, camera);
