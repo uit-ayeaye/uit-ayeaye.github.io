@@ -181,6 +181,12 @@
               text-align: center; white-space: nowrap; pointer-events: none;
               opacity: 0; transition: opacity .3s; }
       body.walking .hint { opacity: 1; }
+      /* A hint has done its job once it has been read. Left up it sits over the
+         model for the whole visit — and for the whole of any screen recording
+         made of it, which is what this page is for. `faded` is set a few
+         seconds after a mode is entered and cleared when one is entered again,
+         so it is there when it is useful and gone when it is not. */
+      body .hint.faded { opacity: 0 !important; }
       /* Orbit's own line, and only orbit's: the walk hint describes a mode you
          are not in, and showing both at once is how a hint stops being read. */
       /* Clear of the viewpoint row, which owns the space just over the dock.

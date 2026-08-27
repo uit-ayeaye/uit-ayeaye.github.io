@@ -433,6 +433,8 @@ new GLTFLoader().load(
     /* The map's own materials, compiled while the loading screen is still up
        rather than on the first frame the visitor sees. */
     requestAnimationFrame(() => precompile());
+    /* The scene is up, so the hint now has something to be read against. */
+    showHintFor();
 
     weather = new Weather({
       scene, renderer, sky, hemi, ambient, sun, skirt, props, led: ledBoard,
@@ -792,12 +794,35 @@ const play = {
 };
 play.cam.touch = IS_TOUCH;
 
+let hintTimer = 0;
 function syncModeButtons(active) {
   document.querySelectorAll('[data-mode]').forEach((b) =>
     b.classList.toggle('on', b.dataset.mode === active));
   /* The viewpoint row belongs to orbit and nothing else, and CSS is a better
      place to decide that than five call sites. */
   document.body.classList.toggle('orbiting', active === 'orbit');
+  showHintFor(active);
+}
+
+/**
+ * Show the current mode's hint, then let it go.
+ *
+ * Seven seconds is about twice as long as it takes to read one, and the
+ * alternative is a line of grey text lying over the model for the length of
+ * whatever anybody records here.
+ *
+ * Deliberately NOT started by the initial `syncModeButtons` at module end: the
+ * map takes several seconds to arrive and the timer would spend all of them
+ * counting down behind the loading screen, so the hint was already gone by the
+ * time there was anything to read it against. The load calls this itself when
+ * the scene is up.
+ */
+function showHintFor() {
+  clearTimeout(hintTimer);
+  document.querySelectorAll('.hint').forEach((el) => el.classList.remove('faded'));
+  hintTimer = setTimeout(() => {
+    document.querySelectorAll('.hint').forEach((el) => el.classList.add('faded'));
+  }, 7000);
 }
 
 async function ensurePlayAssets(defIndex) {
@@ -1947,7 +1972,8 @@ function loop(now) {
 schedule();
 
 refreshCharChips();
-/* Orbit is where the page starts, and the viewpoint row keys off the class. */
+/* Orbit is where the page starts, and the viewpoint row keys off the class.
+   The hint timer this starts is replaced by the one the load kicks off. */
 syncModeButtons('orbit');
 
 if (REDUCED_MOTION) controls.autoRotate = false;
