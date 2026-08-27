@@ -498,9 +498,9 @@ controls.enablePan = true;
    should follow the finger. The ground-plane version slides faster the higher
    the camera is, which over a map this tall reads as the model running away. */
 controls.screenSpacePanning = true;
-/* Let the eye get under the flyover deck and inside the junction rather than
-   stopping just above the horizon. Not all the way to the pole: below the
-   ground plane there is nothing to see but the underside of the map. */
+/* A full upper hemisphere: straight down to dead level, and all the way round.
+   Below level is not a view of this map, it is a view of the back of the plate
+   it is printed on — the earlier attempt at 0.56 put exactly that in frame. */
 controls.maxPolarAngle = Math.PI * 0.499;
 controls.minPolarAngle = 0.02;
 /* 40 was far enough away that nothing on the map could be looked AT — the
@@ -599,6 +599,27 @@ function focusAt(clientX, clientY) {
   document.querySelectorAll('[data-view]').forEach((b) => b.classList.remove('on'));
 }
 
+/**
+ * Keep the orbit eye above the street.
+ *
+ * The polar limit stops the eye level with the TARGET, which is only the same
+ * thing as level with the ground while the target is on it. Double-tap a
+ * rooftop to pivot there and the target is sixty units up — a level orbit
+ * around that is thirty units underground, and what fills the screen is the
+ * back of the map plate. The limit cannot know that; a floor can.
+ *
+ * Measured off the streets rather than off `streetY`, which is the lowest point
+ * of the whole plate including the terrain skirt at 31 — six above that is
+ * still under the junction's road at 43.
+ *
+ * Only the height is touched. Pushing the eye back out along its own boom would
+ * fight the damping and read as the model shoving the camera around.
+ */
+function clampOrbitEye() {
+  const floor = (coreBox.isEmpty() ? streetY : coreBox.min.y) + 3;
+  if (camera.position.y < floor) camera.position.y = floor;
+}
+
 function updateFlight(dt) {
   if (!flight) return;
   flight.t = Math.min(1, flight.t + dt / flight.dur);
@@ -629,22 +650,35 @@ function frameMap() {
 /* Walk mode — hovering first person. No physics: the camera rides a raycast
    against the two ground meshes, throttled because an un-accelerated raycast
    against 8.4k triangles every frame is not free on a phone. */
+/* How fast the camera catches the look you have asked for, and how fast it
+   settles onto a floor it has drifted below. Both are exponential, so they are
+   the same at any frame rate. 18 is quick enough that a drag still feels
+   direct and slow enough to take the stair-step out of a finger. */
+const WALK_LOOK_DAMP = 18;
+const WALK_MOVE_DAMP = 7;
+const WALK_FLOOR_DAMP = 8;
+const _wFwd = new THREE.Vector3();
+const _wRight = new THREE.Vector3();
+const _wWant = new THREE.Vector3();
+const _WORLD_UP = new THREE.Vector3(0, 1, 0);
+
 const walk = {
   on: false,
   vel: new THREE.Vector3(),
+  /* Two of each: the angle the input has asked for, and the angle the camera
+     has got to. Applying a drag straight to the camera is what made this feel
+     like a mouse pointer rather than a camera — every pixel of finger jitter
+     went into the picture. */
   yaw: 0, pitch: 0,
+  yawT: 0, pitchT: 0,
   /* Eye height in MAP units. 1.75 of those is 1.17 m, which is a child's
      sightline — every kerb read as a step up and the buses looked enormous.
      2.6 is 1.73 m, which is a person. */
   eye: 2.6,
-  /* How far the camera has been lifted off the ground it is riding. This is
-     what makes walk mode a way of looking at the map rather than a tour of its
-     pavements: the flyover deck, the rooftops and the skyline over the mall are
-     all things you can only see from above, and until now the only way to get
-     there was to leave the mode. Ground is still sampled underneath, so coming
-     back down lands on it rather than through it. */
-  lift: 0,
-  liftVel: 0,
+  /* Vertical input, which is now just another axis of the fly basis: the
+     flyover deck, the rooftops and the skyline over the mall are all things
+     you can only see from above, and without these the mode could not get
+     there. Ground is still sampled underneath and acts as a floor. */
   liftStick: 0,          // -1 / 0 / +1 from the touch buttons
   liftGesture: 0,        // -1..1 from a two-finger drag
   ground: 0,
@@ -668,10 +702,9 @@ function enterWalk() {
   const spot = findOpenSpot(c.x, c.z);
   camera.position.set(spot.x, spot.y + walk.eye, spot.z);
   walk.ground = spot.y;
-  walk.yaw = spot.yaw;
-  walk.pitch = 0;
-  walk.lift = 0;
-  walk.liftVel = 0;
+  walk.yaw = walk.yawT = spot.yaw;
+  walk.pitch = walk.pitchT = 0;
+  walk.vel.set(0, 0, 0);
   camera.quaternion.setFromEuler(new THREE.Euler(0, walk.yaw, 0, 'YXZ'));
 
   document.body.classList.add('walking');
@@ -1221,8 +1254,8 @@ function inputActive() { return play.on || walk.on; }
 
 function applyLook(dx, dy) {
   if (play.on) { play.cam.look(dx, dy); return; }
-  walk.yaw -= dx * YAW_SENS;
-  walk.pitch = THREE.MathUtils.clamp(walk.pitch - dy * PITCH_SENS, -1.35, 1.35);
+  walk.yawT -= dx * YAW_SENS;
+  walk.pitchT = THREE.MathUtils.clamp(walk.pitchT - dy * PITCH_SENS, -1.45, 1.45);
 }
 
 function clearStick() {
@@ -1394,54 +1427,87 @@ function endPointer(e) {
 inputLayer.addEventListener('pointerup', endPointer);
 inputLayer.addEventListener('pointercancel', endPointer);
 
+/**
+ * Walk: a free-floating camera, not a person on a pavement.
+ *
+ * It used to move on the XZ plane whatever the pitch was, and ride the ground
+ * height with a separate lift stacked on top. Two things came out of that and
+ * both of them read as stiffness. Looking up and pressing forward went
+ * horizontally, so the camera could never travel the way it was pointing — the
+ * one thing a fly-through is for. And because the ground was a RAIL rather than
+ * a floor, crossing a building shoved the camera up over it and dropped it
+ * again on the far side, which is a lift you did not ask for in the middle of
+ * a shot.
+ *
+ * So the basis comes off the camera itself, pitch included, and the ground is
+ * a floor the camera settles onto rather than a rail it is pinned to. Standing
+ * on the street it behaves exactly as before, because there the floor IS the
+ * ground and forward IS horizontal.
+ */
 function updateWalk(dt) {
   const k = walk.keys;
+
+  /* Catch up to the look that has been asked for. Everything downstream reads
+     the smoothed angles, so the movement basis is smoothed with it and the
+     whole camera moves as one thing. */
+  const kLook = 1 - Math.exp(-WALK_LOOK_DAMP * dt);
+  walk.yaw += (walk.yawT - walk.yaw) * kLook;
+  walk.pitch += (walk.pitchT - walk.pitch) * kLook;
+  camera.quaternion.setFromEuler(_walkEuler.set(walk.pitch, walk.yaw, 0, 'YXZ'));
+
   let fx = (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0);
   let fz = (k.KeyS || k.ArrowDown ? 1 : 0) - (k.KeyW || k.ArrowUp ? 1 : 0);
   if (walk.stick.active) { fx += walk.stick.x; fz += walk.stick.y; }
+  let up = (k.Space || k.KeyE ? 1 : 0) - (k.KeyC || k.KeyQ ? 1 : 0)
+           + (walk.liftStick || 0) + (walk.liftGesture || 0);
 
   /* Three gears, not two. The map is 825 x 1765 units and a single walking
      pace crosses it in about a minute; Alt is for looking at a shopfront and
      Shift is for getting to the far end of the flyover. */
   const fast = k.ShiftLeft || k.ShiftRight;
   const slow = k.AltLeft || k.AltRight;
-  const run = fast ? 4.2 : slow ? 0.3 : 1;
-  const speed = 34 * run;
-  const len = Math.hypot(fx, fz) || 1;
-  if (Math.hypot(fx, fz) > 0.03) { fx /= len; fz /= len; } else { fx = fz = 0; }
+  const speed = 34 * (fast ? 4.2 : slow ? 0.3 : 1);
 
-  const sin = Math.sin(walk.yaw), cos = Math.cos(walk.yaw);
-  const wantX = (fx * cos - fz * sin) * speed;
-  const wantZ = (fx * sin + fz * cos) * speed;
-  walk.vel.x += (wantX - walk.vel.x) * Math.min(1, dt * 9);
-  walk.vel.z += (wantZ - walk.vel.z) * Math.min(1, dt * 9);
+  /* Forward is where the camera is pointing — read off its own matrix rather
+     than rebuilt from the angles, so it cannot drift out of step with what is
+     on screen. Up stays world up: a fly-through that rolls its vertical with
+     the pitch is a flight simulator, and nobody is flying a plane here. */
+  camera.getWorldDirection(_wFwd);
+  _wRight.crossVectors(_wFwd, _WORLD_UP).normalize();
+  _wWant.set(0, 0, 0)
+    .addScaledVector(_wFwd, -fz)
+    .addScaledVector(_wRight, fx)
+    .addScaledVector(_WORLD_UP, up);
+  const mag = _wWant.length();
+  if (mag > 1) _wWant.multiplyScalar(1 / mag);      // diagonals are not faster
+  else if (mag < 0.03) _wWant.set(0, 0, 0);
 
-  camera.position.x += walk.vel.x * dt;
-  camera.position.z += walk.vel.z * dt;
+  const kMove = 1 - Math.exp(-WALK_MOVE_DAMP * dt);
+  walk.vel.x += (_wWant.x * speed - walk.vel.x) * kMove;
+  walk.vel.y += (_wWant.y * speed - walk.vel.y) * kMove;
+  walk.vel.z += (_wWant.z * speed - walk.vel.z) * kMove;
+  camera.position.addScaledVector(walk.vel, dt);
 
   // stay over ground that exists, rather than sailing off the edge of the world
   camera.position.x = THREE.MathUtils.clamp(camera.position.x, groundBox.min.x + 4, groundBox.max.x - 4);
   camera.position.z = THREE.MathUtils.clamp(camera.position.z, groundBox.min.z + 4, groundBox.max.z - 4);
 
-  /* Vertical is its own axis, damped like the horizontal one so a tap of the
-     key is a nudge rather than a jump. It rides ON TOP of the ground the camera
-     is already following, which is what keeps it honest: fly out over the
-     junction and the lift stays what you set, walk back onto the pavement and
-     the ground comes up to meet you. */
-  const upKey = (k.Space || k.KeyE ? 1 : 0) - (k.KeyC || k.KeyQ ? 1 : 0);
-  let liftWant = upKey * speed * 0.8;
-  if (walk.liftStick) liftWant += walk.liftStick * speed * 0.8;
-  if (walk.liftGesture) liftWant += walk.liftGesture * speed * 0.9;
-  walk.liftVel += (liftWant - walk.liftVel) * Math.min(1, dt * 9);
-  walk.lift = THREE.MathUtils.clamp(walk.lift + walk.liftVel * dt, 0, 420);
-
+  /* The ground is a floor. Eased when the camera is only just under it — that
+     is a kerb, and snapping over kerbs is what makes a walk read as a stumble —
+     and taken outright when it is a long way under, which only happens when the
+     ground has jumped up under a camera that was already moving. */
   sampleGround(false);
-  const wantY = walk.ground + walk.eye + walk.lift;
-  /* Snappier when climbing under your own power than when the ground is
-     sliding around beneath you: at 6 the camera lagged visibly behind the key. */
-  camera.position.y += (wantY - camera.position.y) * Math.min(1, dt * (walk.liftVel ? 12 : 6));
-
-  camera.quaternion.setFromEuler(_walkEuler.set(walk.pitch, walk.yaw, 0, 'YXZ'));
+  const floor = walk.ground + walk.eye;
+  if (camera.position.y < floor) {
+    const under = floor - camera.position.y;
+    camera.position.y += under < 6
+      ? under * (1 - Math.exp(-WALK_FLOOR_DAMP * dt))
+      : under;
+    if (walk.vel.y < 0) walk.vel.y = 0;
+  }
+  /* And a ceiling, so a held finger cannot leave the map behind. */
+  const roof = walk.ground + walk.eye + 460;
+  if (camera.position.y > roof) { camera.position.y = roof; if (walk.vel.y > 0) walk.vel.y = 0; }
 }
 
 /* ------------------------------------------------------- adaptive resolution */
@@ -1746,11 +1812,33 @@ document.getElementById('tier').textContent =
   `${DEVICE.tier === 'hi' ? '2048' : '1024'} textures · ${DEVICE.cores} cores`
   + (DEVICE.forced ? ' · pinned' : '');
 
-/* Pause the loop when the tab is hidden — no point burning a phone battery. */
+/* Pause the loop when the tab is hidden — no point burning a phone battery.
+ *
+ * `scheduled` is what stops that pause from multiplying the loop. Hiding the
+ * tab sets `running` false but does NOT cancel the frame already queued; when
+ * the tab comes back, that queued callback fires AND the handler below asks
+ * for another, and both then reschedule themselves. Every hide/show doubled
+ * the number of chains, and with N of them the loop ran N times per animation
+ * frame: N renders for one frame of movement, and N-1 of those saw `now - last`
+ * of zero, which dragged the median frame time to nothing and printed
+ * "999 fps" over a phone that was actually working N times too hard for it.
+ *
+ * On a desktop that takes a deliberate tab switch. On a phone it is the lock
+ * button, the app switcher, or pulling down the notification shade — so the
+ * readout in a screen recording said 999 and the device was rendering four
+ * times per frame to earn it.
+ */
 let running = true;
+let scheduled = false;
+function schedule() {
+  if (scheduled) return;
+  scheduled = true;
+  requestAnimationFrame(loop);
+}
 document.addEventListener('visibilitychange', () => {
   running = !document.hidden;
-  if (running) { last = performance.now(); requestAnimationFrame(loop); }
+  /* A long pause must not arrive as one enormous dt. */
+  if (running) { last = performance.now(); schedule(); }
 });
 canvas.addEventListener('webglcontextlost', (e) => {
   e.preventDefault(); running = false;
@@ -1808,14 +1896,21 @@ window.__hledan = { THREE, scene, camera, renderer, controls, walk, sound,
                        rAF does not fire in a hidden tab, which makes headless
                        verification of the character controller impossible. */
                     step(n = 1, ms = 16.7) {
-                      for (let i = 0; i < n; i++) { last = performance.now() - ms; loop(performance.now()); }
+                      for (let i = 0; i < n; i++) { last = performance.now() - ms; frame(performance.now()); }
                       return { pos: play.ctrl && play.ctrl.pos.toArray().map(v => +v.toFixed(2)) };
                     } };
 
 let last = performance.now();
-function loop(now) {
-  if (!running) return;
-  requestAnimationFrame(loop);
+
+/**
+ * One animation frame's worth of work, with no scheduling in it.
+ *
+ * Split from `loop` so that driving frames by hand — see `step` on the debug
+ * hook — cannot enlist a second chain. It used to call `loop` directly, which
+ * reschedules, so every measurement taken through it was measuring a loop it
+ * had itself multiplied.
+ */
+function frame(now) {
   const frameMs = now - last;
   const dt = Math.min(frameMs / 1000, 0.1);
   const realDt = dt;                       // weather and sound keep the real clock
@@ -1826,7 +1921,7 @@ function loop(now) {
   if (play.on && play.ctrl && play.chr) updatePlay(dt);
   else if (walk.on) updateWalk(dt);
   else if (flight) updateFlight(dt);
-  else { updateOrbitKeys(dt); controls.update(); }
+  else { updateOrbitKeys(dt); controls.update(); clampOrbitEye(); }
 
   if (play.on && play.combat) paintCombatHud();
   if (weather) weather.update(realDt, camera);
@@ -1842,7 +1937,14 @@ function loop(now) {
   renderer.render(scene, camera);
   adapt(frameMs);
 }
-requestAnimationFrame(loop);
+
+function loop(now) {
+  scheduled = false;
+  if (!running) return;
+  schedule();
+  frame(now);
+}
+schedule();
 
 refreshCharChips();
 /* Orbit is where the page starts, and the viewpoint row keys off the class. */

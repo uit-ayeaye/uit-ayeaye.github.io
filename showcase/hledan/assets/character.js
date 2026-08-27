@@ -1868,12 +1868,28 @@ export class CharacterController {
        shopfront sills are low enough in places that a jump or a dash could
        carry a body over one and strand it in a white box. The mask says which
        standable ground is sealed inside something roofed; refusing it here
-       means there is no entry point at all, whatever the move. */
-    if (this.interiors && this.interiors.inside(x, z, fromY)) return false;
+       means there is no entry point at all, whatever the move.
+       Tested at BOTH levels. `fromY` is the level the move set off from, which
+       is the right question about which storey this is; `bandY` is where the
+       body actually is, which while airborne is a different number entirely.
+       Checking only the first let a fast flight in through an upper-floor
+       opening and put it down on a mezzanine at 52 inside a shell whose floor
+       is 43.6 — standable, roofed, and nowhere. */
+    if (this.interiors
+        && (this.interiors.inside(x, z, fromY) || this.interiors.inside(x, z, bandY))) return false;
     if (this._walled(x, z, bandY)) return false;
     if (this.obstacles && this.obstacles.blocked(x, z, BODY_RADIUS, bandY, BODY_HEIGHT)) return false;
     const y = this._groundAt(x, z, fromY);
     if (y === null) return false;
+    /* And not somewhere whose GROUND is indoors. The two tests above ask where
+       the body is; this asks where it would come down, which is a different
+       question the moment it is airborne. A fast flight can legitimately cross
+       a column at a height the mask does not cover — above the shell's own
+       ceiling — and then fall into it: measured, one step in 24 finished on a
+       mezzanine at 52 inside a shell whose floor is 43.6 and whose roof the
+       mask puts at 53.1. Nothing above refuses that, because at the moment of
+       the horizontal step the body was over the top of it. */
+    if (this.interiors && this.interiors.inside(x, z, y)) return false;
     if (!this.grounded) return true;
     if ((y - fromY) > STEP_UP) return false;
     /* The kerb test alone is not enough: the height field is bilinear, so a

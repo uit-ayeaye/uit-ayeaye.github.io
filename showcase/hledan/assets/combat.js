@@ -143,7 +143,10 @@ const IMPACT_POOL = 16, DEBRIS_PER = 6, DEBRIS_LIFE = .7;
 const FLASH_WARP  = .13;        // arrival window when a perch is found
 const FLASH_DUR   = .18;        // drive window for the thrown fallback
 const FLASH_SPEED = 30 * S;     // forward, m/s, AVERAGED over that window
-const FLASH_RISE  = 8.4 * S;    // upward impulse on the fallback
+/* Enough to clear a kerb and read as a leap, not enough to lob the body. The
+   flight steers vertically on its own, so the impulse only has to get the feet
+   off the ground. */
+const FLASH_RISE  = 6.4 * S;
 /* How high the warp bows above the straight line between here and the perch,
    as a fraction of the distance. A dead-straight warp reads as a slide along
    a wire; a bow reads as a leap. */
@@ -152,6 +155,12 @@ const FLASH_ARC   = .16;
    is 105 map units; this is most of it, so pointing at open sky over the
    junction still crosses the junction. */
 const FLASH_FLY_RANGE = 62 * S;
+/* Fast, and not for long. The Rocket runs at 26 m/s for up to 2.4 s; a step
+   that took that long to arrive would not be a step. 46 crosses the junction
+   in well under a second, and 0.9 s is the ceiling on how long the body may
+   be in the air before the flight gives up and gravity takes it. */
+const FLASH_FLY_SPEED = 46 * S;
+const FLASH_FLY_MAX = 0.9;
 
 /**
  * The step's speed across its own window.
@@ -695,16 +704,31 @@ export class Combat {
           if (moved < 0.9 * S) this.fly.t = FLY_MAX + 1;
         }
       }
-      const spentNow = this.fly.t > FLY_MAX;
+      /* Zoro's flight is spent sooner than Luffy's. A Rocket is a grapple and a
+         swing, so hanging in the air is the move; a Flash Step that hangs is
+         just a slow one. */
+      const spentNow = this.fly.t > (sword ? FLASH_FLY_MAX : FLY_MAX);
       if (gap > 2.5 * S && !spentNow) {
         /* Zoro's flight is a Flash Step, so it keeps laying afterimages the
            whole way rather than only through the pose window. */
         if (sword) this._trail(ctrl);
-        const ease = 1 - Math.min(1, this.fly.t / ROCKET_DUR) * 0.35;
-        this._v.multiplyScalar((sword ? ROCKET_SPEED * 1.3 : ROCKET_SPEED) * ease / gap);
+        /* The Rocket sheds a third of its speed across the flight, because
+           arriving from a swing should settle rather than stop. A step is the
+           other thing: it should be at full speed the entire way and simply BE
+           there. Measured, the ease alone was costing Zoro a third of a second
+           of drift at the far end of every long step, which is exactly the
+           float that reads as slow. */
+        const ease = sword ? 1 : 1 - Math.min(1, this.fly.t / ROCKET_DUR) * 0.35;
+        this._v.multiplyScalar((sword ? FLASH_FLY_SPEED : ROCKET_SPEED) * ease / gap);
         this.drive.vx = this._v.x;
         this.drive.vz = this._v.z;
-        this.drive.vy = this._v.y + 3 * S;   // Elbaf's lift, so you arc rather than skim
+        /* Elbaf's lift makes the Rocket arc rather than skim, and the step
+           wants much less of it — a lob is time spent going somewhere other
+           than the target. Not none, though: at zero the body hugged the
+           tarmac for 0.04 s of the whole move, which reads as sliding rather
+           than as stepping. A fifth of the Rocket's lift keeps the feet off
+           the ground long enough to see without bending the line. */
+        this.drive.vy = this._v.y + (sword ? 0.6 * S : 3 * S);
         this.drive.face = 'look';
         this.drive.lookYaw = Math.atan2(this._v.x, this._v.z);
       } else {
