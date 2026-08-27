@@ -308,6 +308,8 @@ export class Combat {
     this.blink = null;                    // {t, dur} — the arrival flourish
     this._solids = null;                  // set by bindSolids, for the 3D step
     this._obstacles = null;
+    this._flashOrigin = new THREE.Vector3();
+    this._flashDir = new THREE.Vector3();
   }
 
   /* ------------------------------------------------------------- helpers */
@@ -798,16 +800,28 @@ export class Combat {
     const ux = look.x * k, uz = look.z * k;
 
     const x0 = ctrl.pos.x, y0 = ctrl.pos.y, z0 = ctrl.pos.z;
-    /* Stop at what you are LOOKING at, not at maximum range.
+    /* Stop at what is in the way, not at maximum range.
        Marching the full 26 m and taking the furthest landing meant a step onto
        a roof always ended on its far parapet, teetering — the roof over the
        shop at x=-49 is 35 units across and the step landed on the last unit of
-       it every time. The aim ray already knows how far away the thing under
-       the reticle is; a couple of units past it puts the body ON the surface
-       rather than short of it, and aiming at open sky still spends the lot. */
-    const reach = this.aim.valid
-      ? Math.min(FLASH_RANGE, this.aim.distance + 2 * S)
-      : FLASH_RANGE;
+       it every time. Two units past the first thing on the path puts the body
+       ON that surface instead, and a clear path still spends the lot.
+
+       The ray is cast from the body's CENTRE, not from `this.aim`. The aim
+       reticle is deliberately fired from head height plus another 1.5 m so it
+       clears the character's own shoulders, and clamping the step with it made
+       every awning, shop canopy and hanging sign in Yangon a wall: at z=521
+       there is something 3.6 m up at x=39.6, the body passes under it without
+       noticing, and the step was being cut to 3.6 units and going nowhere. A
+       ray down the step's own line, from the height the step actually travels
+       at, only stops for things the step would actually meet. */
+    let reach = FLASH_RANGE;
+    if (this._solids) {
+      const hit = this._solids.raycast(
+        this._flashOrigin.set(x0, y0 + CENTER_Y, z0),
+        this._flashDir.set(ux, uy, uz), FLASH_RANGE);
+      if (hit >= 0) reach = Math.min(FLASH_RANGE, hit + 2 * S);
+    }
     let bestX = x0, bestY = y0, bestZ = z0, bestD = 0;
     /* The ray's own height, carried between stations rather than recomputed
        from d, because MOUNTING lifts it: when the body's volume runs into
@@ -827,6 +841,26 @@ export class Combat {
         const over = ctrl._clearAbove(px, pz, py, MOUNT_UP);
         if (over === null) break;         // too tall to clear: the step stops here
         py = over;
+      } else if (py > y0 + uy * d) {
+        /* Come back DOWN once the obstruction is behind you — but only as far
+           as the next thing worth landing on.
+           A lift is a hop, not a new altitude: without a descent the ray keeps
+           whatever height it needed to clear the last obstacle and never sees
+           the ground again, which is how the step into the field died — it
+           rose to 49.1 to clear a 4.5 m fence and the ground at 43.6 was then
+           further below than LAND_DROP allows, so no landing was ever found.
+           But descending unconditionally is just as wrong: over a building the
+           natural line is the street, so the ray sank straight past the roof
+           it had just cleared. Sinking only while there is NOTHING in reach
+           below settles both — the fence hop falls back to the pavement, the
+           wall hop stops on the roof. */
+        const floorLine = y0 + uy * d;
+        while (py - FLASH_PROBE >= floorLine
+               && ctrl._standingSurface(px, pz, py + FLASH_BODY * 0.5, LAND_DROP) === null
+               && !(this._solids && this._solids.blocked(px, pz, FLASH_R, py - FLASH_PROBE, py - FLASH_PROBE + FLASH_BODY))
+               && !(this._obstacles && this._obstacles.blocked(px, pz, FLASH_R, py - FLASH_PROBE, FLASH_BODY))) {
+          py -= FLASH_PROBE;
+        }
       }
       rayY = py;
       // is there something to stand on under it?
