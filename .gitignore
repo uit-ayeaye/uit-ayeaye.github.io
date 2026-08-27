@@ -4,3 +4,7 @@
 *~
 .vscode/
 node_modules/
+
+# local tooling, not part of the site
+.claude/
+_src/tsconfig.tsbuildinfo

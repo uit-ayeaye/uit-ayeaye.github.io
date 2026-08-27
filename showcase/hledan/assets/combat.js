@@ -315,7 +315,7 @@ export class Combat {
 
   /**
    * Aim, Elbaf's way: one ray straight down the camera's look from the
-   * character's head line — walls from the TriGrid, ground from the baked
+   * character's head line — walls from the mesh colliders, ground from the baked
    * height field, whichever is nearer. Runs every frame; both queries are a
    * few microseconds.
    */

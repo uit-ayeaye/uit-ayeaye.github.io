@@ -87,23 +87,29 @@ export class ObstacleField {
   _cz(z) { return Math.min(this.nz - 1, Math.max(0, ((z - this.minZ) / CELL) | 0)); }
 
   /**
-   * Does a body of radius `r` standing at (x, z, y) overlap anything?
-   * Pass `y` as null to ignore height entirely.
+   * Does a body of radius `r` and height `h` standing at (x, z, y) overlap
+   * anything? Pass `y` as null to ignore height entirely.
    *
    * The circle is tested against each box in the box's own frame, which turns a
    * rotated-rectangle-vs-circle test into an axis-aligned one: rotate the
    * offset by -yaw, clamp it to the half extents, and compare the distance to
    * the nearest point against the radius.
    */
-  blocked(x, z, r, y = null) {
+  blocked(x, z, r, y = null, h = 0) {
     if (!this._built || !this.boxes.length) return false;
     const list = this.cells.get(this._cz(z) * this.nx + this._cx(x));
     if (!list) return false;
     for (let i = 0; i < list.length; i++) {
       const b = this.boxes[list[i]];
       /* Feet below the roof and head above the floor. Without this a bus on the
-         lower road blocks the flyover deck eighteen units over its roof. */
-      if (y !== null && (y > b.cy + b.hy || y + b.hy < b.cy)) continue;
+         lower road blocks the flyover deck eighteen units over its roof.
+         The head is the BODY's height, not the box's: standing that in for it
+         made a 12-unit utility pole reach twelve units DOWNWARD as well, which
+         is the same kind of blocking-in-mid-air the mesh colliders exist to
+         stop. `h` defaults to the box's own height only so a caller that has
+         not been updated keeps the behaviour it was written against. */
+      const head = h || b.hy;
+      if (y !== null && (y > b.cy + b.hy || y + head < b.cy)) continue;
       const dx = x - b.cx, dz = z - b.cz;
       const lx = dx * b.cos + dz * b.sin;         // into the box's frame
       const lz = -dx * b.sin + dz * b.cos;

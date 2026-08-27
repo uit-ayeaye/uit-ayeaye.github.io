@@ -46,56 +46,63 @@ const POT = [[214,43.6,-278],[86,43.3,-202],[54,43.3,-130],[142,43.6,-130],[38,4
 const POLE = [[210,43.6,-278],[198,43.6,-246],[82,43.3,-202],[58,43.3,-134],[146,43.6,-130],[46,43.3,-102],[50,43.3,-62],[-150,43.3,-46],[-182,43.6,-34],[-98,43.4,-34],[34,43.4,-30],[-170,43.8,-2],[-86,43.4,-2],[22,43.4,2],[114,43.6,18],[-86,43.4,38],[14,43.4,38],[-162,43.9,42],[94,43.6,54],[-150,43.6,74],[-90,43.4,74],[6,43.4,74],[106,43.6,86],[-70,43.4,102],[78,43.6,106],[2,43.4,110],[90,43.6,138],[78,43.6,170],[78,43.6,206],[62,43.6,258],[-94,43.5,286],[54,43.6,294],[82,43.6,318],[-106,41.4,326],[114,43.6,330],[150,43.6,334],[186,43.6,334],[226,43.6,338],[94,43.6,390],[130,43.6,390],[170,43.6,394],[206,43.6,394],[242,43.6,398],[42,43.6,402]];
 
 /**
- * The lamp posts the MAP already carries. The photogrammetry mesh has real
- * posts baked into it — the tall highway lamps down the flyover deck and the
- * street lamps along the western avenue — and they never lit, because the
- * merged mesh has no per-object anything. Erecting new procedural stands next
- * to them doubled every pole, so instead the existing posts were found by
- * scanning the baked height field for thin spikes 4–8 m above their local
- * ground (the same trick that found the parked buses), and only the LIGHT is
- * added: a glowing head where each post tops out, a pool on the surface
- * beneath it, and a halo. Rows are [x, headY, z, groundY].
+ * The lamp posts the MAP already carries.
+ *
+ * The photogrammetry mesh has real posts baked into it — the tall highway
+ * lamps down the flyover deck, and a scatter of masts along the western
+ * avenue — and they never lit, because the merged mesh has no per-object
+ * anything. Erecting new procedural stands beside them doubled every pole, so
+ * only the LIGHT is added: a lens where the fixture is, a pool on the surface
+ * beneath it, and a halo. Rows are the LUMINAIRE — [x, y, z, groundY] — not
+ * the post, because a highway lamp's fixture hangs off an arm five units to
+ * one side and a bulb drawn at the pole top glows in mid-air beside the dark
+ * fixture it is meant to be lighting.
+ *
+ * **Every row here was measured against the geometry, one at a time.** Both
+ * halves of the list needed it:
+ *
+ *  - The flyover's fourteen are one repeated model carrying exactly 96
+ *    triangles, so clustering the deck's lamp-head band and keeping the
+ *    96-triangle blobs finds all of them and nothing else. Within each blob
+ *    the post is a 5-triangle column at one end and 53 of the 96 triangles
+ *    sit in the outer fifth of the arm — that dense far cluster IS the
+ *    luminaire, and its underside is at y 72.53. The previous rows sat ~0.7 u
+ *    short of it, on the bare arm, which is why the bridge read as balls
+ *    floating beside their lamps.
+ *
+ *  - The street-level rows came from scanning the baked height field for thin
+ *    spikes, and that method cannot tell a lamp from a fence post, a sign or
+ *    a bump in the terrain. Tested against the mesh, **28 of the original 40
+ *    had no usable vertical structure under them** — six had nothing whatever
+ *    within three units, in any direction, at any height. They were bulbs hung
+ *    on nothing. Those are gone. The twelve that survive each stand on a
+ *    column of at least ten triangles running unbroken from the ground, and
+ *    sit on that column's own axis and top rather than at a guessed height.
+ *
+ * Street lighting is not thinner for it: the 44 procedural poles in POLE carry
+ * their own lamps and cover the same avenues.
  */
 const BAKED_LAMPS = [
-  /* the flyover's own fourteen, in pairs down the deck */
-  [-1.2,72.7,278.8,61.7],[-23.6,72.7,272.2,61.7],[17.3,72.7,213.5,61.7],[-5.1,72.7,206.9,61.7],
-  [36.3,72.7,145,61.7],[13.9,72.7,138.5,61.7],[-14.2,72.7,342.9,61.7],[-37.5,72.7,341.1,61.7],
-  [2.6,72.7,474.1,61.7],[-20.2,72.7,479.1,61.7],[-10.2,72.7,406.8,61.7],[-32.9,72.7,411.8,61.7],
-  [53.8,72.7,82.4,61.7],[31.3,72.7,76.2,61.7],
-  /* and the street-level posts, arm offsets already folded in */
-  [110.6,54.4,-233.1,43.5],[-108.9,53.1,-10.1,43.4],[-167.4,51.8,55.4,43.6],[-166.4,51.4,60.4,43.6],
-  [-88.9,53.1,69.2,43.4],[-164.6,52.6,69.4,43.5],[-196.2,53.7,73,41.3],[-80.4,50.6,71.9,43.4],
-  [-196.4,53.7,74.9,41.4],[-234.7,51.4,80.9,39.7],[-236.4,51.4,86.9,39.6],[-80.4,62.5,99.9,56.5],
-  [-148.4,50.9,105.9,43.5],[-138.4,50.9,105.9,43.6],[-198.1,52.8,113.1,40.5],[-132.4,62.5,124.9,57.2],
-  [-145.9,52.3,127.9,42.9],[-142.9,51.6,138.7,43],[-201.7,50.3,153.6,40.1],[-209.2,50.3,155.5,39.9],
-  [-123.4,50.9,162.9,43.7],[-123.9,51.7,192.4,43.4],[-55.8,53.1,221.2,43.1],[-106.4,51.5,256.4,43.7],
-  [-104.9,51.6,260.9,44],[-39,48.7,261.3,43.2],[-119.4,48.8,264.9,42.8],[-95.4,52.6,300.4,43.5],
-  [-94.4,52.9,305.9,43.5],[-150.4,47.2,317.9,40.4],[-98.4,48.8,319.9,41.9],[-179.4,48.6,326.9,39.6],
-  [-103.4,48.8,327.9,42.6],[-114.4,48.8,332.9,42.1],[-173.4,50.7,334.9,39.7],[-109.4,52,334.9,42.8],
-  [-121.9,51.6,336.9,41.7],[-75.4,49.2,340.4,43.6],[29.1,48.8,343.9,43.2],[29.6,50.5,420.9,43.6],
+  /* the flyover's own fourteen, in pairs down the deck, at the measured
+     luminaire underside */
+  [-1.9,72.53,278.5,61.7],[-23,72.53,272.5,61.7],[16.6,72.53,213.2,61.7],[-4.5,72.53,207.2,61.7],
+  [35.6,72.53,144.8,61.7],[14.5,72.53,138.7,61.7],[-14.9,72.53,342.8,61.7],[-36.8,72.53,341.2,61.7],
+  [1.9,72.53,474.3,61.7],[-19.5,72.53,478.9,61.7],[-10.8,72.53,407,61.7],[-32.3,72.53,411.6,61.7],
+  [53.2,72.53,82.2,61.7],[32,72.53,76.4,61.7],
+  /* street level: the twelve that stand on something real, each at the top of
+     its own measured column and centred on that column rather than on the
+     scanned guess — the head is the centroid of the top two units of geometry,
+     which is the post's own axis */
+  [-108.98,53.45,-9.86,43.4],[-88.83,53.45,69.42,43.4],[-196.26,55.35,72.97,41.3],[-81.01,57.49,71.57,43.4],
+  [-123.98,50.93,191.96,43.4],[-55.78,53.45,221.39,43.1],[-106.4,53.41,255.87,43.7],[-39.14,49.06,261.29,43.2],
+  [-94.13,58.05,306.31,43.5],[-76.04,49.59,340.8,43.6],[29.26,49.2,343.44,43.2],[30.1,50.86,421.44,43.6],
 ];
 
-/**
- * Rows are the LUMINAIRE itself — [x, y, z, groundY] — not the post it hangs
- * from. That distinction is the whole fix: a street lamp's fixture sits on the
- * end of an arm a couple of metres to one side of its pole, so a bulb drawn at
- * the pole top glows in mid-air beside the dark fixture it is meant to be
- * lighting, which is exactly how the bridge read.
- *
- * The flyover's fourteen were identified outright rather than guessed at. The
- * fixture is one repeated model, and every instance of it carries exactly 96
- * triangles — so clustering the map's geometry in the deck's lamp-head band and
- * keeping the 96-triangle blobs finds all of them and nothing else. They come
- * out in clean pairs about 65 units apart down the deck, which is what a
- * flyover's lighting actually looks like. The earlier list came from scanning
- * the baked height field for thin spikes, which found fence posts and signs as
- * readily as lamps and missed several lamps entirely.
- *
- * The street-level posts have no such repeated model to key on, so those keep
- * their scanned positions with the measured arm offset folded into x/z.
- */
+/** The luminaire, and the patch of ground under it. */
 const lampHead = (r) => ({ x: r[0], y: r[1], z: r[2] });
 const lampFoot = (r) => ({ x: r[0], y: r[3] + m(0.06), z: r[2] });
+/** The flyover's lamps are the tall ones; they get the wider halo and pool. */
+const isDeckLamp = (r) => r[3] > 50;
 
 /* The soundscape needs to know what you are standing next to — a tea shop
    sounds different from four lanes of traffic — so the same anchors drive it. */
@@ -355,37 +362,148 @@ function poleGeo() {
  * vehicle's own transform list — the SAME array object, not a replayed PRNG —
  * so they cannot drift off the bodywork. See `layout()`.
  *
- * Offsets are measured against the real normalised dimensions the downloaded
- * models are scaled to (bus 2.50 x 3.20 x 11.5, car 1.78 x 1.52 x 4.40), which
- * is why they sit just INSIDE each nose. The earlier figures were authored
- * against the procedural bodies these replaced and hung a few centimetres off
- * the front of every vehicle on the map.
+ * **Both models already say where their lamps go, and these are those places.**
+ * The car is untextured, so `loadVehicleGeometry` baked its material colours
+ * into vertex colours: filtering for the amber (163,77,26) and the red
+ * (163,19,15) picks the headlight and tail-light panels straight out of the
+ * mesh. The bus keeps its palette texture instead, so the same question is
+ * asked of the UVs — the triangles whose UV lands on the palette's orange
+ * (255,153,21) are its headlight cluster. Each patch is then split by the sign
+ * of x to give a per-side centre.
+ *
+ * That is a world away from the figures this replaces, which were reasoned
+ * from nominal dimensions and were wrong in both directions at once: the bus's
+ * headlight panel sits at z 5.648 where the old 5.58 buried the lens 7 cm
+ * INSIDE the bodywork — and a depth-tested additive lens inside a solid draws
+ * nothing, so the entire fleet ran with no headlights at all — while the car's
+ * are at 1.986 where the old 2.06 hung both of them clear of the bumper with
+ * the road showing through the gap.
+ *
+ * `hs`/`ts` are the slope of the panel across the lens, dz/dx, taken from the
+ * same patch. A stock low-poly car noses in fast — the headlight panel loses
+ * 73 cm of z per metre of x — so a flat lens wide enough to read as a
+ * headlight cannot lie flush on it. Shearing by that slope lets the lens keep
+ * a believable width and still follow the panel it is set into.
+ *
+ * The bus has no tail lamp modelled anywhere, in texture or geometry, so those
+ * two are placed by measurement instead: its rear panel is flat at z -5.646
+ * right across the width at that height.
  *
  * This is most of what makes the road read as alive after dark: 84 vehicles is
  * 84 pairs of headlights and 84 pairs of tail lights, and at a junction this
  * size that is the whole picture.
  */
-const BUS_LAMPS = { hx: 0.80, hy: 0.95, hz: 5.58, ty: 1.02, tz: -5.58 };
-const TAXI_LAMPS = { hx: 0.60, hy: 0.66, hz: 2.06, ty: 0.78, tz: -2.06 };
+/* `hw`/`hh` and `tw`/`th` are sized to sit just INSIDE the panel each lens
+   belongs to, because the fit below follows whatever surface it finds. The
+   bus's headlight is a pod standing 5 cm proud of the front panel: a lens even
+   slightly wider than the pod drops its outer ring onto the panel behind, and
+   the pod's own shoulders then occlude the lens into an hourglass. */
+const BUS_LAMPS  = { hx: 0.526, hy: 0.844, hz: 5.71, hs: -0.50, hw: 0.09, hh: 0.21,
+                     tx: 0.840, ty: 0.900, tz: -5.68, ts: 0,     tw: 0.24, th: 0.17 };
+const TAXI_LAMPS = { hx: 0.553, hy: 0.626, hz: 2.05, hs: -0.73, hw: 0.25, hh: 0.17,
+                     tx: 0.571, ty: 0.882, tz: -1.92, ts: 0.93,  tw: 0.14, th: 0.24 };
+
+/**
+ * A mirrored pair of lenses, sheared to sit flush on curved bodywork.
+ *
+ * Flat quads, not boxes: a lens is a light, so the only face that matters is
+ * the one pointing out of the vehicle, and dropping the other five takes the
+ * whole map's lamp layer from 12 triangles a lamp to 2 — 84 vehicles times
+ * four lamps, so it is worth having. It also makes them trivial to fit to the
+ * real bodywork later, since every vertex lies on one surface.
+ *
+ * Each quad's z is swept by `slope * (|x| - hx)`, so the outboard edge falls
+ * back roughly as the panel does. Keying on |x| means one expression shears
+ * both sides outward, which is why the pair is built as two quads rather than
+ * one mirrored copy — scaling by -1 would reverse the winding and cull the far
+ * lens away entirely. `slope` is signed in the vehicle's own frame, which is
+ * why the tail's is positive: at the back z is negative, and the body narrowing
+ * toward its corners moves that z toward zero.
+ */
+function lampPair(w, h, hx, y, z, slope, hex) {
+  return [hx, -hx].map((side) => {
+    /* Two segments each way, not one. Four corners can only describe a plane,
+       and a nose is convex: fit a flat quad to it and the middle of the lens
+       sinks behind the panel while its corners sit on it, which draws a lit
+       rectangle with a dark bite out of the centre. A 3x3 grid of vertices
+       bends with the panel for eight triangles a lens — fewer than the box
+       this replaced spent on faces that never showed. */
+    const g = new THREE.PlaneGeometry(m(w), m(h), 2, 2);
+    if (z < 0) g.rotateY(Math.PI);                 // a tail lamp faces astern
+    g.translate(m(side), m(y), m(z));
+    if (slope) {
+      const pos = g.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        pos.setZ(i, pos.getZ(i) + slope * (Math.abs(pos.getX(i)) - m(hx)));
+      }
+      pos.needsUpdate = true;
+    }
+    return paint(g, hex);
+  });
+}
 
 function busLightsGeo() {
   const L = BUS_LAMPS;
   return merge([
-    paint(box(0.40, 0.24, 0.06, -L.hx, L.hy, L.hz), 0xfff0c8),
-    paint(box(0.40, 0.24, 0.06,  L.hx, L.hy, L.hz), 0xfff0c8),
-    paint(box(0.34, 0.22, 0.06, -L.hx, L.ty, L.tz), 0xff5a3c),
-    paint(box(0.34, 0.22, 0.06,  L.hx, L.ty, L.tz), 0xff5a3c),
+    ...lampPair(L.hw, L.hh, L.hx, L.hy, L.hz, L.hs, 0xfff0c8),
+    ...lampPair(L.tw, L.th, L.tx, L.ty, L.tz, L.ts, 0xff5a3c),
   ], 'bus lights');
 }
 
 function taxiLightsGeo() {
   const L = TAXI_LAMPS;
   return merge([
-    paint(box(0.34, 0.18, 0.05, -L.hx, L.hy, L.hz), 0xfff0c8),
-    paint(box(0.34, 0.18, 0.05,  L.hx, L.hy, L.hz), 0xfff0c8),
-    paint(box(0.28, 0.22, 0.05, -L.hx, L.ty, L.tz), 0xff5a3c),
-    paint(box(0.28, 0.22, 0.05,  L.hx, L.ty, L.tz), 0xff5a3c),
+    ...lampPair(L.hw, L.hh, L.hx, L.hy, L.hz, L.hs, 0xfff0c8),
+    ...lampPair(L.tw, L.th, L.tx, L.ty, L.tz, L.ts, 0xff5a3c),
   ], 'taxi lights');
+}
+
+/**
+ * Push every lens vertex onto the bodywork it is set into.
+ *
+ * A shear is a straight line and a car's nose is not, so once the downloaded
+ * model is in hand the shape is asked of it directly: rasterise the body along
+ * Z at each lens vertex's (x, y) and put that vertex on the surface which
+ * comes back, three centimetres proud so the additive lens is never
+ * depth-rejected by the panel it sits on.
+ *
+ * Vertices that fall outside the body's silhouette get no answer and keep
+ * their sheared position, which is the right fallback: it is what the lens
+ * would have been anyway.
+ *
+ * 36 vertices against ~3k triangles, once, when the model lands.
+ */
+function fitLensesToBody(lensGeo, bodyGeo, margin = 0.03) {
+  const lp = lensGeo.attributes.position;
+  const bp = bodyGeo.attributes.position;
+  const idx = bodyGeo.index;
+  const n = idx ? idx.count : bp.count;
+  const mg = m(margin);
+  for (let v = 0; v < lp.count; v++) {
+    const px = lp.getX(v), py = lp.getY(v), pz = lp.getZ(v);
+    const front = pz > 0;
+    let best = null;
+    for (let i = 0; i < n; i += 3) {
+      const j0 = idx ? idx.getX(i) : i, j1 = idx ? idx.getX(i + 1) : i + 1, j2 = idx ? idx.getX(i + 2) : i + 2;
+      const ax = bp.getX(j0), ay = bp.getY(j0);
+      const bx = bp.getX(j1), by = bp.getY(j1);
+      const cx = bp.getX(j2), cy = bp.getY(j2);
+      // barycentric containment in XY, then interpolate the depth
+      const d = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy);
+      if (d > -1e-9 && d < 1e-9) continue;
+      const l1 = ((by - cy) * (px - cx) + (cx - bx) * (py - cy)) / d;
+      if (l1 < 0) continue;
+      const l2 = ((cy - ay) * (px - cx) + (ax - cx) * (py - cy)) / d;
+      if (l2 < 0) continue;
+      const l3 = 1 - l1 - l2;
+      if (l3 < 0) continue;
+      const z = l1 * bp.getZ(j0) + l2 * bp.getZ(j1) + l3 * bp.getZ(j2);
+      if (best === null || (front ? z > best : z < best)) best = z;
+    }
+    if (best !== null) lp.setZ(v, best + (front ? mg : -mg));
+  }
+  lp.needsUpdate = true;
+  lensGeo.computeBoundingSphere();
 }
 
 /**
@@ -573,16 +691,90 @@ function lampGlowGeo(radius = 3.4) {
  * @param size    [width, height, length] in metres — corrects all three axes
  *                independently, for a model whose proportions are wrong.
  */
+/**
+ * Cheap stand-ins for a model's wheel meshes, measured from the meshes
+ * themselves.
+ *
+ * The axle runs along X on every vehicle here, so a wheel is fully described
+ * by its centre, its radius and its width — and one sub-mesh often holds BOTH
+ * wheels of an axle (this car's rear pair is a single 564-triangle object 1.47
+ * wide), which is why anything wider than it is round gets split down the
+ * middle and rebuilt as two. Each proxy keeps the colour of the mesh it
+ * replaces, so a black tyre stays a tyre and the grey rim inside it stays a
+ * rim: the pair of sub-meshes reproduces the pair of cylinders for free.
+ */
+function wheelProxies(geo, hex) {
+  const pos = geo.attributes.position;
+  const box = (from, to) => {
+    let mnx = Infinity, mny = Infinity, mnz = Infinity;
+    let mxx = -Infinity, mxy = -Infinity, mxz = -Infinity;
+    let n = 0;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      if (x < from || x > to) continue;
+      const y = pos.getY(i), z = pos.getZ(i);
+      if (x < mnx) mnx = x; if (x > mxx) mxx = x;
+      if (y < mny) mny = y; if (y > mxy) mxy = y;
+      if (z < mnz) mnz = z; if (z > mxz) mxz = z;
+      n++;
+    }
+    return n ? { mnx, mxx, mny, mxy, mnz, mxz } : null;
+  };
+  const whole = box(-Infinity, Infinity);
+  if (!whole) return [];
+  const dia = Math.max(whole.mxy - whole.mny, whole.mxz - whole.mnz);
+  const wide = whole.mxx - whole.mnx;
+  const mid = (whole.mnx + whole.mxx) / 2;
+  const halves = wide > dia * 1.6
+    ? [box(-Infinity, mid), box(mid, Infinity)]
+    : [whole];
+
+  const out = [];
+  for (const b of halves) {
+    if (!b) continue;
+    const r = Math.max(b.mxy - b.mny, b.mxz - b.mnz) / 2;
+    const w = Math.max(b.mxx - b.mnx, r * 0.35);
+    const c = new THREE.CylinderGeometry(r, r, w, 10);
+    c.rotateZ(Math.PI / 2);                      // axle along X, as wheelGeo does
+    c.translate((b.mnx + b.mxx) / 2, (b.mny + b.mxy) / 2, (b.mnz + b.mxz) / 2);
+    out.push(paint(c.toNonIndexed(), hex));
+  }
+  return out;
+}
+
 export async function loadVehicleGeometry(url, { bodyMat, length, size }) {
   const gltf = await new GLTFLoader().loadAsync(url);
   gltf.scene.updateWorldMatrix(true, true);
 
   const parts = [];
   let textured = null;          // a model that carries its own map keeps it
+  let wheelTris = 0, proxyTris = 0;
   gltf.scene.traverse((o) => {
     if (!o.isMesh || !o.geometry) return;
     const g = o.geometry.clone().applyMatrix4(o.matrixWorld);
     const mat = Array.isArray(o.material) ? o.material[0] : o.material;
+
+    /* Wheels get thrown away and rebuilt.
+       Stock low-poly cars spend their whole budget on them: this one is 3124
+       triangles and 1680 of those — 54% — are four wheels, drawn as 32-segment
+       cylinders on a 0.33 m tyre. Nothing on a parked car twenty metres away
+       can tell those from ten segments, and the fleet is the single heaviest
+       thing in the scene, so the wheel meshes are replaced in place by the
+       same primitive the procedural vehicles use, sized and positioned from
+       the bounding box of the mesh being dropped. No authored numbers, so it
+       works on whatever model is dropped in next. */
+    if (/wheel/i.test(o.name)) {
+      const tris = (g.index ? g.index.count : g.attributes.position.count) / 3;
+      wheelTris += tris;
+      const hex = mat && mat.color ? mat.color.getHex() : 0x141416;
+      for (const cyl of wheelProxies(g, hex)) {
+        proxyTris += cyl.attributes.position.count / 3;
+        parts.push(cyl);
+      }
+      g.dispose();
+      return;
+    }
+
     if (mat && mat.map) {
       /* Baking vertex colours would throw the texture away, and a textured
          vehicle cannot be recoloured per instance anyway — which is fine for a
@@ -596,6 +788,23 @@ export async function loadVehicleGeometry(url, { bodyMat, length, size }) {
     parts.push(g.index ? g.toNonIndexed() : g);
   });
   if (!parts.length) throw new Error(`no meshes in ${url}`);
+  if (wheelTris) {
+    console.info(`hledan: ${url.split('/').pop()} wheels ${wheelTris} -> ${proxyTris} tris`);
+  }
+
+  /* mergeGeometries refuses a set whose attributes disagree, and a downloaded
+     model is under no obligation to be consistent: this car carries no UVs at
+     all (it is flat-coloured), while the cylinders standing in for its wheels
+     come out of CylinderGeometry with UVs as a matter of course. Keep only the
+     attributes every part has — nothing downstream reads anything but position,
+     normal and colour. */
+  const common = Object.keys(parts[0].attributes)
+    .filter((name) => parts.every((g) => g.attributes[name]));
+  for (const g of parts) {
+    for (const name of Object.keys(g.attributes)) {
+      if (!common.includes(name)) g.deleteAttribute(name);
+    }
+  }
 
   const merged = mergeGeometries(parts, false);
   if (!merged) throw new Error(`could not merge ${url}`);
@@ -699,7 +908,7 @@ function layout(rows, seed, jitterYaw = 0) {
 }
 
 /** Build an InstancedMesh from a resolved layout. */
-function instancedFrom(geo, mat, place, colours) {
+function instancedFrom(geo, mat, place, colours, keys) {
   const mesh = new THREE.InstancedMesh(geo, mat, place.length);
   const dummy = new THREE.Object3D();
   const col = new THREE.Color();
@@ -709,7 +918,11 @@ function instancedFrom(geo, mat, place, colours) {
     dummy.scale.set(p.s, p.s, p.s);
     dummy.updateMatrix();
     mesh.setMatrixAt(i, dummy.matrix);
-    if (colours) mesh.setColorAt(i, col.set(colours[(i * 7 + 3) % colours.length]));
+    /* `keys` carries each instance's index in the UNSPLIT layout, so a prop
+       keeps the colour it would have had whether or not the layer ends up
+       tiled. Without it, tiling reshuffles every palette on the map. */
+    const k = keys ? keys[i] : i;
+    if (colours) mesh.setColorAt(i, col.set(colours[(k * 7 + 3) % colours.length]));
   });
   mesh.instanceMatrix.needsUpdate = true;
   if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
@@ -719,9 +932,83 @@ function instancedFrom(geo, mat, place, colours) {
   return mesh;
 }
 
+/* ----------------------------------------------------------- frustum culling */
+
+/**
+ * How much of the map's street furniture is on screen at once: **9%.**
+ *
+ * That was measured over 96 street-level stances — 124,750 prop triangles
+ * submitted every frame, 11,789 of them inside the frustum. One InstancedMesh
+ * per prop type spans the whole junction, so its bounding sphere always
+ * intersects the view and the GPU transforms all 662 instances wherever you
+ * stand. On a phone that is the largest avoidable cost in the scene: the props
+ * outweigh the map itself.
+ *
+ * The obvious fix — cut each layout into XZ tiles and let three.js reject whole
+ * tiles — was tried and is a bad trade here. It took the draw call count from
+ * 21 to 146, because the page opens on a bird's-eye view where every tile is
+ * genuinely visible, and a mobile driver would rather transform a hundred
+ * thousand vertices than change state a hundred and twenty extra times.
+ *
+ * So the culling is done per INSTANCE instead, on the CPU, by compacting the
+ * visible ones to the front of the instance buffer and shortening `count`.
+ * Draw calls stay flat in every view, the overview still draws everything
+ * because everything is genuinely on screen, and at street level nine tenths
+ * of the work disappears. A sphere-vs-frustum test is six dot products, so the
+ * whole pass is a few tens of microseconds.
+ *
+ * Only layers heavy enough to be worth the bookkeeping are registered — a
+ * 48-triangle stall stool is cheaper to draw than to think about.
+ */
+/* Two ways in, because triangles are the wrong measure for half of these
+   layers and instance count is the wrong measure for the other half. A lamp
+   pool is two dozen triangles and most of a phone's fill rate, so anything
+   with sixteen instances qualifies on spread alone; a bus livery slice is
+   eight instances of 2226 triangles, so anything heavy qualifies on weight. */
+const CULL_MIN = 16, CULL_TRIS = 6000;
+
+function cullable(mesh, place, colours) {
+  const geo = mesh.geometry;
+  const tri = (geo.index ? geo.index.count : geo.attributes.position.count) / 3;
+  if (place.length < CULL_MIN && place.length * tri < CULL_TRIS) return null;
+  return { mesh, place, colours: colours || null, geo: null, oy: 0, r: 0 };
+}
+
+/**
+ * The test sphere for one instance of a layer, taken from the geometry itself.
+ *
+ * A guessed radius is how instance culling goes wrong: too small and props
+ * blink out at the edge of the screen, too large and it stops culling. The
+ * geometry's own bounding sphere gives the exact answer, and the only care
+ * needed is that an instance is rotated about Y — so the sphere's height
+ * offset carries over as it is, while its horizontal offset has to be folded
+ * into the radius, where it covers every yaw at once. A lamp shaft, whose
+ * geometry hangs nineteen units BELOW its anchor, is the case that makes this
+ * worth doing properly.
+ */
+function cullSphere(layer) {
+  const g = layer.mesh.geometry;
+  if (layer.geo === g) return;
+  if (!g.boundingSphere) g.computeBoundingSphere();
+  const bs = g.boundingSphere;
+  layer.geo = g;
+  layer.oy = bs.center.y;
+  layer.r = (bs.radius + Math.hypot(bs.center.x, bs.center.z)) * 1.08;   // 1.08: scale jitter
+}
+
+/** One layer, plus a note to cull it later if it is heavy enough to matter. */
+function instancedLayer(geo, mat, place, colours, sink) {
+  const mesh = instancedFrom(geo, mat, place, colours);
+  if (sink) {
+    const c = cullable(mesh, place, colours);
+    if (c) sink.push(c);
+  }
+  return [mesh];
+}
+
 /** Convenience for the props that still want anchors-plus-seed at the call site. */
-function instanced(geo, mat, rows, colours, seed, jitterYaw) {
-  return instancedFrom(geo, mat, layout(rows, seed, jitterYaw), colours);
+function instanced(geo, mat, rows, colours, seed, jitterYaw, sink) {
+  return instancedLayer(geo, mat, layout(rows, seed, jitterYaw), colours, sink);
 }
 
 /** A point in a prop's local frame, lifted into world space. */
@@ -845,12 +1132,17 @@ export class StreetProps {
       return thinned.slice(0, Math.max(1, Math.round(thinned.length * cut)));
     };
 
+    /* Layers heavy enough to be worth culling per instance register here; see
+       instancedLayer() and update(). */
+    const cull = [];
+    this._cull = cull;
+
     /* A prop whose tint must not spread over its whole body is built as two
        meshes sharing one resolved transform list, so the tarp lands on its own
        poles. */
     const pair = (a, b, rows, colours, seed, jitter) => {
       const place = layout(rows, seed, jitter);
-      return [instancedFrom(a, mk(), place, colours), instancedFrom(b, mk(), place, null)];
+      return [...instancedLayer(a, mk(), place, colours, cull), ...instancedLayer(b, mk(), place, null, cull)];
     };
 
     const busRows = take(BUS);
@@ -863,13 +1155,20 @@ export class StreetProps {
     this._busPlace = busPlace;
     this._mk = mk;
 
+    /* The bus is NOT tiled. Its fleet is split by livery instead — one texture
+       per colour, one mesh per texture — and cutting that by tile as well would
+       multiply the two and hand back the draw calls tiling exists to save. It
+       is also the smallest fleet on the map. Everything else tiles. */
+    const busBody = instancedFrom(busGeo(), mk(), busPlace, BUS_COLOURS);
+    const taxiBodies = instancedLayer(taxiGeo(), mk(), taxiPlace, TAXI_COLOURS, cull);
+    this._veh = { bus: [busBody], taxi: taxiBodies };
     this.meshes = [
-      instancedFrom(busGeo(),  mk(), busPlace,  BUS_COLOURS),
-      instancedFrom(taxiGeo(), mk(), taxiPlace, TAXI_COLOURS),
+      busBody,
+      ...taxiBodies,
       ...pair(teaTarpGeo(),    teaFrameGeo(),   TEA,   TARP_COLOURS, 0x54454, 0),
       ...pair(stallCanopyGeo(), stallFrameGeo(), STALL, TARP_COLOURS, 0x5741, 0),
-      instanced(potStandGeo(), mk(), POT,       null, 0x504F54, 0),
-      instancedFrom(poleGeo(), mk(), polePlace, null),
+      ...instanced(potStandGeo(), mk(), POT,     null, 0x504F54, 0, cull),
+      ...instancedLayer(poleGeo(), mk(), polePlace, null, cull),
     ];
 
     /* Lamps ride the pole transforms, so they are laid out from a PRNG seeded
@@ -882,16 +1181,16 @@ export class StreetProps {
     });
     this.lampMat = lampMat;
     this.glowMat = glowMat;
-    const lamp = instancedFrom(lampLensGeo(), lampMat, polePlace, null);
-    this.meshes.push(lamp);
+    const lamp = instancedLayer(lampLensGeo(), lampMat, polePlace, null, cull);
+    this.meshes.push(...lamp);
     /* The pools are big additive discs, and additive discs are fill rate — the
        one thing a phone GPU has least of. They are also the single thing that
        makes a street read as LIT rather than as a row of glowing dots, so the
        low tier gets them too, just smaller: the cost of an additive disc is its
        area, and 0.62 of the radius is 0.38 of the fragments. */
-    const glow = instancedFrom(lampGlowGeo(tier === 'hi' ? 3.4 : 2.1), glowMat, polePlace, null);
-    glow.renderOrder = 3;
-    this.meshes.push(glow);
+    const glow = instancedLayer(lampGlowGeo(tier === 'hi' ? 3.4 : 2.1), glowMat, polePlace, null, cull);
+    glow.forEach((g) => { g.renderOrder = 3; });
+    this.meshes.push(...glow);
 
     /* Vehicle lamps and tea-shop bulbs, on the same transforms as the things
        they belong to. Additive and unlit, like the street lamps, and driven by
@@ -907,11 +1206,15 @@ export class StreetProps {
     this.vehMat = vehMat;
     this.bulbMat = bulbMat;
     const bulbPlace = layout(TEA.concat(STALL), 0x42554C, 0);
-    const busLights = instancedFrom(busLightsGeo(), vehMat, busPlace, null);
-    const taxiLights = instancedFrom(taxiLightsGeo(), vehMat, taxiPlace, null);
-    const bulbs = instancedFrom(shopBulbGeo(), bulbMat, bulbPlace, null);
-    busLights.renderOrder = 3; taxiLights.renderOrder = 3; bulbs.renderOrder = 3;
-    this.meshes.push(busLights, taxiLights, bulbs);
+    const busLights = [instancedFrom(busLightsGeo(), vehMat, busPlace, null)];
+    const taxiLights = instancedLayer(taxiLightsGeo(), vehMat, taxiPlace, null, cull);
+    const bulbs = instancedLayer(shopBulbGeo(), bulbMat, bulbPlace, null, cull);
+    for (const b of [...busLights, ...taxiLights, ...bulbs]) b.renderOrder = 3;
+    this.meshes.push(...busLights, ...taxiLights, ...bulbs);
+    /* Kept so replaceVehicle can sit each lens on the downloaded bodywork.
+       The taxi's lamp tiles share ONE geometry object with each other, so the
+       fit only has to run on the first of them. */
+    this._vehLights = { bus: busLights, taxi: taxiLights };
 
     /* The beam each vehicle throws on the tarmac. Parked traffic with lit
        headlights but no light ON THE ROAD reads as a row of glowing dots; the
@@ -927,20 +1230,17 @@ export class StreetProps {
       blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
     });
     const beamLen = tier === 'hi' ? 1 : 0.62;
-    const busBeam = instancedFrom(beamGeo(15 * beamLen, 2.4, 7.0 * beamLen, BUS_LAMPS.hz), this.beamMat, busPlace, null);
-    const taxiBeam = instancedFrom(beamGeo(11 * beamLen, 1.7, 5.0 * beamLen, TAXI_LAMPS.hz), this.beamMat, taxiPlace, null);
-    /* The red wash behind a vehicle is a nicety rather than a read, and it is
-       the same fill cost as the beam. Desktop only. */
-    let busTail = null, taxiTail = null;
-    if (tier === 'hi') {
-      busTail = instancedFrom(beamGeo(5, 2.2, 3.6, -BUS_LAMPS.tz, true), this.tailMat, busPlace, null);
-      taxiTail = instancedFrom(beamGeo(3.6, 1.6, 2.6, -TAXI_LAMPS.tz, true), this.tailMat, taxiPlace, null);
-    }
-    for (const b of [busBeam, taxiBeam, busTail, taxiTail]) {
-      if (!b) continue;
-      b.renderOrder = 2;
-      this.meshes.push(b);
-    }
+    const beams = [
+      ...instancedLayer(beamGeo(15 * beamLen, 2.4, 7.0 * beamLen, BUS_LAMPS.hz), this.beamMat, busPlace, null, cull),
+      ...instancedLayer(beamGeo(11 * beamLen, 1.7, 5.0 * beamLen, TAXI_LAMPS.hz), this.beamMat, taxiPlace, null, cull),
+      /* The red wash behind a vehicle is a nicety rather than a read, and it is
+         the same fill cost as the beam. Desktop only. */
+      ...(tier === 'hi' ? [
+        ...instancedLayer(beamGeo(5, 2.2, 3.6, -BUS_LAMPS.tz, true), this.tailMat, busPlace, null, cull),
+        ...instancedLayer(beamGeo(3.6, 1.6, 2.6, -TAXI_LAMPS.tz, true), this.tailMat, taxiPlace, null, cull),
+      ] : []),
+    ];
+    for (const b of beams) { b.renderOrder = 2; this.meshes.push(b); }
 
     /* ---- the warm layer: halo sprites on every source, in two draw calls.
        Positions come from the same resolved transform lists the meshes were
@@ -969,9 +1269,8 @@ export class StreetProps {
       blending: THREE.AdditiveBlending, depthWrite: false,
     });
     const neonPlace = layout(neonRows, 0x4E454F, 0);
-    const neon = instancedFrom(neonGeo, this.neonMat, neonPlace, NEON);
-    neon.renderOrder = 3;
-    this.meshes.push(neon);
+    const neon = instancedLayer(neonGeo, this.neonMat, neonPlace, NEON, cull);
+    for (const n of neon) { n.renderOrder = 3; this.meshes.push(n); }
     neonPlace.forEach((p, i) => {
       const at = localToWorld(p, 0, m(2.95), 0);
       gridHalos.push({ x: at.x, y: at.y, z: at.z, size: m(0.7), color: NEON[(i * 7 + 3) % NEON.length] });
@@ -985,21 +1284,25 @@ export class StreetProps {
       vertexColors: true, color: 0xffeed2, transparent: true, opacity: 0,
       blending: THREE.AdditiveBlending, depthWrite: false,
     });
-    /* Seated INSIDE the luminaire, not perched on it. r[1] is the highest
-       point of the detected post, so a 0.34 m bulb hung 0.12 m under it still
-       poked out the top and read as a ball balanced on the lamp. */
+    /* Sized to the fixture it is set into, not to the halo it wants to throw.
+       The flyover luminaire is a pan 1.86 x 0.73 units across and only 0.42
+       tall; the 0.34 m sphere that used to sit there was two and a half times
+       its height, so it read as a glowing ball parked next to a lamp rather
+       than as the lamp being lit. A 0.20 m bulb centred on the pan's underside
+       is half swallowed by the housing and half hanging below it — which is
+       what a lit lens looks like — and the halo does the glowing. */
     const headRows = BAKED_LAMPS.map((r) => { const h = lampHead(r); return [h.x, h.y, h.z]; });
-    const heads = instanced(paint(new THREE.SphereGeometry(m(0.34), 8, 6), 0xffffff),
-      this.bakedMat, headRows, null, 0x4C414D, 0);
-    heads.renderOrder = 3;
-    this.meshes.push(heads);
+    const heads = instanced(paint(new THREE.SphereGeometry(m(0.20), 8, 6), 0xffffff),
+      this.bakedMat, headRows, null, 0x4C414D, 0, cull);
     const poolRows = BAKED_LAMPS.map((r) => { const f = lampFoot(r); return [f.x, f.y, f.z]; });
-    const bakedPools = instanced(bakedPoolGeo(tier === 'hi' ? 3.8 : 2.4), this.glowMat, poolRows, null, 0x4C414D, 0);
-    bakedPools.renderOrder = 3;
-    this.meshes.push(bakedPools);
+    const bakedPools = instanced(bakedPoolGeo(tier === 'hi' ? 3.8 : 2.4), this.glowMat, poolRows, null, 0x4C414D, 0, cull);
+    for (const b of [...heads, ...bakedPools]) { b.renderOrder = 3; this.meshes.push(b); }
     for (const r of BAKED_LAMPS) {
       const h = lampHead(r);
-      gridHalos.push({ x: h.x, y: h.y, z: h.z, size: r[3] > 50 ? m(1.15) : m(1.0), color: 0xffdcae });
+      /* The halo carries the read now that the bulb is small: a sodium lamp
+         seen down a carriageway is a point with a flare around it, and the
+         flare is the part that says "lit" from two hundred units away. */
+      gridHalos.push({ x: h.x, y: h.y, z: h.z, size: isDeckLamp(r) ? m(1.05) : m(0.9), color: 0xffdcae });
     }
     this._bakedHeads = heads;
     this._bakedPools = bakedPools;
@@ -1012,7 +1315,7 @@ export class StreetProps {
       for (const p of place) {
         for (const [lx, ly, lz, size, color] of [
           [-L.hx, L.hy, L.hz, headSize, 0xfff0c8], [L.hx, L.hy, L.hz, headSize, 0xfff0c8],
-          [-L.hx, L.ty, L.tz, tailSize, 0xff5a3c], [L.hx, L.ty, L.tz, tailSize, 0xff5a3c],
+          [-L.tx, L.ty, L.tz, tailSize, 0xff5a3c], [L.tx, L.ty, L.tz, tailSize, 0xff5a3c],
         ]) {
           const at = localToWorld(p, m(lx), m(ly), m(lz));
           vehHalos.push({ x: at.x, y: at.y, z: at.z, size, color });
@@ -1059,19 +1362,18 @@ export class StreetProps {
       vertexColors: true, color: 0xffd9a2, transparent: true, opacity: 0,
       blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.BackSide,
     });
-    const shafts = instancedFrom(
+    const shafts = instancedLayer(
       lampShaftGeo(0.30, tier === 'hi' ? 2.9 : 2.3, 13),
       this.shaftMat,
       this._lampHeads.map((h) => ({ x: h.x, y: h.y, z: h.z, yaw: 0, s: 1 })),
-      null);
-    shafts.renderOrder = 2;
-    this.meshes.push(shafts);
+      null, cull);
+    for (const sh of shafts) { sh.renderOrder = 2; this.meshes.push(sh); }
     this._shafts = shafts;
 
     /* Everything that can be switched off, so setGlow can stop drawing it when
        the preset has it dark. */
     this._lit = [lamp, glow, busLights, taxiLights, bulbs, neon, heads, bakedPools,
-                 busBeam, taxiBeam, busTail, taxiTail, shafts].filter(Boolean);
+                 beams, shafts].flat().filter(Boolean);
     for (const mesh of this.meshes) this.group.add(mesh);
 
     if (tier === 'hi') this.group.add(this._cables(rng));
@@ -1141,18 +1443,39 @@ export class StreetProps {
    * a failed fetch simply leaves the procedural one in place.
    */
   replaceVehicle(kind, loaded, liveries) {
-    const idx = kind === 'bus' ? 0 : 1;
-    const mesh = this.meshes[idx];
-    if (!mesh || !loaded || !loaded.geometry) return false;
-    mesh.geometry.dispose();
-    mesh.geometry = loaded.geometry;
-    if (loaded.material) {
-      /* A textured model brings its own material, and with it its own colour —
-         so drop the per-instance tint, which would multiply the livery. */
-      mesh.material = loaded.material;
-      mesh.instanceColor = null;
+    /* A fleet is several meshes now, not one: the taxis are cut into spatial
+       tiles so the frustum can reject the ones behind you, and the buses into
+       one mesh per livery. Every tile shares the one geometry the download
+       produced, so the swap is per-mesh but the payload is not. */
+    const fleet = (this._veh && this._veh[kind]) || [];
+    if (!fleet.length || !loaded || !loaded.geometry) return false;
+    let old = null;
+    for (const mesh of fleet) {
+      old = old || mesh.geometry;
+      mesh.geometry = loaded.geometry;
+      if (loaded.material) {
+        /* A textured model brings its own material, and with it its own colour —
+           so drop the per-instance tint, which would multiply the livery. */
+        mesh.material = loaded.material;
+        mesh.instanceColor = null;
+      }
+      mesh.computeBoundingSphere();
     }
-    mesh.computeBoundingSphere();
+    if (old && old !== loaded.geometry) old.dispose();
+    const mesh = fleet[0];
+
+    /* Now that the real bodywork is here, sit the lamps on it. The authored
+       offsets came from this same model, but a sheared quad only approximates
+       a curved panel; snapping each corner to the surface is what makes a lens
+       read as set INTO the vehicle rather than stuck onto the front of it.
+       The lamp tiles all point at one geometry, so fitting the first fits all. */
+    const lights = (this._vehLights && this._vehLights[kind]) || [];
+    const fitted = new Set();
+    for (const l of lights) {
+      if (fitted.has(l.geometry)) continue;
+      fitted.add(l.geometry);
+      fitLensesToBody(l.geometry, loaded.geometry);
+    }
 
     /* One texture per livery, one InstancedMesh per texture. A per-instance
        tint cannot do this job: it multiplies the whole map, so painting a bus
@@ -1169,16 +1492,35 @@ export class StreetProps {
         if (!slice.length) return;
         const mat = loaded.material.clone();
         mat.map = makeLivery(loaded.material.map, hex);
-        if (i === 0) { mesh.material = mat; this._reseat(mesh, slice); return; }
+        /* Each livery mesh is registered for culling against its OWN slice —
+           without that the fleet is the one prop layer left transforming the
+           whole map every frame, and at 2226 triangles a bus that is the
+           heaviest thing in the scene after the map itself. */
+        if (i === 0) {
+          mesh.material = mat;
+          this._reseat(mesh, slice);
+          this._trackForCull(mesh, slice);
+          return;
+        }
         const extra = new THREE.InstancedMesh(loaded.geometry, mat, slice.length);
         this._reseat(extra, slice);
         extra.castShadow = extra.receiveShadow = false;
         extra.matrixAutoUpdate = false;
         this.group.add(extra);
         this.meshes.push(extra);
+        fleet.push(extra);
+        this._trackForCull(extra, slice);
       });
     }
     return true;
+  }
+
+  /** Add a mesh built after construction to the per-instance cull list. */
+  _trackForCull(mesh, place) {
+    const c = cullable(mesh, place, null);
+    if (!c) return;
+    this._cull.push(c);
+    if (this._camState) this._camState.x = 1e9;      // rebuild on the next pass
   }
 
   /** Rewrite an InstancedMesh's transforms from a slice of a resolved layout. */
@@ -1371,6 +1713,71 @@ export class StreetProps {
   }
 
   /**
+   * Compact each heavy prop layer down to the instances actually on screen.
+   *
+   * See instancedLayer() for why this is per-instance rather than per-tile.
+   * The visible instances are written to the front of the buffer and `count`
+   * is shortened, so the draw call stays one draw call and the GPU stops
+   * transforming the nine tenths of the map that is behind the camera.
+   *
+   * Two things keep the cost down. The frustum is rebuilt only when the camera
+   * has actually moved — auto-spin aside, a parked camera re-uploads nothing —
+   * and a layer whose visible count is unchanged and whose set is unchanged
+   * skips its upload entirely, which is the common case while walking.
+   */
+  _cullPass(camera) {
+    const list = this._cull;
+    if (!list || !list.length) return;
+    const cam = this._camState || (this._camState = { x: 1e9, y: 0, z: 0, qx: 0, qy: 0, qz: 0, qw: 0 });
+    const p = camera.position, q = camera.quaternion;
+    const moved = Math.abs(p.x - cam.x) + Math.abs(p.y - cam.y) + Math.abs(p.z - cam.z) > 0.35
+      || Math.abs(q.x - cam.qx) + Math.abs(q.y - cam.qy)
+       + Math.abs(q.z - cam.qz) + Math.abs(q.w - cam.qw) > 0.002;
+    if (!moved) return;
+    cam.x = p.x; cam.y = p.y; cam.z = p.z;
+    cam.qx = q.x; cam.qy = q.y; cam.qz = q.z; cam.qw = q.w;
+
+    camera.updateMatrixWorld();
+    const mat = this._cullMat || (this._cullMat = new THREE.Matrix4());
+    const fr = this._frustum || (this._frustum = new THREE.Frustum());
+    fr.setFromProjectionMatrix(mat.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+    const sph = this._cullSphere || (this._cullSphere = new THREE.Sphere());
+    const dummy = this._cullDummy || (this._cullDummy = new THREE.Object3D());
+    const col = this._cullColor || (this._cullColor = new THREE.Color());
+
+    for (const layer of list) {
+      const { mesh, place, colours } = layer;
+      if (!mesh.visible) continue;
+      cullSphere(layer);
+      const oy = layer.oy, r = layer.r;
+      let n = 0;
+      for (let i = 0; i < place.length; i++) {
+        const pl = place[i];
+        sph.center.set(pl.x, pl.y + oy * pl.s, pl.z);
+        sph.radius = r * pl.s;
+        if (!fr.intersectsSphere(sph)) continue;
+        dummy.position.set(pl.x, pl.y, pl.z);
+        dummy.rotation.set(0, pl.yaw, 0);
+        dummy.scale.set(pl.s, pl.s, pl.s);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(n, dummy.matrix);
+        if (colours && mesh.instanceColor) {
+          mesh.setColorAt(n, col.set(colours[(i * 7 + 3) % colours.length]));
+        }
+        n++;
+      }
+      mesh.count = n;
+      mesh.instanceMatrix.needsUpdate = true;
+      if (colours && mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+      /* The bounding sphere three.js would otherwise recompute is worthless
+         now — the buffer changes every time the camera does — and every
+         instance in it has already been tested. Skip its own cull. */
+      mesh.frustumCulled = false;
+      layer.count = n;
+    }
+  }
+
+  /**
    * Move the real point lights to whichever lamp heads are nearest the camera.
    *
    * Called every frame; costs a pass over ~94 lamp positions and a partial
@@ -1379,6 +1786,7 @@ export class StreetProps {
    * street is actually lit, so nothing happens at midday.
    */
   update(camera) {
+    this._cullPass(camera);
     const lights = this._lampLights;
     if (!lights.length || !lights[0].visible) return;
     const heads = this._lampHeads;
@@ -1437,6 +1845,10 @@ export class StreetProps {
   setGlow(lamps, headlights = lamps) {
     const a = Math.max(0, Math.min(1, lamps));
     const h = Math.max(0, Math.min(1, headlights));
+    /* A layer that was switched off skipped its cull pass, so its instance
+       buffer is stale by the time dusk switches it back on. Invalidate the
+       camera state and the next pass rebuilds every layer from scratch. */
+    if (this._camState) this._camState.x = 1e9;
     this.lampMat.opacity = a;
     this.glowMat.opacity = a * 0.6;
     this.bulbMat.opacity = a * 0.9;

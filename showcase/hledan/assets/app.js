@@ -14,7 +14,7 @@
  */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { TriGrid } from './occlusion.js';
+import { MapColliders } from './collision.js';
 import { StreetProps, loadVehicleGeometry } from './props.js';
 import { Soundscape } from './audio.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -115,6 +115,12 @@ const sky = new THREE.Mesh(
   new THREE.SphereGeometry(6000, 32, 16),
   new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false,
+    /* fbm's amplitude series sums to 1 - 2^-n, so two octaves land at 0.75 of
+       four octaves' range; NORM puts them back on the same scale so cloudSharp
+       and the 0.52 threshold mean the same thing on both tiers. */
+    defines: DEVICE.tier === 'hi'
+      ? { OCTAVES: 4, NORM: '1.067' }
+      : { OCTAVES: 2, NORM: '1.333' },
     uniforms: {
       zenith: { value: SKY_ZENITH },
       horizon: { value: SKY_HORIZON },
@@ -133,10 +139,22 @@ const sky = new THREE.Mesh(
       uniform vec3 glow; uniform float glowAmt;
       varying vec3 vW;
 
-      /* Value noise + 4 octaves of fbm. Clouds cost nothing but arithmetic:
-         they live in the sky sphere that was already being drawn, so there is
-         no extra geometry, no extra draw call and no texture to download. */
-      float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      /* Value noise + fbm. Clouds cost nothing but arithmetic: they live in the
+         sky sphere that was already being drawn, so there is no extra geometry,
+         no extra draw call and no texture to download.
+
+         Arithmetic is not free on a phone, though. The hash is deliberately
+         sin-free: fract(sin(dot(...))) is the textbook one-liner and it was
+         costing FOUR transcendentals per noise lookup — at four octaves, twice
+         over, that is 32 sin() calls for every sky pixel on screen, and sin
+         runs at quarter rate on mobile. This version is pure multiply-fract,
+         and OCTAVES drops to two on the low tier, where the second fbm layer
+         is skipped as well. */
+      float hash(vec2 p){
+        vec3 q = fract(vec3(p.xyx) * 0.1031);
+        q += dot(q, q.yzx + 33.33);
+        return fract((q.x + q.y) * q.z);
+      }
       float vnoise(vec2 p){
         vec2 i = floor(p), f = fract(p);
         vec2 u = f * f * (3.0 - 2.0 * f);
@@ -145,8 +163,8 @@ const sky = new THREE.Mesh(
       }
       float fbm(vec2 p){
         float v = 0.0, a = 0.5;
-        for (int k = 0; k < 4; k++) { v += a * vnoise(p); p *= 2.03; a *= 0.5; }
-        return v;
+        for (int k = 0; k < OCTAVES; k++) { v += a * vnoise(p); p *= 2.03; a *= 0.5; }
+        return v * NORM;
       }
 
       void main(){
@@ -170,7 +188,9 @@ const sky = new THREE.Mesh(
              of wrapping evenly round the dome like a texture on a ball. */
           vec2 uv = d.xz / max(h, 0.02) * 0.55;
           float n = fbm(uv + vec2(t * 0.013, t * 0.007));
-          n = mix(n, fbm(uv * 1.9 - vec2(t * 0.021, 0.0)), 0.45);
+          #if OCTAVES > 2
+            n = mix(n, fbm(uv * 1.9 - vec2(t * 0.021, 0.0)), 0.45);
+          #endif
           float cover = smoothstep(0.52 - cloudSharp, 0.52 + cloudSharp, n);
           // thin them out toward the horizon, where you would be seeing edge-on
           cover *= smoothstep(0.02, 0.34, h) * cloudAmt;
@@ -296,9 +316,8 @@ let weather = null;
    10.8k and is only consulted when the cheap pair misses. */
 const groundFast = [];
 const groundWide = [];
-const occluders = [];               // what the chase camera is not allowed to see through
 const buildings = [];               // walls, for the lit-window pass
-let occlusionGrid = null;           // built from `occluders` once the map is in
+const colliderMeshes = [];          // the map's solid meshes, for MapColliders
 let props = null;                   // instanced street furniture
 
 /* Built now, silent now. The AudioContext inside is not constructed until the
@@ -333,22 +352,26 @@ new GLTFLoader().load(
         buildings.push(o);
       }
 
-      /* Chase-camera occluders. Trees are excluded on purpose — the mesh is
-         named "no collider" and its canopies hang over most of the route, so
-         including them would yank the camera in every time a branch crossed
-         the sightline. The terrain backdrop is excluded too: it is ground, and
-         the chase cam already has a height clamp for that. What is left is the
-         geometry that actually swallows the camera — the flyover deck and the
-         building walls. ~19k triangles for one ray a frame.
+      /* Collision AND chase-camera occlusion, from one set: everything the map
+         is built from EXCEPT the trees. The author's own name for that mesh is
+         the specification — the baked navmap included the canopies and left
+         invisible walls all over the pavements under them, and pulling the
+         camera in every time a branch crossed the sightline would be the same
+         mistake with a different symptom.
+
+         The terrain backdrop stays IN, which the old occluder set got wrong:
+         `Environment` is not just ground. It carries the embankments, the kerb
+         faces — and the flyover's piers, so excluding it put the eye inside a
+         pier every time you walked under the bridge, with nothing to push it
+         back out and the screen full of grey slab.
 
          Match the tree mesh on a pattern, not the authored string: GLTF import
          rewrites names, so "Tree(No collider)" arrives as "Tree(No_collider)"
          and an equality test against the .blend name silently lets it through. */
-      if (!/^Tree\(/.test(o.name) && o.name !== 'Environment') occluders.push(o);
+      if (!/^Tree\(/.test(o.name)) colliderMeshes.push(o);
     });
 
     scene.add(mapRoot);
-    occlusionGrid = new TriGrid(occluders, THREE);
     props = new StreetProps({ scene, tier: DEVICE.tier });
 
     /* The real car model lands after the map is already interactive. If it
@@ -556,7 +579,7 @@ function exitWalk() {
  */
 const play = {
   on: false, loading: false,
-  nav: null, chr: null, ctrl: null, cam: new ChaseCamera(),
+  nav: null, solids: null, chr: null, ctrl: null, cam: new ChaseCamera(),
   index: 0, jump: false, sprintHeld: false,
   held: new Set(), queued: new Set(), rollQueued: false,
   combat: null, swapGate: 0,
@@ -581,6 +604,26 @@ async function ensurePlayAssets(defIndex) {
       const rails = props.addDeckRails(play.nav);
       if (rails) console.info(`hledan: ${rails} flyover guard rails`);
     }
+  }
+  if (!play.solids && colliderMeshes.length) {
+    setPlayStatus('Fitting the colliders…');
+    /* Real mesh colliders, built from the map's own triangles — see
+       collision.js for why the navmap's walkable bit could not be trusted.
+       Deferred to here on purpose: it is ~4 MB and a few tens of milliseconds,
+       and a visitor who only spins the model should never pay for it.
+
+       The band is the whole reachable world: the lowest ground on the map sits
+       at 31 and the flyover deck at 62, so 24 to 96 covers standing on either
+       plus every jump from either. The low tier widens the buckets, trading a
+       slightly longer scan per query for a third off the index. */
+    const t = performance.now();
+    play.solids = new MapColliders(colliderMeshes, THREE, {
+      yLo: 24, yHi: 96, cell: DEVICE.tier === 'hi' ? 4 : 6,
+    });
+    console.info(`hledan: colliders ${play.solids.wallCount} walls + `
+      + `${play.solids.floorCount} floors, `
+      + `${(play.solids.bytes / 1048576).toFixed(1)} MB, `
+      + `${(performance.now() - t).toFixed(0)} ms`);
   }
   if (!play.chr || play.chr.def.id !== def.id) {
     setPlayStatus(`Waking ${def.name}…`);
@@ -618,7 +661,7 @@ async function enterPlay() {
   controls.enabled = false;
   controls.autoRotate = false;
 
-  if (!play.ctrl) play.ctrl = new CharacterController(play.nav, props ? props.obstacles : null);
+  if (!play.ctrl) play.ctrl = new CharacterController(play.nav, props ? props.obstacles : null, play.solids);
   if (!play.combat) {
     play.combat = new Combat(scene, DEVICE.tier);
     play.combat.bindGround((x, z) => play.nav.heightAt(x, z));
@@ -752,10 +795,10 @@ function updatePlay(dt) {
     pdt = dt * 0.12;
   }
 
-  // aim: one ray down the camera's look, walls from the TriGrid, ground from
+  // aim: one ray down the camera's look, walls from the mesh colliders, ground from
   // the baked height field — every frame, for the reticle and the targeting
   camera.getWorldDirection(play.aimDir);
-  cb.updateAim(c0, play.aimDir, occlusionGrid, play.nav);
+  cb.updateAim(c0, play.aimDir, play.solids, play.nav);
 
   // the move machine
   cb.step(pdt, c0, def, { queued: play.queued, held: play.held, rollQueued: play.rollQueued });
@@ -785,7 +828,7 @@ function updatePlay(dt) {
   // camera: Elbaf's 60° lens, kicked in by the heavy hits
   play.cam.punch(cb.fovPunch);
   cb.fovPunch = 0;
-  play.cam.update(pdt, camera, c0, play.nav, occlusionGrid);
+  play.cam.update(pdt, camera, c0, play.nav, play.solids);
 
   /* Screen shake, Elbaf's: amplitude falls with the square of a decaying
      scalar, three out-of-phase sines so it never reads as a regular wobble. */
@@ -1049,8 +1092,14 @@ function adapt(frameMs) {
 
   if (sinceAdjust < 2) return;
   const prev = renderScale;
-  if (avg > TARGET_MS * 1.35 && renderScale > MIN_SCALE) renderScale = Math.max(MIN_SCALE, renderScale - 0.1);
-  else if (avg < TARGET_MS * 0.85 && renderScale < MAX_SCALE) renderScale = Math.min(MAX_SCALE, renderScale + 0.05);
+  /* The drop threshold used to be 1.35x the target, which on the 45 fps mobile
+     budget meant anything above 33 fps was "fine" — so a phone sitting at 37
+     stayed there for the whole visit, never spending the resolution it could
+     not afford. 1.12x closes that: below ~40 fps it gives pixels back until
+     the frame fits. The gap between the two thresholds still has to be wider
+     than one step, or the scale oscillates between two values forever. */
+  if (avg > TARGET_MS * 1.12 && renderScale > MIN_SCALE) renderScale = Math.max(MIN_SCALE, renderScale - 0.1);
+  else if (avg < TARGET_MS * 0.80 && renderScale < MAX_SCALE) renderScale = Math.min(MAX_SCALE, renderScale + 0.05);
   if (prev !== renderScale) { applySize(); sinceAdjust = 0; }
 }
 

@@ -35,7 +35,14 @@
 
     <meta name="theme-color" content="#0a0e1a" />
     <link rel="icon" type="image/png" href="../../images/jolly-roger-cyber-nobg.png" />
-    <link rel="preload" as="fetch" href="models/hledan.glb" crossorigin />
+    <!-- The map is NOT preloaded. `<link rel=preload as=fetch>` has a
+         credentials mode of its own — omit with `crossorigin`, include without
+         it — and three.js's FileLoader asks for same-origin, which matches
+         neither. The preload therefore never satisfied the loader's request:
+         measured here, the browser fetched all 3.26 MB of hledan.glb TWICE and
+         then warned that the preload went unused. On a phone on mobile data
+         that is the entire load budget spent backwards. The module starts its
+         own fetch ~50 ms in regardless. -->
 
     <style>
       *,*::before,*::after { box-sizing: border-box; }

@@ -194,7 +194,7 @@ export class NavMap {
    * Elbaf's aim ray, on the height field: march 16 coarse steps along the look
    * direction, then bisect 6 times when a step lands under the ground. Returns
    * the distance to the surface, or null in open air. This is the ground half
-   * of spell targeting; walls come from the occlusion TriGrid in the caller.
+   * of spell targeting; walls come from the mesh colliders in the caller.
    */
   raymarch(ox, oy, oz, dx, dy, dz, maxDist) {
     let prev = 0;
@@ -1115,9 +1115,21 @@ export class Character {
  * are in the Elbaf source, just split across two files.
  */
 export class CharacterController {
-  constructor(nav, obstacles = null) {
+  /**
+   * @param nav       baked height field — still the primary ground, because it
+   *                  is bilinear and the photogrammetry surface it smooths is
+   *                  not, and every movement constant here is tuned against it
+   * @param obstacles props added on top of the map (buses, tea shops, poles)
+   * @param solids    MapColliders over the map's real triangles. When present
+   *                  it replaces the navmap's walkable bit outright: that bit
+   *                  is 89% invisible walls (see collision.js) and misses real
+   *                  walls besides. It also supplies the second storey of
+   *                  ground the navmap cannot hold — the road under the flyover
+   */
+  constructor(nav, obstacles = null, solids = null) {
     this.nav = nav;
     this.obstacles = obstacles;
+    this.solids = solids;
     this.pos = new THREE.Vector3();
     this.vel = new THREE.Vector3();
     this.facing = 0;
@@ -1144,11 +1156,12 @@ export class CharacterController {
        axis test fails against the obstacle you are already inside, and the
        sub-step retry lets you creep out at walking pace instead of moving.
        Search on for somewhere that is clear of BOTH. */
-    if (this.obstacles) {
+    if (this.obstacles || this.solids) {
       const clear = (px, pz) => {
         const gy = this.nav.heightAt(px, pz);
-        return gy !== null && !this.nav.bodyBlocked(px, pz)
-          && !this.obstacles.blocked(px, pz, BODY_RADIUS, gy);
+        if (gy === null) return false;
+        if (this._walled(px, pz, gy)) return false;
+        return !this.obstacles || !this.obstacles.blocked(px, pz, BODY_RADIUS, gy, BODY_HEIGHT);
       };
       if (!clear(spot.x, spot.z)) {
         for (let i = 1; i < 400; i++) {
@@ -1240,7 +1253,7 @@ export class CharacterController {
     // vertical
     const prevVy = this.vel.y;
     this.pos.y += this.vel.y * dt;
-    const gy = nav.heightAt(this.pos.x, this.pos.z);
+    const gy = this._groundAt(this.pos.x, this.pos.z, from);
     if (gy !== null) this.groundY = gy;
 
     /* Ground snap: the height field is photogrammetry, so the surface drops a
@@ -1302,11 +1315,41 @@ export class CharacterController {
     return this;
   }
 
+  /**
+   * Is there a wall standing in the body's own slice of air at (x, z)?
+   *
+   * From the step-up height rather than the sole, so kerbs, doorsteps and the
+   * lip of a traffic island stay things you walk over — testing from the
+   * ground up would have every one of them stop you dead. The navmap's own
+   * bit is only consulted when the mesh colliders are unavailable, because it
+   * has no height in it: it blocks a pavement for a canopy six metres up.
+   */
+  _walled(x, z, feetY) {
+    if (this.solids) return this.solids.blocked(x, z, BODY_RADIUS, feetY + STEP_UP, feetY + BODY_HEIGHT);
+    return this.nav.bodyBlocked(x, z);
+  }
+
+  /**
+   * The surface the body is standing on at (x, z), on ITS level.
+   *
+   * The navmap holds one height per cell, so under the flyover it reports the
+   * deck — eighteen units of thin air above the road the body is actually on.
+   * When the height it names is out of reach upward, ask the geometry for the
+   * highest surface the body could be standing on instead; that is the whole
+   * of what makes the lower carriageway walkable.
+   */
+  _groundAt(x, z, fromY) {
+    const nav = this.nav.heightAt(x, z);
+    if (!this.solids || nav === null || nav <= fromY + STEP_UP) return nav;
+    const under = this.solids.floorUnder(x, z, fromY + STEP_UP);
+    return under === null ? nav : under;
+  }
+
   /** Open cell, nothing solid parked in it, and not a step taller than a kerb. */
   _canStand(x, z, fromY) {
-    if (this.nav.bodyBlocked(x, z)) return false;
-    if (this.obstacles && this.obstacles.blocked(x, z, BODY_RADIUS, fromY)) return false;
-    const y = this.nav.heightAt(x, z);
+    if (this._walled(x, z, fromY)) return false;
+    if (this.obstacles && this.obstacles.blocked(x, z, BODY_RADIUS, fromY, BODY_HEIGHT)) return false;
+    const y = this._groundAt(x, z, fromY);
     if (y === null) return false;
     if (!this.grounded) return true;
     if ((y - fromY) > STEP_UP) return false;
@@ -1321,7 +1364,7 @@ export class CharacterController {
     const d = Math.hypot(dx, dz);
     if (d > 1e-6) {
       const ax = x + (dx / d) * BODY_RADIUS, az = z + (dz / d) * BODY_RADIUS;
-      const ahead = this.nav.heightAt(ax, az);
+      const ahead = this._groundAt(ax, az, fromY);
       if (ahead !== null && (ahead - fromY) > STEP_UP) return false;
     }
     return true;
@@ -1333,6 +1376,9 @@ export class CharacterController {
 const CAM_DIST   = 7.2 * S;               // Elbaf's follow distance
 const CAM_HEAD   = (CENTER_Y / S + 1.5);  // look target, metres above the feet
 const CAM_PAD      = 0.45 * S;
+/* Half-size of the box the eye is tested against when escaping solids. Larger
+   than the near plane (0.6) so the wall never reaches the front of the lens. */
+const CAM_CLEAR    = 0.55 * S;
 const MIN_CAM_DIST = 0.95 * S;
 const CAM_RETREAT  = 3.2;
 
@@ -1381,8 +1427,15 @@ export class ChaseCamera {
                   this._look.z - oz * this._dist);
 
     /* Keep the eye above a street on the character's own level; a surface more
-       than a step above their feet is the flyover deck, not their ground. */
-    const g = nav.heightAt(this._eye.x, this._eye.z);
+       than a step above their feet is the flyover deck, not their ground.
+       Under the deck the navmap names that deck and nothing else, so take the
+       floor the body itself is standing on from the mesh colliders instead —
+       otherwise the camera drops through the lower carriageway. */
+    let g = nav.heightAt(this._eye.x, this._eye.z);
+    if (ctrl.solids && (g === null || g > ctrl.pos.y + STEP_UP)) {
+      const under = ctrl.solids.floorUnder(this._eye.x, this._eye.z, ctrl.pos.y + STEP_UP);
+      if (under !== null) g = under;
+    }
     if (g !== null && g < ctrl.pos.y + STEP_UP && this._eye.y < g + 1.1 * S) {
       this._eye.y = g + 1.1 * S;
     }
@@ -1403,6 +1456,23 @@ export class ChaseCamera {
         ? allow
         : this._occl + (allow - this._occl) * (1 - Math.exp(-CAM_RETREAT * dt));
       this._eye.copy(this._look).addScaledVector(this._dir, full * this._occl);
+
+      /* One ray is not a guarantee. It only knows about geometry the segment
+         from head to eye actually crosses, and under the flyover there are
+         several piers at once: the ray clears the one it is aimed at and the
+         eye lands inside the next one along, which is the grey slab that used
+         to fill the screen down there. So the final position is checked
+         against the solids as a small box and walked in until it is clear.
+         Three tries at 0.7 covers a third of the boom; the near plane is 0.6
+         units, so anything left is behind the eye. */
+      if (occluders.blocked) {
+        for (let i = 0; i < 3; i++) {
+          if (!occluders.blocked(this._eye.x, this._eye.z, CAM_CLEAR,
+                                 this._eye.y - CAM_CLEAR, this._eye.y + CAM_CLEAR)) break;
+          this._occl = Math.max(MIN_CAM_DIST / full, this._occl * 0.7);
+          this._eye.copy(this._look).addScaledVector(this._dir, full * this._occl);
+        }
+      }
     }
 
     camera.position.lerp(this._eye, 1 - Math.exp(-14 * dt));
