@@ -79,3 +79,5 @@ The second design pass restores the original wanted poster, Gear 5 illustration,
 - Original Grand Line Fizz base: https://github.com/Meghamittal0920/One-Piece-3D-Website
 
 The Jujutsu Kaisen scene referenced a nonexistent `6.webp`. It now uses styled text for that title and keeps the existing timeline and creator credit. The Elbaf description was corrected to reflect the selectable Straw Hat crew shown by the running scene.
+
+Live-site QA also found a bare `models/` HEAD request for optional Onigashima assets. The availability helper now returns false for an empty filename. Both mirrored deployed bundles contain the same guard; preserve it if regenerating these bundles from their upstream source.

@@ -23,7 +23,7 @@
 
 All twelve scene checks passed without uncaught JavaScript errors or HTTP resource failures. The gallery additionally checks nine GitHub source links, mobile menu/Escape, and five layout widths. Its decorative glow was narrowed to avoid edge overflow. A nonexistent JJK title image was replaced by styled text.
 
-These are browser launch and interaction smoke checks, not full game playthroughs, performance benchmarks, or testing on physical iOS/Android devices. The 3D engines are preserved; the portfolio does not preload them.
+These are browser launch and interaction smoke checks, not full game playthroughs, performance benchmarks, or testing on physical iOS/Android devices. The portfolio does not preload the 3D engines. Live validation additionally found an optional-model availability check requesting the bare `models/` directory; an empty filename now resolves to unavailable without a network request in both mirrored Onigashima bundles. This is a small guard in the deployed bundles, not a scene redesign.
 
 ## Publishing
 

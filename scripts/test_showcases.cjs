@@ -14,6 +14,7 @@ const slugs = ['hledan','elbaf','onigashima','one-piece','naruto','jjk'];
       const page = await context.newPage();
       const errors = [], failures = [];
       page.on('pageerror',e=>errors.push(e.message));
+      page.on('request',r=>{if(new URL(r.url()).pathname.endsWith('/models/'))failures.push('Empty model filename: '+r.url())});
       page.on('response',r=>{if(r.status()>=400)failures.push(`${r.status()} ${r.url()}`)});
       const response = await page.goto(`${base}/showcase/${slug}/`,{waitUntil:'domcontentloaded',timeout:45000});
       assert.equal(response.status(),200);
