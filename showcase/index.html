@@ -22,7 +22,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Cinzel:wght@500;700;900&family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Zen+Old+Mincho:wght@700;900&family=Noto+Sans+Myanmar:wght@500;600&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="../images/jolly-roger-cyber-nobg.png">
     <link rel="apple-touch-icon" href="../images/jolly-roger-cyber-nobg.png">
-    <script>document.documentElement.setAttribute('data-theme',localStorage.getItem('pirate-theme')||'dark')</script>
+    <script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('pirate-theme')==='light'?'light':'dark')}catch(e){document.documentElement.setAttribute('data-theme','dark')}</script>
 </head>
 <body>
     <!-- Preloader -->
@@ -69,6 +69,7 @@
         </div>
     </nav>
 
+    <main id="main">
     <!-- Showcase hero header -->
     <header class="showcase-hero">
         <div class="container">
@@ -80,7 +81,7 @@
                 Set Sail Into <span class="pirate-text">Other Worlds</span>
             </h1>
             <p class="showcase-lead animate-fade-up delay-2">
-                Six immersive web experiences — cinematic scroll journeys, real-time 3D, two you actually play,
+                Six immersive web experiences — cinematic scroll journeys, real-time 3D, playable adventures,
                 and one real city you can walk. Pick a poster and set sail. Each world is its own full-screen voyage. ⚓
             </p>
         </div>
@@ -92,7 +93,7 @@
             <div class="showcase-grid">
 
                 <!-- Hledan Junction -->
-                <a class="showcase-card hledan" href="hledan/" aria-label="Play Hledan Junction, a real-time 3D map of Yangon">
+                <div class="source-voyage"><a class="showcase-card hledan" href="hledan/" aria-label="Play Hledan Junction, a real-time 3D map of Yangon">
                     <span class="showcase-card__glow" aria-hidden="true"></span>
                     <div class="showcase-card__cover">
                         <div class="showcase-card__art" style="background-image:url('hledan/social-hledan.jpg')"></div>
@@ -102,7 +103,7 @@
                     </div>
                     <div class="showcase-card__body">
                         <h2 class="showcase-card__title">Hledan Junction</h2>
-                        <p class="showcase-card__by">original work · real-time in the browser</p>
+                        <p class="showcase-card__by">Map by Madric A · browser experience by Thomas D. Lynn</p>
                         <p class="showcase-card__desc">The crossing at the heart of Yangon's university quarter, lifted out of the mobile game build and pushed straight to WebGL. Orbit the district from above, walk it in first person, or drop in as Luffy, Zoro or Nami and run the flyover yourself — same movement model as Elbaf, over a collision map baked into a 171 KB image instead of a physics engine.</p>
                         <div class="palette-row" aria-hidden="true">
                             <span style="background:#7fc47a"></span>
@@ -116,10 +117,10 @@
                         </div>
                         <span class="showcase-card__cta">Run the Junction 👒</span>
                     </div>
-                </a>
+                </a><div class="showcase-sources"><a href="https://github.com/uit-ayeaye/uit-ayeaye.github.io/tree/main/showcase/hledan" target="_blank" rel="noopener noreferrer">Browse scene source ↗</a><a href="/projects/hledan/">Project story & credits ↗</a></div></div>
 
                 <!-- Elbaf: The Under-Realm -->
-                <a class="showcase-card elbaf" href="elbaf/" aria-label="Play Elbaf: The Under-Realm, a real-time 3D action prototype">
+                <div class="source-voyage"><a class="showcase-card elbaf" href="elbaf/" aria-label="Play Elbaf: The Under-Realm, a real-time 3D action prototype">
                     <span class="showcase-card__glow" aria-hidden="true"></span>
                     <div class="showcase-card__cover">
                         <div class="showcase-card__art" style="background:radial-gradient(120% 90% at 50% 8%, #6c7b93 0%, #3d4760 46%, #141a28 100%)"></div>
@@ -130,7 +131,7 @@
                     <div class="showcase-card__body">
                         <h2 class="showcase-card__title">Elbaf: The Under-Realm</h2>
                         <p class="showcase-card__by">original work · playable in the browser</p>
-                        <p class="showcase-card__desc">A third-person action prototype under the roots of a tree the sun never reaches. Two playable fighters with hand-authored bone poses over generated rigs, a chained giant to find, an old man's key sealed in ice, and five seastone wards to break before he can stand. Keyboard or two thumbs.</p>
+                        <p class="showcase-card__desc">A third-person action prototype under the roots of a tree the sun never reaches. A selectable Straw Hat crew with hand-authored bone poses over generated rigs, a chained giant to find, an old man's key sealed in ice, and five seastone wards to break before he can stand. Keyboard or two thumbs.</p>
                         <div class="palette-row" aria-hidden="true">
                             <span style="background:#c8202a"></span>
                             <span style="background:#b7c9a3"></span>
@@ -143,10 +144,10 @@
                         </div>
                         <span class="showcase-card__cta">Set Sail ⛵</span>
                     </div>
-                </a>
+                </a><div class="showcase-sources"><a href="https://github.com/uit-ayeaye/uit-ayeaye.github.io/tree/main/showcase/elbaf" target="_blank" rel="noopener noreferrer">Browse scene source ↗</a><a href="/projects/elbaf/">Project story & credits ↗</a></div></div>
 
                 <!-- Onigashima -->
-                <a class="showcase-card onigashima" href="onigashima/" aria-label="Play Onigashima: The Raid, a real-time 3D sailing and diving experience">
+                <div class="source-voyage"><a class="showcase-card onigashima" href="onigashima/" aria-label="Play Onigashima: The Raid, a real-time 3D sailing and diving experience">
                     <span class="showcase-card__glow" aria-hidden="true"></span>
                     <div class="showcase-card__cover">
                         <div class="showcase-card__art" style="background-image:url('onigashima/social-onigashima.jpg')"></div>
@@ -170,10 +171,10 @@
                         </div>
                         <span class="showcase-card__cta">Raid the Island 🏴‍☠️</span>
                     </div>
-                </a>
+                </a><div class="showcase-sources"><a href="https://github.com/uit-ayeaye/uit-ayeaye.github.io/tree/main/showcase/onigashima" target="_blank" rel="noopener noreferrer">Browse scene source ↗</a><a href="/projects/onigashima/">Project story & credits ↗</a></div></div>
 
                 <!-- Naruto -->
-                <a class="showcase-card naruto" href="naruto/" aria-label="Open the Naruto Sage Mode Awakening experience">
+                <div class="source-voyage"><a class="showcase-card naruto" href="naruto/" aria-label="Open the Naruto Sage Mode Awakening experience">
                     <span class="showcase-card__glow" aria-hidden="true"></span>
                     <div class="showcase-card__cover">
                         <div class="showcase-card__art" style="background-image:url('naruto/2.webp')"></div>
@@ -197,10 +198,10 @@
                         </div>
                         <span class="showcase-card__cta">Set Sail ⛵</span>
                     </div>
-                </a>
+                </a><div class="showcase-sources"><a href="https://github.com/uit-ayeaye/uit-ayeaye.github.io/tree/main/showcase/naruto" target="_blank" rel="noopener noreferrer">Portfolio adaptation source ↗</a><a href="https://github.com/Meghamittal0920/Naruto-SageMode" target="_blank" rel="noopener noreferrer">Original · Meghamittal0920 ↗</a><a href="/projects/naruto/">Project story & credits ↗</a></div></div>
 
                 <!-- JJK -->
-                <a class="showcase-card jjk" href="jjk/" aria-label="Open the Jujutsu Kaisen Domain Expansion experience">
+                <div class="source-voyage"><a class="showcase-card jjk" href="jjk/" aria-label="Open the Jujutsu Kaisen Domain Expansion experience">
                     <span class="showcase-card__glow" aria-hidden="true"></span>
                     <div class="showcase-card__cover">
                         <div class="showcase-card__art" style="background-image:url('jjk/4.webp');background-position:center 20%"></div>
@@ -224,10 +225,10 @@
                         </div>
                         <span class="showcase-card__cta">Set Sail ⛵</span>
                     </div>
-                </a>
+                </a><div class="showcase-sources"><a href="https://github.com/uit-ayeaye/uit-ayeaye.github.io/tree/main/showcase/jjk" target="_blank" rel="noopener noreferrer">Portfolio adaptation source ↗</a><a href="https://github.com/Meghamittal0920/JJK-Sakuna" target="_blank" rel="noopener noreferrer">Original · Meghamittal0920 ↗</a><a href="/projects/jjk/">Project story & credits ↗</a></div></div>
 
                 <!-- One Piece -->
-                <a class="showcase-card onepiece" href="one-piece/" aria-label="Open the One Piece Grand Line Fizz 3D experience">
+                <div class="source-voyage"><a class="showcase-card onepiece" href="one-piece/" aria-label="Open the One Piece Grand Line Fizz 3D experience">
                     <span class="showcase-card__glow" aria-hidden="true"></span>
                     <div class="showcase-card__cover">
                         <div class="showcase-card__art" style="background-image:url('one-piece/images/bg-hero.jpg')"></div>
@@ -251,18 +252,19 @@
                         </div>
                         <span class="showcase-card__cta">Set Sail ⛵</span>
                     </div>
-                </a>
+                </a><div class="showcase-sources"><a href="https://github.com/uit-ayeaye/uit-ayeaye.github.io/tree/main/_src" target="_blank" rel="noopener noreferrer">Editable portfolio source ↗</a><a href="https://github.com/Meghamittal0920/One-Piece-3D-Website" target="_blank" rel="noopener noreferrer">Original base · Meghamittal0920 ↗</a><a href="/projects/grand-line-fizz/">Project story & credits ↗</a></div></div>
 
             </div>
 
             <p style="text-align:center;margin-top:40px;color:var(--text-muted);font-size:.9rem;line-height:1.7">
-                All three original experiences were created by
+                The Naruto, Jujutsu Kaisen, and Grand Line Fizz base experiences were created by
                 <a href="https://github.com/Meghamittal0920" target="_blank" rel="noopener" style="color:var(--gold)">Meghamittal0920</a>.
                 Adapted, polished and showcased here with animation &amp; layout enhancements — original authorship and licenses preserved.
             </p>
         </div>
     </section>
 
+    </main>
     <footer class="footer">
         <div class="container">
             <div class="footer-content">

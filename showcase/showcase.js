@@ -4,9 +4,23 @@
    =================================================================== */
 (function () {
     'use strict';
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let paused = false;
+    try { paused = localStorage.getItem('bb-motion') === 'paused'; } catch (_) { /* Optional storage. */ }
+    const reduce = paused || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.documentElement.classList.toggle('motion-paused', reduce);
     const fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
     const cards = Array.from(document.querySelectorAll('.showcase-card'));
+    const navButton = document.getElementById('navToggle');
+    const nav = document.getElementById('navLinks');
+    navButton?.setAttribute('aria-controls', 'navLinks');
+    navButton?.setAttribute('aria-expanded', 'false');
+    const syncMenu = () => navButton?.setAttribute('aria-expanded', String(nav.classList.contains('active')));
+    if (nav) new MutationObserver(syncMenu).observe(nav, {attributes:true, attributeFilter:['class']});
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && nav?.classList.contains('active')) {
+            nav.classList.remove('active'); navButton.classList.remove('active'); syncMenu(); navButton.focus();
+        }
+    });
 
     // ---- Springy staggered entrance (IntersectionObserver) ----
     if (!reduce && 'IntersectionObserver' in window) {

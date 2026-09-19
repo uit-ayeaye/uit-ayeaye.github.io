@@ -174,7 +174,7 @@
     position:absolute;left:clamp(16px,5vw,90px);bottom:clamp(40px,10vh,120px);z-index:34;
     width:clamp(250px,30vw,480px);opacity:0;will-change:transform,opacity;
   }
-  #titleWrap img{width:100%;display:block;filter:drop-shadow(0 0 30px rgba(139,92,246,.5))}
+  #titleWrap .title-lettering{width:100%;display:block;font:700 clamp(32px,4.5vw,72px)/.95 'Rajdhani',sans-serif;letter-spacing:.04em;color:#ede5ff;filter:drop-shadow(0 0 30px rgba(139,92,246,.5))}
   #cta{
     position:absolute;right:clamp(16px,5vw,90px);bottom:clamp(44px,10vh,110px);z-index:34;
     pointer-events:auto;opacity:0;
@@ -247,7 +247,7 @@
     <!-- flow 3 · character  [ 4.png ]  · title art  [ 6.png ] -->
     <section class="scene" id="s-reveal" aria-hidden="true">
       <div id="sukunaWrap"><img src="4.webp" alt=""></div>
-      <div id="titleWrap"><img src="6.webp" alt="" onerror="this.style.display='none'"></div>
+      <div id="titleWrap"><span class="title-lettering" aria-hidden="true">DOMAIN<br>EXPANSION</span></div>
       <div id="cta" aria-label="Return to top — Sukuna">SUKUNA</div>
     </section>
 
@@ -609,8 +609,8 @@ tl.fromTo('#titleWrap',{opacity:0,x:-80},
 /* one-time violet drop-shadow flare as the title art locks in (real time) */
 impact(8.0, ()=>{
   gsap.timeline()
-    .to('#titleWrap img',{filter:'drop-shadow(0 0 62px rgba(167,139,250,.95))',duration:.18,ease:'power2.out'})
-    .to('#titleWrap img',{filter:'drop-shadow(0 0 30px rgba(139,92,246,.5))',duration:.6,ease:'power2.out'});
+    .to('#titleWrap .title-lettering',{filter:'drop-shadow(0 0 62px rgba(167,139,250,.95))',duration:.18,ease:'power2.out'})
+    .to('#titleWrap .title-lettering',{filter:'drop-shadow(0 0 30px rgba(139,92,246,.5))',duration:.6,ease:'power2.out'});
 });
 setStorm(8.55, .4);
 

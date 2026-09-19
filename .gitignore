@@ -8,3 +8,13 @@ node_modules/
 # local tooling, not part of the site
 .claude/
 _src/tsconfig.tsbuildinfo
+
+# Local Python and QA output
+__pycache__/
+*.pyc
+/output/
+/tmp/
+
+# Supplied reference originals (keep local, not part of the public site)
+/Logo presentation (1) (1) (1).pdf
+/photo_2569-09-19 08.32.02.jpeg

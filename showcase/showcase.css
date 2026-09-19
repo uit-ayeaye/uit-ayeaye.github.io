@@ -271,3 +271,17 @@ body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
     .palette-row span, .iris-wipe { transition: none; }
     .showcase-card.reveal { opacity: 1; }
 }
+
+/* Direct code and credit links stay outside the full-card launch link. */
+.source-voyage{display:flex;flex-direction:column;min-width:0;gap:12px}
+.source-voyage .showcase-card{flex:1}
+.showcase-sources{display:flex;flex-wrap:wrap;gap:8px 18px;padding:0 5px 18px}
+.showcase-sources a{color:var(--gold);font:500 11px/1.7 'Inter',sans-serif;text-decoration:underline;text-underline-offset:4px;padding-block:6px}
+.showcase-sources a:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+@media(max-width:600px){.showcase-sources a{min-height:44px;display:inline-flex;align-items:center}}
+.navbar{background:var(--nav-bg);backdrop-filter:blur(18px)}
+@media(max-width:768px){.nav-links:not(.active){display:none}.nav-links.active{width:min(280px,100vw);height:100dvh}.nav-toggle{z-index:1001}}
+[data-theme="light"] .showcase-sources a{color:#73500b}
+.motion-paused *,.motion-paused *::before,.motion-paused *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+.motion-paused .showcase-card.reveal{opacity:1}
+.showcase-card__glow{inset:-18px}
