@@ -2,7 +2,7 @@
 """Build the portfolio's static HTML from reviewed project data; no dependencies."""
 from pathlib import Path
 from html import escape as esc
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 import json
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -30,13 +30,15 @@ def head(title, description, canonical, image='/images/og-thomas.jpg'):
 <script>try{{document.documentElement.dataset.theme=localStorage.getItem('pirate-theme')==='light'?'light':'dark';document.documentElement.classList.toggle('gear-five',localStorage.getItem('bb-gear')==='on')}}catch(e){{}}</script>
 <title>{esc(title)}</title><meta name="description" content="{esc(description)}"><meta name="theme-color" content="#0b1522">
 <link rel="canonical" href="https://thomasdlynn.dev{canonical}"><meta property="og:type" content="website"><meta property="og:title" content="{esc(title)}"><meta property="og:description" content="{esc(description)}"><meta property="og:url" content="https://thomasdlynn.dev{canonical}"><meta property="og:image" content="{esc(full_image)}"><meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="/images/jolly-roger-cyber-nobg.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Libre+Caslon+Display&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Cinzel:wght@500;700;900&display=swap" rel="stylesheet"><link rel="stylesheet" href="/css/captains-log.css"><link rel="stylesheet" href="/css/pirate-voyage.css"><script src="/js/captains-log.js" defer></script><script type="application/ld+json">{json.dumps(schema)}</script></head><body>
+<link rel="icon" href="/images/jolly-roger-cyber-nobg.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Pirata+One&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/captains-log.css"><link rel="stylesheet" href="/css/pirate-voyage.css"><script src="/js/captains-log.js" defer></script><script type="application/ld+json">{json.dumps(schema)}</script></head><body>
 <a class="skip-link" href="#main">Skip to content</a><div class="reading-progress" aria-hidden="true"></div>
 <header class="site-header"><div class="header-inner"><a class="brand" href="/" aria-label="Backbenchers Studio, home"><img src="/images/jolly-roger-cyber-nobg.png" width="48" height="35" alt=""><span>BACKBENCHERS<small>STUDIO / THOMAS D. LYNN</small></span></a><nav class="main-nav" id="main-nav" aria-label="Main navigation"><a href="/#projects">Projects</a><a href="/#about">About</a><a href="/#skills">Toolkit</a><a href="/showcase/">Experiments ↗</a></nav><div class="header-tools"><button class="day-toggle" aria-label="Switch to day logbook" aria-pressed="false" hidden><span aria-hidden="true">☼</span><span class="theme-label">Day logbook</span></button><button class="motion-toggle" aria-pressed="false" title="Pause decorative motion" hidden><span aria-hidden="true">◌</span> <span class="motion-label">Motion on</span></button><a class="header-contact" href="/#contact">LET’S TALK ↗</a><button class="menu-toggle" aria-controls="main-nav" aria-expanded="false" hidden>MENU <span aria-hidden="true">☰</span></button></div></div></header>'''
 
 
-FOOTER = '''<footer class="site-footer wrap"><a href="/" class="footer-brand"><img src="/images/jolly-roger-cyber-nobg.png" alt="" width="38" height="27"> BACKBENCHERS STUDIO</a><p>© 2026 Thomas D. Lynn · Backbenchers Studio.<br>One Piece fan tribute. Original characters belong to their creators.</p><a href="#main">BACK TO TOP ↑</a></footer></body></html>'''
+PREVIEW_DIALOG = '''<dialog class="preview-dialog" aria-labelledby="preview-title"><div class="preview-toolbar"><div><p class="eyebrow">DESIGN VIEWER / BACKBENCHERS</p><h2 id="preview-title">Project preview</h2></div><button class="preview-close" aria-label="Close preview">×</button></div><div class="preview-viewport" tabindex="0" role="region" aria-label="Project screenshot. Scroll to explore when enlarged."><img alt="" id="preview-image"></div><div class="preview-footer"><button class="preview-zoom" aria-pressed="false">Inspect details ⊕</button><span class="preview-tip">Screenshot preview</span><a class="text-link preview-case" href="/">Case study ↗</a><a class="text-link preview-live" href="/" target="_blank" rel="noopener noreferrer">Visit website ↗</a></div></dialog>'''
+
+FOOTER = PREVIEW_DIALOG + '''<footer class="site-footer wrap"><a href="/" class="footer-brand"><img src="/images/jolly-roger-cyber-nobg.png" alt="" width="38" height="27"> BACKBENCHERS STUDIO</a><p>© 2026 Thomas D. Lynn · Backbenchers Studio.<br>One Piece fan tribute. Original characters belong to their creators.</p><a href="#main">BACK TO TOP ↑</a></footer></body></html>'''
 
 
 def illustration(p):
@@ -48,9 +50,20 @@ def illustration(p):
     return '<div class="concept-art epst-art"><span>ECONOMICS / IDEAS / ACADEMIC LIFE</span><strong>EPST<span>↗</span></strong><span>A STUDENT’S PERSPECTIVE</span></div>'
 
 
+def preview_attrs(p):
+    return f'data-preview="{esc(p["image"])}" data-preview-title="{esc(p["title"])}" data-preview-case="/projects/{p["id"]}/" data-preview-url="{esc(p["url"] or "")}" aria-label="Enlarge {esc(p["title"])} preview"'
+
+
+def preview_cover(p, index):
+    if not p['image']:
+        return f'<a class="project-cover" href="/projects/{p["id"]}/" tabindex="-1" aria-hidden="true">{illustration(p)}</a>'
+    address = urlparse(p['url']).netloc if p['url'] else 'PROJECT PREVIEW'
+    return f'''<a class="project-cover framed-preview" href="{p['image']}" {preview_attrs(p)}><span class="preview-chrome"><span class="preview-lights" aria-hidden="true"><i></i><i></i><i></i></span><span>{esc(address)}</span><span class="preview-counter">{index:02}</span></span><span class="preview-screen">{illustration(p)}</span><span class="preview-bottom"><span>VIEW THE DESIGN</span><span>Expand <b aria-hidden="true">⤢</b></span></span></a>'''
+
+
 def card(p, index):
     terms = ' '.join([p['title'], p['eyebrow'], p['summary'], p['story'], p['role'], *p['features'], *p['stack'], p['category'], p['status'], p['credit'] or ''])
-    return f'''<article class="project-card" data-category="{esc(p['category'])}" data-search="{esc(terms.lower())}"><a class="project-cover" href="/projects/{p['id']}/" tabindex="-1" aria-hidden="true">{illustration(p)}<span class="project-number">PROJECT / {index:02}</span><span class="cover-arrow">↗</span></a><div class="project-body"><p class="project-eyebrow">{esc(p['eyebrow'])}</p><h3><a href="/projects/{p['id']}/">{esc(p['title'])}<span aria-hidden="true">↗</span></a></h3><p class="project-summary">{esc(p['summary'])}</p><div class="project-status"><span class="status-dot"></span>{esc(p['status'])}</div></div></article>'''
+    return f'''<article class="project-card" data-category="{esc(p['category'])}" data-search="{esc(terms.lower())}">{preview_cover(p, index)}<div class="project-body"><p class="project-eyebrow">{esc(p['eyebrow'])}</p><h3><a href="/projects/{p['id']}/">{esc(p['title'])}<span aria-hidden="true">↗</span></a></h3><p class="project-summary">{esc(p['summary'])}</p><div class="project-status"><span class="status-dot"></span>{esc(p['status'])}</div></div></article>'''
 
 
 SKILLS = [
@@ -82,7 +95,7 @@ def personal_collection():
     for i, (slug, name, role, desc) in enumerate(entries):
         p = next(p for p in PROJECTS if p['id'] == slug)
         domain = p['url'].replace('https://','').rstrip('/')
-        cards += f'''<article class="personal-card"><div class="browser-frame"><div class="browser-bar"><span class="browser-dots" aria-hidden="true"><i></i><i></i><i></i></span><span>{domain}</span><span aria-hidden="true">↗</span></div><a class="personal-preview" href="/projects/{slug}/" tabindex="-1" aria-hidden="true"><img src="{p['image']}" alt="" width="1440" height="1000" loading="lazy"></a></div><div class="personal-copy"><p class="eyebrow">{role}</p><h3>{link(name, '/projects/'+slug+'/')}<span>0{i+1}</span></h3><p>{desc}</p><div class="personal-links">{link('View case study ↗', '/projects/'+slug+'/', 'text-link')}{link('Visit website ↗', p['url'], 'text-link')}</div></div></article>'''
+        cards += f'''<article class="personal-card"><div class="browser-frame"><div class="browser-bar"><span class="browser-dots" aria-hidden="true"><i></i><i></i><i></i></span><span>{domain}</span><span aria-hidden="true">↗</span></div><a class="personal-preview" href="{p['image']}" {preview_attrs(p)}><img src="{p['image']}" alt="" width="1440" height="1000" loading="lazy"><span class="preview-personal-hint">Expand preview ⤢</span></a></div><div class="personal-copy"><p class="eyebrow">{role}</p><h3>{link(name, '/projects/'+slug+'/')}<span>0{i+1}</span></h3><p>{desc}</p><div class="personal-links">{link('View case study ↗', '/projects/'+slug+'/', 'text-link')}{link('Visit website ↗', p['url'], 'text-link')}</div></div></article>'''
     return f'''<section class="personal-collection section-space" id="portfolio-sites"><div class="wrap"><div class="section-top"><p class="eyebrow">COLLECTION / PERSONAL WEBSITES</p><span class="small-label">FIVE INDIVIDUALS. FIVE DISTINCT IDENTITIES.</span></div><div class="section-heading"><h2>Personal work.<span class="serif">Individual character.</span></h2><p>Portfolios for people with something to share: films, ideas, teaching, coaching, and words.</p></div><div class="personal-toolbar"><span>DESIGN & DEVELOPMENT / SELECTED SITES</span><div class="personal-controls" hidden><button data-personal-step="-1" aria-label="Previous personal website">←</button><button data-personal-step="1" aria-label="Next personal website">→</button></div></div><div class="personal-track" tabindex="0" role="region" aria-label="Personal website collection. Use arrow keys or swipe to browse.">{cards}</div><p class="collection-hint">Scroll or swipe to explore <span aria-hidden="true">⟷</span></p></div></section>'''
 
 

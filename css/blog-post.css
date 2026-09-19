@@ -287,3 +287,7 @@
     .highlight-box { padding: 20px; }
     .code-block pre { padding: 14px; font-size: 0.8rem; }
 }
+
+/* Shared portfolio typography: pirate headings, readable body, technical labels. */
+:root { --font-primary: "DM Sans", sans-serif; --font-display: "Pirata One", Georgia, serif; --font-mono: "IBM Plex Mono", monospace; }
+.post-title, .post-content h2, .post-content h3 { font-weight: 400; }

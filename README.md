@@ -2,7 +2,7 @@
 
 A portfolio of games, commerce, culture, and creative tools, at **[thomasdlynn.dev](https://thomasdlynn.dev)**.
 
-The landing page combines a restrained One Piece identity with a professional portfolio: switchable original ship/wanted artwork, six cinematic browser experiments, a five-site personal website collection, 25 searchable project stories, visual technology tiles, and a printable résumé. It retains the End Game Union story, Madric A’s Hledan tribute, and original creator credits.
+The landing page combines a restrained One Piece identity with a professional portfolio: switchable original ship/wanted artwork, a shared pirate/sans/monospace type system, six cinematic browser experiments, a five-site personal website collection, 25 searchable project stories, visual technology tiles, and a printable résumé. It retains the End Game Union story, Madric A’s Hledan tribute, and original creator credits.
 
 ## Preview
 
@@ -30,6 +30,8 @@ python3 scripts/verify_portfolio.py
 ```
 
 Commit the generated `index.html`, `projects/*/index.html`, `resume/index.html`, `showcase/index.html`, and `sitemap.xml` together with their source files. GitHub Pages serves them directly; it does not run the generator.
+
+Project thumbnails show complete screenshots in browser frames. Click a thumbnail to open the accessible design viewer, fit the full screenshot or inspect its details, then visit the case study or website. Without JavaScript, thumbnail links open the original image.
 
 The homepage retains all projects in HTML for no-JavaScript access. JavaScript adds category filters, multi-word search, URL state, an expandable collection, night-ocean/day-logbook themes, a Gear 5 color accent, card/list layouts, a showcase selector with thumbnails, arrow controls, keyboard navigation and touch swiping, a scrollable personal website collection, technology-to-project search (with marked documentation links when no matching project is listed), motion preferences, and mobile navigation. Motion respects the operating system’s reduced-motion setting. No analytics, autoplay audio, or live third-party embeds are added.
 

@@ -201,6 +201,62 @@
     document.querySelectorAll('.section-heading, .skill, .personal-copy, .about-copy').forEach(el => reveal.observe(el));
   }
 
+  const previewDialog = document.querySelector('.preview-dialog');
+  if (previewDialog && typeof previewDialog.showModal === 'function') {
+    const previewImage = previewDialog.querySelector('#preview-image');
+    const viewport = previewDialog.querySelector('.preview-viewport');
+    const zoom = previewDialog.querySelector('.preview-zoom');
+    let opener;
+    function setZoom(active) {
+      viewport.classList.toggle('is-enlarged', active);
+      zoom.setAttribute('aria-pressed', String(active));
+      zoom.textContent = active ? 'Fit preview ⊖' : 'Inspect details ⊕';
+      previewDialog.querySelector('.preview-tip').textContent = active ? 'Scroll to explore the screenshot' : 'Screenshot preview';
+      viewport.scrollTo({left:0,top:0,behavior:'instant'});
+    }
+    document.querySelectorAll('[data-preview]').forEach(link => link.addEventListener('click', event => {
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      opener = link;
+      previewImage.src = link.dataset.preview;
+      previewImage.alt = `${link.dataset.previewTitle} website screenshot`;
+      previewDialog.querySelector('#preview-title').textContent = link.dataset.previewTitle;
+      previewDialog.querySelector('.preview-case').href = link.dataset.previewCase;
+      const live = previewDialog.querySelector('.preview-live');
+      live.hidden = !link.dataset.previewUrl;
+      live.href = link.dataset.previewUrl || '/';
+      setZoom(false);
+      previewDialog.showModal();
+      root.classList.add('preview-open');
+      previewDialog.querySelector('.preview-close').focus({preventScroll:true});
+    }));
+    zoom.addEventListener('click', () => setZoom(zoom.getAttribute('aria-pressed') !== 'true'));
+    previewDialog.querySelector('.preview-close').addEventListener('click', () => previewDialog.close());
+    previewDialog.addEventListener('click', event => {
+      if (event.target !== previewDialog) return;
+      const bounds = previewDialog.getBoundingClientRect();
+      if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) previewDialog.close();
+    });
+    previewDialog.addEventListener('close', () => {
+      root.classList.remove('preview-open');
+      opener?.focus({preventScroll:true});
+    });
+  }
+
+  // Small, pointer-driven depth; native touch scrolling stays unchanged.
+  const finePointer = matchMedia('(hover: hover) and (pointer: fine)');
+  document.querySelectorAll('.framed-preview, .browser-frame, .voyage-art').forEach(card => {
+    card.addEventListener('pointermove', event => {
+      if (!finePointer.matches || root.classList.contains('motion-paused')) return;
+      const box = card.getBoundingClientRect();
+      card.style.setProperty('--tilt-x', `${((event.clientY - box.top) / box.height - .5) * -3}deg`);
+      card.style.setProperty('--tilt-y', `${((event.clientX - box.left) / box.width - .5) * 3}deg`);
+    }, {passive:true});
+    card.addEventListener('pointerleave', () => {
+      card.style.removeProperty('--tilt-x'); card.style.removeProperty('--tilt-y');
+    });
+  });
+
   const collection = document.querySelector('.project-grid');
   if (!collection) return;
   const layoutControls = document.querySelector('.fleet-layout-tools');
