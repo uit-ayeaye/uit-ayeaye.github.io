@@ -5,7 +5,7 @@
     "category": "Games",
     "eyebrow": "Backbenchers Studio · lifelong project",
     "status": "Relaunch in preparation",
-    "summary": "A multiplayer game with a story beyond the screen. Built in Myanmar, carried by a community, and still being written.",
+    "summary": "A community-driven multiplayer game, preparing its next chapter.",
     "story": "My lifelong project. End Game Union grew from Myanmar’s Spring Revolution into a multiplayer experience made with fellow Burmese developers. It connects my love of games with the people and place I come from. Contemporary reporting documented its early announcement in 2021 and its rise to the top of Myanmar’s local Play Store chart in July 2022. That history belongs to the whole team and community.",
     "role": "Game development and the wider End Game Union ecosystem with Backbenchers Studio and fellow developers. The next chapter, Reloaded, brings the multiplayer game, progression, supporting web experience, and music together.",
     "features": [
@@ -60,12 +60,82 @@
     "notes": null
   },
   {
+    "id": "burmamart",
+    "title": "BurmaMart",
+    "category": "Commerce",
+    "eyebrow": "MSCT PTE LTD · Singapore",
+    "status": "Android available · iOS pending",
+    "summary": "A cross-border marketplace for buyers, merchants, and everyday essentials.",
+    "story": "Buying across borders involves more than a product card. BurmaMart brings local currencies, delivery routes, merchants, and the people handling parcels into one system. It gives shoppers a familiar buying experience while giving sellers their own mobile workspace.",
+    "role": "Implementation across the storefront, shared backend, administration, buyer app, and merchant app for MSCT PTE LTD.",
+    "features": [
+      "Buyer and merchant Flutter apps share a Laravel API, MySQL data model, and Filament administration.",
+      "Localized product discovery, carts, orders, seller catalog management, and buyer–merchant conversations.",
+      "Multi-currency commerce and country-aware fulfillment, including office handover workflows.",
+      "Android availability and pending iOS release are recorded as supplied by the project owner; both app codebases are present."
+    ],
+    "stack": [
+      "Laravel",
+      "Filament",
+      "Flutter",
+      "MySQL"
+    ],
+    "url": "https://burmamart.com",
+    "image": "/images/projects/burmamart.jpg",
+    "links": [
+      [
+        "Marketplace",
+        "https://burmamart.com"
+      ],
+      [
+        "Parent company",
+        "https://msctpteltd.com"
+      ]
+    ],
+    "credit": null,
+    "notes": null
+  },
+  {
+    "id": "golden-gates",
+    "title": "Golden Gates GGT",
+    "category": "Commerce",
+    "eyebrow": "Delivery & shipping · Chiang Mai",
+    "status": "Operational pilot",
+    "summary": "Parcel booking, branch handovers, and delivery tracking in one connected platform.",
+    "story": "A logistics platform for Golden Gate GGT Co., Ltd., rooted in Chiang Mai. The public website connects to staff, customer, and courier workspaces, following each parcel from booking through dispatch and delivery. The system is in an operational pilot; native app distribution and wider carrier rollout remain in progress.",
+    "role": "Full-stack logistics platform implementation: the public website, shared shipment API, Laravel web workspaces, and Flutter staff, customer, and courier applications.",
+    "features": [
+      "Individually identified parcels, printable QR labels, vehicle manifests, and recorded branch handovers.",
+      "Parcel trace history, partial receipts, delivery evidence, and exception handling.",
+      "Separate staff, customer, and courier workflows with role-based access.",
+      "Manual collection and cash-settlement records, with auditable updates and retry-safe operations."
+    ],
+    "stack": [
+      "Next.js",
+      "React",
+      "Laravel",
+      "Flutter",
+      "SQLite",
+      "AWS"
+    ],
+    "url": "https://ggt.3-0-126-159.nip.io/",
+    "image": "/images/projects/golden-gates.jpg",
+    "links": [
+      [
+        "Visit the public pilot",
+        "https://ggt.3-0-126-159.nip.io/"
+      ]
+    ],
+    "credit": null,
+    "notes": "Operational pilot. Native app signing, distribution, and physical-device acceptance remain in progress."
+  },
+  {
     "id": "awam",
     "title": "Actually We ARe MAd",
     "category": "Platforms",
     "eyebrow": "Domain LAB LTD · Myanmar",
     "status": "Web + mobile + bots",
-    "summary": "Myanmar meme culture, from a swipeable reel to a whole creator and digital-store ecosystem.",
+    "summary": "A Myanmar creator platform connecting memes, media, and digital commerce.",
     "story": "AWAM starts with a very local kind of internet humor: Burmese dialogue, reaction footage, movie edits, and the community that remixes them. The work grew beyond a meme feed into a place to discover creators, find footage, and connect entertainment with merchandise and affordable digital products.",
     "role": "Full-stack platform and ecosystem implementation: the public experience, media processing, administration, mobile surfaces, and Telegram workflows.",
     "features": [
@@ -97,137 +167,37 @@
     "notes": null
   },
   {
-    "id": "burmamart",
-    "title": "BurmaMart",
-    "category": "Commerce",
-    "eyebrow": "MSCT PTE LTD · Singapore",
-    "status": "Android available · iOS pending",
-    "summary": "One marketplace connecting buyers, merchants, and cross-border operations across Myanmar, Thailand, and Singapore.",
-    "story": "Buying across borders involves more than a product card. BurmaMart brings local currencies, delivery routes, merchants, and the people handling parcels into one system. It gives shoppers a familiar buying experience while giving sellers their own mobile workspace.",
-    "role": "Implementation across the storefront, shared backend, administration, buyer app, and merchant app for MSCT PTE LTD.",
-    "features": [
-      "Buyer and merchant Flutter apps share a Laravel API, MySQL data model, and Filament administration.",
-      "Localized product discovery, carts, orders, seller catalog management, and buyer–merchant conversations.",
-      "Multi-currency commerce and country-aware fulfillment, including office handover workflows.",
-      "Android availability and pending iOS release are recorded as supplied by the project owner; both app codebases are present."
-    ],
-    "stack": [
-      "Laravel",
-      "Filament",
-      "Flutter",
-      "MySQL"
-    ],
-    "url": "https://burmamart.com",
-    "image": "/images/projects/burmamart.jpg",
-    "links": [
-      [
-        "Marketplace",
-        "https://burmamart.com"
-      ],
-      [
-        "Parent company",
-        "https://msctpteltd.com"
-      ]
-    ],
-    "credit": null,
-    "notes": null
-  },
-  {
-    "id": "myotaw",
-    "title": "Myo Taw News",
+    "id": "strikers",
+    "title": "STRIKERS",
     "category": "Platforms",
-    "eyebrow": "Independent media · Myanmar",
-    "status": "Live publication",
-    "summary": "A publishing backbone for Myanmar affairs, local reporting, and the stories around Nay Pyi Taw.",
-    "story": "Myo Taw needs to publish quickly, keep Burmese typography readable, and bring articles and video together. The project supports a newsroom covering current Myanmar affairs and conflict, with attention to Nay Pyi Taw and local communities.",
-    "role": "Backend and implementation for the news platform, content-management workflows, and public reading experience.",
+    "eyebrow": "Football · English & Myanmar",
+    "status": "Live web platform",
+    "summary": "Football scores, match details, and editorial stories in English and Myanmar.",
+    "story": "STRIKERS brings fixtures, results, football news, and guides into a bilingual matchday experience. The public portal connects a Laravel publishing dashboard with a cached football data integration, making score freshness and available coverage visible to readers.",
+    "role": "Football portal design and full-stack implementation, including responsive match browsing, bilingual content, editorial administration, and the football-data integration.",
     "features": [
-      "Article and video publishing with categories and a dedicated editorial management surface.",
-      "Local Laravel/Filament implementation with media import and publishing services.",
-      "Burmese, English, and Chinese navigation is available on the public site.",
-      "Tools for video ingestion, translation, and social content organization are present in the source."
+      "Date and competition filters, match details, search, and device-local favourites.",
+      "English and Myanmar reading experiences with dedicated article pages.",
+      "Cached provider data with visible freshness indicators and request-budget controls.",
+      "Editorial management for news, guides, promotions, and broadcast listings."
     ],
     "stack": [
       "Laravel",
-      "Filament",
       "PHP",
-      "Media workflows"
+      "SQLite",
+      "JavaScript",
+      "API-Football"
     ],
-    "url": "https://myotaw.com",
-    "image": "/images/projects/myotaw.jpg",
+    "url": "https://ztvmm.live/",
+    "image": "/images/projects/strikers.jpg",
     "links": [
       [
-        "Myo Taw News",
-        "https://myotaw.com"
+        "Visit STRIKERS",
+        "https://ztvmm.live/"
       ]
     ],
-    "credit": "Editorial reporting belongs to Myo Taw News. This case study describes the platform implementation.",
-    "notes": null
-  },
-  {
-    "id": "dk-gaming",
-    "title": "DK Gaming Shop",
-    "category": "Commerce",
-    "eyebrow": "Domain LAB LTD · Myanmar",
-    "status": "Web + mobile + bots",
-    "summary": "Game top-ups and digital goods, with the operational machinery behind every order.",
-    "story": "DK Gaming serves players buying MLBB, PUBG, in-game currency, and digital items. The interesting engineering happens between the storefront and fulfillment: product catalogs, wholesale providers, payment requests, approvals, and the team monitoring them.",
-    "role": "Full shop-system implementation spanning storefront, admin management, wholesaler integration, mobile apps, and Telegram operations.",
-    "features": [
-      "Next.js storefront for game catalogs, account checks, orders, and top-up history.",
-      "Wholesaler API integrations connect the retail catalog to fulfillment providers.",
-      "Telegram monitoring and approval flows support requests and order operations.",
-      "Android and iOS native project surfaces complement the web shop."
-    ],
-    "stack": [
-      "Next.js",
-      "Provider APIs",
-      "Python",
-      "Telegram",
-      "Mobile"
-    ],
-    "url": "https://dkgamingshop.com",
-    "image": "/images/projects/dk-gaming.jpg",
-    "links": [
-      [
-        "DK Gaming Shop",
-        "https://dkgamingshop.com"
-      ]
-    ],
-    "credit": null,
-    "notes": null
-  },
-  {
-    "id": "welmal",
-    "title": "Welmal",
-    "category": "Commerce",
-    "eyebrow": "WEL MAL COMPANY LIMITED · Myanmar",
-    "status": "Ongoing client project",
-    "summary": "A Myanmar commerce system spanning a storefront, admin operations, and native mobile apps.",
-    "story": "Welmal is an ongoing ecommerce engagement for WEL MAL COMPANY LIMITED. Its focus is a coherent shopping journey: discovery on the web or phone, clear product information, and operational tools that keep the catalog and orders manageable.",
-    "role": "Commerce implementation across the web experience, backend and admin tools, plus customer mobile applications.",
-    "features": [
-      "Laravel-based backend shared by the storefront and mobile clients.",
-      "Web storefront and administration, with an additional React/TypeScript admin surface in the project.",
-      "Native Android and iOS implementations, alongside earlier Flutter work.",
-      "Product, catalog, ordering, and ongoing delivery work within one client ecosystem."
-    ],
-    "stack": [
-      "Laravel",
-      "React / TypeScript",
-      "Java",
-      "Swift"
-    ],
-    "url": "https://welmal.com",
-    "image": "/images/projects/welmal.jpg",
-    "links": [
-      [
-        "Welmal",
-        "https://welmal.com"
-      ]
-    ],
-    "credit": null,
-    "notes": null
+    "credit": "Match data is supplied by API-Football. Third-party reporting, team marks, and broadcast media belong to their respective creators.",
+    "notes": "Scores refresh periodically; broadcast availability depends on supplied sources."
   },
   {
     "id": "glyph-studio",
@@ -235,7 +205,7 @@
     "category": "Tools",
     "eyebrow": "Open source · Myanmar typography",
     "status": "Open-source project",
-    "summary": "Draw a letter. Build a font. A creative tool for making Myanmar type feel like your own.",
+    "summary": "Draw Myanmar letters and turn them into usable, installable fonts.",
     "story": "Myanmar typography has a beautiful complexity: stacked consonants, kinzi, vowel marks, and combinations that need to work together. Glyph Studio makes the starting point approachable with guided drawing in the browser, then connects those drawings to a real font-building pipeline.",
     "role": "Open-source font-creation toolkit, browser drawing experience, and the pipeline connecting portable glyph projects to installable fonts.",
     "features": [
@@ -271,12 +241,109 @@
     "notes": null
   },
   {
+    "id": "myotaw",
+    "title": "Myo Taw News",
+    "category": "Platforms",
+    "eyebrow": "Independent media · Myanmar",
+    "status": "Live publication",
+    "summary": "A news platform with publishing and media workflows behind the stories.",
+    "story": "Myo Taw needs to publish quickly, keep Burmese typography readable, and bring articles and video together. The project supports a newsroom covering current Myanmar affairs and conflict, with attention to Nay Pyi Taw and local communities.",
+    "role": "Backend and implementation for the news platform, content-management workflows, and public reading experience.",
+    "features": [
+      "Article and video publishing with categories and a dedicated editorial management surface.",
+      "Local Laravel/Filament implementation with media import and publishing services.",
+      "Burmese, English, and Chinese navigation is available on the public site.",
+      "Tools for video ingestion, translation, and social content organization are present in the source."
+    ],
+    "stack": [
+      "Laravel",
+      "Filament",
+      "PHP",
+      "Media workflows"
+    ],
+    "url": "https://myotaw.com",
+    "image": "/images/projects/myotaw.jpg",
+    "links": [
+      [
+        "Myo Taw News",
+        "https://myotaw.com"
+      ]
+    ],
+    "credit": "Editorial reporting belongs to Myo Taw News. This case study describes the platform implementation.",
+    "notes": null
+  },
+  {
+    "id": "dk-gaming",
+    "title": "DK Gaming Shop",
+    "category": "Commerce",
+    "eyebrow": "Domain LAB LTD · Myanmar",
+    "status": "Web + mobile + bots",
+    "summary": "Game top-ups and digital goods, connected to providers and order operations.",
+    "story": "DK Gaming serves players buying MLBB, PUBG, in-game currency, and digital items. The interesting engineering happens between the storefront and fulfillment: product catalogs, wholesale providers, payment requests, approvals, and the team monitoring them.",
+    "role": "Full shop-system implementation spanning storefront, admin management, wholesaler integration, mobile apps, and Telegram operations.",
+    "features": [
+      "Next.js storefront for game catalogs, account checks, orders, and top-up history.",
+      "Wholesaler API integrations connect the retail catalog to fulfillment providers.",
+      "Telegram monitoring and approval flows support requests and order operations.",
+      "Android and iOS native project surfaces complement the web shop."
+    ],
+    "stack": [
+      "Next.js",
+      "Provider APIs",
+      "Python",
+      "Telegram",
+      "Mobile"
+    ],
+    "url": "https://dkgamingshop.com",
+    "image": "/images/projects/dk-gaming.jpg",
+    "links": [
+      [
+        "DK Gaming Shop",
+        "https://dkgamingshop.com"
+      ]
+    ],
+    "credit": null,
+    "notes": null
+  },
+  {
+    "id": "welmal",
+    "title": "Welmal",
+    "category": "Commerce",
+    "eyebrow": "WEL MAL COMPANY LIMITED · Myanmar",
+    "status": "Ongoing client project",
+    "summary": "Storefront, admin tools, and mobile shopping for a Myanmar commerce business.",
+    "story": "Welmal is an ongoing ecommerce engagement for WEL MAL COMPANY LIMITED. Its focus is a coherent shopping journey: discovery on the web or phone, clear product information, and operational tools that keep the catalog and orders manageable.",
+    "role": "Commerce implementation across the web experience, backend and admin tools, plus customer mobile applications.",
+    "features": [
+      "Laravel-based backend shared by the storefront and mobile clients.",
+      "Web storefront and administration, with an additional React/TypeScript admin surface in the project.",
+      "Native Android and iOS implementations, alongside earlier Flutter work.",
+      "Product, catalog, ordering, and ongoing delivery work within one client ecosystem."
+    ],
+    "stack": [
+      "Laravel",
+      "React / TypeScript",
+      "Java",
+      "Swift"
+    ],
+    "url": "https://welmal.com",
+    "image": "/images/projects/welmal.jpg",
+    "links": [
+      [
+        "Welmal",
+        "https://welmal.com"
+      ]
+    ],
+    "credit": null,
+    "notes": null
+  },
+  {
     "id": "hledan",
     "title": "Hledan Junction",
     "category": "Immersive",
     "eyebrow": "Yangon, remembered in real time",
     "status": "Playable · tribute",
-    "summary": "A familiar corner of Yangon, kept alive in a browser. A map, a memory, and a friend’s final gift.",
+    "summary": "A browser journey through Yangon, in memory of map creator Madric A.",
     "story": "Hledan is personal. The original 3D map was made by my friend Madric A. It was the last map he gave me before he passed away from cancer. My work carries that gift into a real-time browser experience: a place to walk, change the light, watch the weather, and spend a little longer with a familiar part of Yangon.",
     "role": "Web rendering and interaction: adapting the map for the browser, lighting, weather, navigation, and performance work for phones and laptops.",
     "features": [
@@ -308,7 +375,7 @@
     "category": "Tools",
     "eyebrow": "MFU · School of Management",
     "status": "Internal university project",
-    "summary": "Turning fragmented academic performance records into a shared picture for a university school.",
+    "summary": "Academic performance dashboards for a university school.",
     "story": "Built as a senior project for the School of Management at Mae Fah Luang University, SOM BI addresses an administrative problem: individual lecturer records are difficult to understand at program level. The project brings those records into role-based dashboards and visual comparisons for the school.",
     "role": "Team contribution to implementation, integration, internal setup, and deployment as part of the Vanguard senior-project team.",
     "features": [
@@ -325,10 +392,23 @@
       "Chart.js"
     ],
     "url": null,
-    "image": null,
+    "image": "/images/projects/som-bi-overview.jpg",
     "links": [],
     "credit": "A Vanguard team senior project for Mae Fah Luang University’s School of Management. Presented here as a public case study only; no internal dashboard or staff data is published.",
-    "notes": null
+    "notes": null,
+    "preview_kind": "synthetic-interface",
+    "gallery": [
+      {
+        "image": "/images/projects/som-bi-programs.jpg",
+        "title": "Program analytics",
+        "description": "Program-level comparison, evaluation periods, and lecturer KPI summaries."
+      },
+      {
+        "image": "/images/projects/som-bi-lecturer.jpg",
+        "title": "Lecturer KPI overview",
+        "description": "Personal performance, domain scores, and teaching and research activity."
+      }
+    ]
   },
   {
     "id": "extant",

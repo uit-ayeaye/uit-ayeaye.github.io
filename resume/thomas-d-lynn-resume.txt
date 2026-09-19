@@ -1,0 +1,91 @@
+Thomas D. Lynn
+
+Software Engineer & Creative Developer
+
+Thiha Lynn · Backbenchers Studio
+
+hello@thomasdlynn.dev
+
+thomasdlynn.dev
+
+github.com/uit-ayeaye
+
+Professional summary
+
+Independent software engineer building multiplayer games, web platforms, mobile applications, and creative tools. Works across customer-facing experiences and the APIs, admin tools, media pipelines, and operational workflows behind them.
+
+Technical skills
+
+Web & backend: React, Next.js, Vue / Nuxt, Laravel, PHP, Express, JavaScript, TypeScript.
+
+Mobile & games: Flutter / Dart, Android / Java, iOS / Swift, Unity, C#, Photon.
+
+Data & creative systems: MySQL, PostgreSQL, SQLite, Python, Three.js, React Three Fiber, GSAP, FFmpeg / HLS.
+
+Selected project experience
+
+Independent practice · Backbenchers Studio
+
+End Game Union
+
+Game development
+
+Developed the multiplayer game and wider ecosystem with Backbenchers Studio and fellow developers. Contributing to the next chapter, Reloaded, with multiplayer, progression, and the supporting web experience.
+
+Unity · C# · Photon · Android / iOS
+
+Golden Gates GGT
+
+Delivery & shipping
+
+Implemented a logistics platform connecting booking, parcel tracing, QR labels, dispatch, branch handovers, and delivery evidence. Built web workspaces and separate Flutter staff, customer, and courier apps for an operational pilot.
+
+Next.js · Laravel · Flutter · SQLite · AWS
+
+BurmaMart
+
+Commerce · MSCT PTE LTD
+
+Implemented the storefront, shared backend, administration, and buyer and merchant applications for a cross-border commerce ecosystem.
+
+Laravel · Filament · Flutter · MySQL
+
+Actually We ARe MAd
+
+Media platform · Domain Lab Ltd
+
+Built the public platform, media processing, administrative tools, mobile surfaces, and Telegram workflows for a Myanmar creator ecosystem.
+
+Next.js · PostgreSQL · FFmpeg / HLS · Telegram
+
+STRIKERS
+
+Football platform
+
+Designed and implemented a bilingual football portal with match browsing, editorial publishing, and cached provider data with visible freshness indicators.
+
+Laravel · PHP · SQLite · JavaScript · API-Football
+
+Myanmar Glyph Studio
+
+Open-source creative tools
+
+Built a browser drawing experience and font-generation pipeline connecting portable Myanmar glyph projects to installable fonts.
+
+JavaScript · Python · OpenType · fontmake · PWA
+
+Academic project
+
+SOM BI · Mae Fah Luang University, School of Management
+
+Vanguard senior-project team contribution: role-based KPI dashboards, university-system integration, internal setup, and deployment.
+
+Nuxt / Vue · Express · MySQL · Firebase Auth · Chart.js
+
+Additional work
+
+Commerce and mobile systems for Welmal and DK Gaming; publishing workflows for Myo Taw News; portfolios for filmmakers, a producer, a teacher, a trainer, and a poet. Browser rendering, weather, and interaction for Hledan, with original map modeling credited to Madric A.
+
+PROJECT-BASED RÉSUMÉ · SEPTEMBER 2026
+
+Explore all 27 project stories

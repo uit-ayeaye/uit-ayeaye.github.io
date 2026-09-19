@@ -1,0 +1,66 @@
+/* A navigable sea chart: transparent artwork, ink, brass, and paper. */
+body { background-image: radial-gradient(ellipse at 95% 3%,#256d7133,transparent 35%),radial-gradient(ellipse at 0 55%,#9671450d,transparent 35%); }
+.hero { position:relative; }
+.voyage-art { isolation:isolate; border:0; background:radial-gradient(ellipse at 50% 70%,#488b8526,transparent 65%); box-shadow:none; overflow:visible; min-height:500px; }
+.voyage-art::before { content:''; position:absolute; inset:24px 0 65px; border:1px solid #c5aa6655; border-radius:50%; background:repeating-radial-gradient(circle at center,transparent 0 58px,#cab48115 59px 60px),linear-gradient(30deg,transparent 49.8%,#c6b67922 50%,transparent 50.2%); transform:rotate(-18deg); z-index:-1; }
+.voyage-art::after { content:''; position:absolute; inset:56px 34px 96px; border:1px dashed #c5aa6644; border-radius:50%; pointer-events:none; z-index:-1; }
+.hero-art-window { inset:0 30px 75px; overflow:visible; }
+.hero-captain { height:100%; max-height:450px; max-width:100%; object-fit:contain; filter:drop-shadow(0 20px 20px #0006); animation:captain-drift 7s ease-in-out infinite; }
+.hero-bounty { height:100%; max-height:425px; max-width:100%; object-fit:contain; filter:drop-shadow(0 18px 16px #0006); animation:paper-drift 8s ease-in-out infinite; }
+.hero-ship { filter:drop-shadow(0 20px 20px #0006); }
+.voyage-art figcaption { bottom:30px; left:25px; right:25px; border-top:1px solid #c6aa6d50; padding-top:15px; }
+.art-switch { bottom:-15px; left:0; right:0; justify-content:center; gap:8px; }
+.art-switch button { min-height:38px; padding:9px 13px; border-radius:20px; background:var(--paper); }
+.art-switch button[aria-pressed=true] { background:var(--gold); color:#35291d; }
+.chart-coordinate { position:absolute; top:2px; left:8px; writing-mode:vertical-rl; font:9px var(--mono); letter-spacing:3px; color:var(--muted); }
+.floating-waypoint { position:absolute; z-index:3; display:flex; align-items:center; gap:10px; padding:11px 15px; min-height:44px; font:500 11px var(--sans); border:1px solid #bba36a70; border-radius:4px 16px 16px 4px; color:#e8d2a4; background:#13282de8; box-shadow:0 12px 30px #0003; backdrop-filter:blur(12px); transition:translate .25s,box-shadow .25s; }
+.floating-waypoint span { font:24px var(--pirate); }.floating-waypoint:hover { translate:0 -4px; box-shadow:0 15px 35px #0006; }
+.waypoint-worlds { right:-5px; top:24%; transform:rotate(4deg); }.waypoint-log { left:-12px; bottom:25%; transform:rotate(-4deg); }
+.section-top { position:relative; border-bottom:1px solid var(--line); padding-bottom:17px; }
+.section-top::after { content:'✦'; position:absolute; right:0; bottom:-8px; font-size:14px; color:var(--gold); background:var(--paper); padding-left:10px; }
+.section-top .eyebrow { color:var(--soft-gold); }
+.project-card { position:relative; }.project-card .project-body { padding:20px 13px 10px; border-left:1px solid #bda77944; }
+.project-card .project-body::before { content:''; position:absolute; bottom:0; left:-3px; width:7px; height:7px; border-radius:50%; background:var(--gold); }
+.framed-preview { border-radius:12px 12px 2px 2px; box-shadow:0 18px 30px #0002; }
+.preview-chrome,.preview-bottom { background:linear-gradient(110deg,#263438,#15252d); color:#cfbc92; }
+.preview-dialog { border-color:#8d7850; }.preview-toolbar,.preview-footer { background:linear-gradient(100deg,#192a30,#102029); }
+.captain-keepsake { max-width:350px; }.captain-portrait { padding:0; background:none; border:0; box-shadow:none; max-width:340px; transform:rotate(-3deg); filter:drop-shadow(0 22px 20px #0006); transition:transform .4s; }
+.captain-portrait:hover { transform:rotate(1deg) translateY(-7px); }
+.captain-portrait img { width:100%; height:auto; max-height:none; object-fit:contain; }
+.captain-memory { margin-top:32px; }
+.arsenal { background:radial-gradient(ellipse at 90% 30%,#26757a20,transparent 50%),var(--night); }
+.skill { position:relative; overflow:hidden; background:linear-gradient(140deg,#25464d38,transparent 70%); border:1px solid #8e80524d; border-radius:4px 20px 4px 4px; }
+.skill::after { content:''; position:absolute; width:105px; height:105px; border:1px dashed #cdb77322; border-radius:50%; right:-35px; top:-35px; pointer-events:none; }
+.skill[open] { box-shadow:0 17px 36px #0003; border-color:#bda06488; }.skill h3 { font:400 28px/1.25 var(--pirate); }
+.tech-chip,.skill .tech-chip { background:transparent; border-color:#a98f5a35; border-radius:50% 50% 8px 8px; min-height:93px; padding:14px 7px 11px; transition:transform .25s,border-color .25s; }
+.tech-chip img,.skill .tech-chip img { background:transparent!important; border-radius:0; padding:0; width:33px; height:33px; object-fit:contain; filter:drop-shadow(0 4px 5px #0004); }
+.tech-chip:hover { transform:translateY(-5px) rotate(-3deg); border-color:#ccb47a; }
+[data-theme=dark] .tech-chip img:is([src$='/threejs.svg'],[src$='/express.svg'],[src$='/github.svg'],[src$='/prisma.svg'],[src$='/unity.svg']) { filter:brightness(0) invert(.88) sepia(.2) drop-shadow(0 4px 6px #0005); }
+.journal-link { position:relative; padding:25px 30px; background:linear-gradient(100deg,#d2bb8020,#d2bb8007); border:1px solid #b9a36c55; border-radius:3px 20px 3px 3px; }
+.journal-icon { border:1px solid #b9a36c55; border-radius:50%; background:transparent; color:var(--gold); transform:rotate(-8deg); }
+.contact { position:relative; overflow:hidden; background:radial-gradient(ellipse at 85% 100%,#458f7940,transparent 60%),var(--paper); }
+.contact::before { content:'✧'; position:absolute; font:500px/1 var(--pirate); color:#c5aa6d0c; right:-50px; bottom:-140px; pointer-events:none; }
+.case-page { background:radial-gradient(ellipse at 100% 5%,#367b7620,transparent 30%); }
+.case-hero { border:1px solid #b7a27166; border-radius:5px 22px 5px 5px; padding:9px; background:#cdb77913; box-shadow:0 25px 60px #0003; }
+.case-hero .project-image { border-radius:2px 14px 2px 2px; }
+.case-sidebar { background:linear-gradient(115deg,#e8d6ad,#f3e7cd 45%,#dbc396); color:#483721; padding:27px; border:0; box-shadow:0 17px 38px #0003; clip-path:polygon(0 4px,12% 0,24% 5px,38% 1px,55% 5px,73% 0,89% 5px,100% 0,100% calc(100% - 5px),83% 100%,65% calc(100% - 4px),45% 100%,27% calc(100% - 5px),9% 100%,0 calc(100% - 4px)); }
+.case-sidebar .eyebrow,.case-sidebar .case-date,.case-sidebar p,.case-sidebar .private-label { color:#665035; }.case-sidebar .stack-list li { color:#483721; border-color:#96784a55; background:#8365340b; }.case-sidebar a:not(.button) { color:#6c392c; }
+.case-main section { border-top:1px solid #a78d5d55; padding-top:25px; }.case-main section .eyebrow { color:var(--soft-gold); }
+.crew-signoff { display:flex; align-items:center; gap:20px; padding:25px 0; border-block:1px solid var(--line); margin-top:35px; }.crew-signoff img { width:90px; height:105px; object-fit:contain; filter:drop-shadow(0 8px 12px #0004); }.crew-signoff strong { display:block; font:30px var(--pirate); margin-bottom:9px; }.crew-signoff a { color:var(--soft-gold); font-size:13px; }
+.case-preview-note { font:12px/1.7 var(--sans); color:var(--muted); margin:18px 0 0; }
+.system-gallery { margin:30px 0 55px; display:grid; grid-template-columns:1fr 1fr; gap:24px; }.system-gallery figure { margin:0; min-width:0; }.system-gallery a { display:block; border:1px solid #b6a06766; padding:6px; background:#b6a06712; border-radius:8px; transition:transform .3s; }.system-gallery a:hover { transform:translateY(-5px); }.system-gallery img { width:100%; height:auto; border-radius:4px; }.system-gallery figcaption { padding:15px 3px; }.system-gallery strong { display:block; font:24px var(--pirate); }.system-gallery p { font-size:13px; color:var(--muted); margin-top:8px; }
+.experiment-card { border:1px solid #bfa66c44; padding:10px 10px 0; background:linear-gradient(140deg,#8491720c,transparent); box-shadow:0 18px 30px #0002; }.experiment-copy { padding-inline:12px; }.experiment-cover { border-radius:5px; }
+[data-theme=light] .voyage-art { background:radial-gradient(ellipse,#467d6c20,transparent 65%); }[data-theme=light] .skill { background:#b2965c0b; }[data-theme=light] .floating-waypoint { background:#eadbbeee; color:#423720; }
+@keyframes captain-drift { 50% { transform:translateY(-10px) rotate(1deg); } }@keyframes paper-drift { 50% { transform:rotate(2deg) translateY(-7px); } }
+.motion-paused .hero-captain,.motion-paused .hero-bounty { animation:none; }
+@media(max-width:900px) { .waypoint-worlds { right:0; }.waypoint-log { left:0; }.hero-captain { max-height:380px; }.voyage-art { min-height:430px; }.art-switch button { padding-inline:10px; font-size:10px; } }
+@media(max-width:650px) { .voyage-art { min-height:415px; margin:15px auto 25px; width:min(100%,390px); }.hero-art-window { inset:0 20px 80px; }.hero-captain { max-height:340px; }.hero-bounty { max-height:320px; }.floating-waypoint { padding:8px 11px; font-size:10px; }.waypoint-worlds { top:24%; }.waypoint-log { bottom:26%; }.chart-coordinate { font-size:7px; }.captain-keepsake { max-width:280px; }.captain-portrait img { max-height:none; }.system-gallery { grid-template-columns:1fr; gap:12px; }.case-sidebar { padding:24px; }.journal-link { padding:20px 15px; }.journal-icon { flex-shrink:0; }.skill h3 { font-size:26px; }.case-hero { padding:5px; } }
+@media(prefers-reduced-motion:reduce) { .hero-captain,.hero-bounty { animation:none; }.floating-waypoint,.captain-portrait,.system-gallery a,.tech-chip { transition:none; transform:none!important; translate:none!important; } }
+@media print { .crew-signoff,.floating-waypoint,.chart-coordinate { display:none; }.case-sidebar { clip-path:none; background:white; box-shadow:none; } }
+/* Decorative chart rings may extend past their card, never the viewport. */
+body { overflow-x:clip; }
+@media print { body { overflow:visible; } }
+.case-hero:has(img[src*='som-bi-']) img { aspect-ratio:1.44; max-height:none; object-fit:contain; }
+/* Horizontal chart meridian follows the card width, even on a narrow phone. */
+.art-orbit::after { left:0; right:0; top:50%; bottom:auto; border-left:0; border-top:1px dashed var(--soft-gold); transform:none; }
+.voyage-art::before { transform:none; }

@@ -4,6 +4,7 @@ from pathlib import Path
 from html.parser import HTMLParser
 from urllib.parse import urlsplit, unquote
 import json
+from hashlib import sha256
 ROOT = Path(__file__).resolve().parents[1]
 DATA = json.loads((ROOT / 'data/projects.json').read_text())
 class Page(HTMLParser):
@@ -32,12 +33,19 @@ for f in files:
         elif u.fragment and target.suffix=='.html' and u.fragment not in Page(target.read_text()).ids:errors.append(f'{f.relative_to(ROOT)}: missing anchor {ref}')
 som=next(p for p in DATA if p['id']=='som-bi')
 assert som['url'] is None and not som['links'], 'SOM must not link to internal service'
-assert som['image'] is None, 'SOM must use a conceptual illustration, not private data'
+assert som['preview_kind'] == 'synthetic-interface'
+for image in [som['image'], *[item['image'] for item in som['gallery']]]:
+    assert 'SAMPLE DATA' in (ROOT / image.lstrip('/')).with_suffix('.svg').read_text(), 'Label all recreated SOM screens'
 combined='\n'.join(f.read_text() for f in files)
 for private in ['som.mlbbshop.app','staff_code','6631503092','6631503097','6631503088','/Users/thomas','api_key','DATABASE_URL']:
     assert private not in combined, f'Unexpected private detail: {private}'
 assert 'Madric A' in (ROOT/'projects/hledan/index.html').read_text()
 assert 'Meghamittal0920' in (ROOT/'projects/grand-line-fizz/index.html').read_text()
 assert 'currently unavailable' in (ROOT/'projects/epst/index.html').read_text().lower()
+assert (ROOT/'resume/pdf-source.sha256').read_text().strip() == sha256((ROOT/'templates/resume.html').read_bytes()).hexdigest(), 'Rebuild the PDF after changing the résumé template'
+for slug in ['golden-gates', 'strikers']:
+    assert any(p['id'] == slug for p in DATA)
+assert 'ztvmm.live' not in (ROOT/'projects/golden-gates/index.html').read_text(), 'Keep STRIKERS separate from logistics'
+assert 'THE CAPTAIN' not in (ROOT/'resume/thomas-d-lynn-resume.txt').read_text(), 'Text résumé must omit decorative labels'
 if errors:raise SystemExit('\n'.join(errors))
 print(f'PASS: {len(files)} generated pages; local routes, assets, anchors, credits, private-project boundaries.')

@@ -44,9 +44,9 @@
     artControls.addEventListener('click', event => {
       const button = event.target.closest('[data-art]');
       if (!button) return;
-      const bounty = button.dataset.art === 'bounty';
-      document.querySelector('.hero-ship').hidden = bounty;
-      document.querySelector('.hero-bounty').hidden = !bounty;
+      ['captain', 'ship', 'bounty'].forEach(name => {
+        document.querySelector(`.hero-${name}`).hidden = button.dataset.art !== name;
+      });
       artControls.querySelectorAll('button').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
     });
   }
@@ -162,6 +162,12 @@
     selectWorld(worldTabs[0]);
   }
 
+  function revealCollection() {
+    if (location.hash === '#portfolio-sites') document.querySelector('.personal-disclosure')?.setAttribute('open', '');
+  }
+  window.addEventListener('hashchange', revealCollection);
+  revealCollection();
+
   const personalTrack = document.querySelector('.personal-track');
   if (personalTrack) {
     const controls = document.querySelector('.personal-controls');
@@ -186,6 +192,7 @@
       event.preventDefault(); stepPersonal(event.key === 'ArrowRight' ? 1 : -1);
     });
     personalTrack.addEventListener('scroll', updatePersonalNavigation, {passive:true});
+    personalTrack.closest('details')?.addEventListener('toggle', updatePersonalNavigation);
     window.addEventListener('resize', updatePersonalNavigation, {passive:true});
     updatePersonalNavigation();
   }
@@ -301,7 +308,7 @@
     const words = search.value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
     const matching = cards.filter(card => (category === 'All' || card.dataset.category === category) && words.every(word => card.dataset.search.includes(word)));
     const limited = category === 'All' && !words.length && !expanded;
-    const visible = new Set(limited ? matching.slice(0, 9) : matching);
+    const visible = new Set(limited ? matching.slice(0, 6) : matching);
     cards.forEach(card => {
       const wasHidden = card.hidden;
       card.hidden = !visible.has(card);
@@ -314,8 +321,8 @@
     });
     count.textContent = `Showing ${visible.size} of ${matching.length} ${matching.length === 1 ? 'project' : 'projects'}${category !== 'All' ? ' · ' + category : ''}`;
     empty.hidden = matching.length !== 0;
-    more.hidden = !limited || matching.length <= 9;
-    more.innerHTML = `View all projects <span>+${Math.max(0, matching.length - 9)}</span>`;
+    more.hidden = !limited || matching.length <= 6;
+    more.innerHTML = `View all projects <span>+${Math.max(0, matching.length - 6)}</span>`;
     if (save) saveState();
     scheduleProgress();
   }
@@ -348,7 +355,7 @@
   }));
   document.addEventListener('keydown', event => {
     const editing = /INPUT|TEXTAREA|SELECT/.test(event.target.tagName) || event.target.isContentEditable;
-    if (event.key === '/' && !editing && !event.metaKey && !event.ctrlKey && !event.altKey) {
+    if (event.key === '/' && !document.querySelector('dialog[open]') && !editing && !event.metaKey && !event.ctrlKey && !event.altKey) {
       event.preventDefault(); search.focus(); search.scrollIntoView({ block: 'center' });
     }
   });

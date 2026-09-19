@@ -59,7 +59,7 @@ All supplied public sites were attempted. The web research service could not dir
 
 The supplied logo presentation was rendered and read. Its studio concept combines programming, gaming, and quadcopter motifs. The existing transparent cyber mark matches the supplied JPEG’s visual identity. The homepage uses that mark and the existing Backbenchers ship with an original CSS/SVG nautical-chart layout. The heavy WebGL scenes are linked, not automatically embedded into the landing page.
 
-Project thumbnails are screenshots of public sites or existing public showcase imagery. SOM BI uses a clearly labeled abstract illustration. Supplied reference originals remain local inputs; the website does not link to them.
+Project thumbnails are screenshots of public sites or existing public showcase imagery. SOM BI uses three clearly labeled interface recreations with synthetic sample data, reviewed against the local application’s active performance analytics, program analytics, and lecturer KPI layouts. Supplied reference originals remain local inputs; the website does not link to them.
 
 ## Remaining content gaps
 
@@ -81,3 +81,20 @@ The second design pass restores the original wanted poster, Gear 5 illustration,
 The Jujutsu Kaisen scene referenced a nonexistent `6.webp`. It now uses styled text for that title and keeps the existing timeline and creator credit. The Elbaf description was corrected to reflect the selectable Straw Hat crew shown by the running scene.
 
 Live-site QA also found a bare `models/` HEAD request for optional Onigashima assets. The availability helper now returns false for an empty filename. Both mirrored deployed bundles contain the same guard; preserve it if regenerating these bundles from their upstream source.
+
+## Golden Gates GGT and STRIKERS — 19 September 2026
+
+The owner confirmed that these are separate projects. The supplied `ztvmm.live` address belongs to STRIKERS, not Golden Gates.
+
+- **Golden Gates GGT:** reviewed the matching platform README, package manifest, Laravel web-workspace README, and the public pilot landing page at `https://ggt.3-0-126-159.nip.io/`. Public copy covers booking, parcel trace, QR labels, manifests, branch handovers, delivery evidence, and staff/customer/courier surfaces. Described as an operational pilot. Native signing/distribution and physical-device acceptance are not presented as complete. The thumbnail is the public landing page; no shipment records, internal notes, account details, or private operational images are published. The company uses “Golden Gate GGT Co., Ltd.” on its public site; the portfolio title follows the owner's “Golden Gates GGT” wording.
+- **STRIKERS:** reviewed the public English homepage at `https://ztvmm.live/` and matching Laravel README. Football fixtures, match filters, editorial content, Myanmar/English surfaces, and cache/freshness behavior are supported. Do not imply continuous live scores, guaranteed streams, original authorship of third-party reporting, or ownership of football marks. Public landing-page screenshot only.
+
+## Résumé presentation and content
+
+The résumé remains project-based. No degree, graduation date, employment chronology, commercial metric, certification, or language proficiency was invented. The current supplied illustrated portrait is used in the screen logbook and accurately described as illustrated in its alt text. A real headshot can replace that asset when supplied.
+
+`templates/resume.html` is the shared source for the standalone HTML, fetched popup, text download, and generated application PDF. The PDF uses plain, single-column text and standard headings; text extraction and order were verified. This improves machine readability but does not guarantee any ATS vendor score or ranking.
+
+## SOM BI visual follow-up
+
+Reviewed the active Nuxt admin KPI and program analytics pages, lecturer KPI overview, and admin navigation. The unused executive dashboard is not presented as the current landing page. `scripts/build_som_previews.py` recreates the visual structure without connecting to authentication, API services, or a database. Every preview labels its names and metrics as synthetic sample data. `scripts/render_som_previews.cjs` uses Sharp to produce JPEG thumbnails and social previews from those original SVG illustrations. This is a source-informed visual recreation, not a screenshot of production university records.
