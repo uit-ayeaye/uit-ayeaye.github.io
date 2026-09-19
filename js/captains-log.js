@@ -29,8 +29,8 @@
     const awake = root.classList.contains('gear-five');
     gearButton.hidden = false;
     gearButton.setAttribute('aria-pressed', String(awake));
-    gearButton.querySelector('.gear-label').textContent = awake ? 'Return to calm seas' : 'Awaken Gear 5';
-    document.querySelector('.gear-status').textContent = awake ? 'Gear 5 awakened. Imagination takes the helm.' : 'Calm seas. The next adventure is waiting.';
+    gearButton.querySelector('.gear-label').textContent = awake ? 'Gear 5 accent: on' : 'Gear 5 accent';
+    document.querySelector('.gear-status').textContent = awake ? 'Gear 5 color accent enabled.' : 'Classic color accent enabled.';
   }
   syncGear();
   gearButton?.addEventListener('click', () => {
@@ -38,6 +38,18 @@
     persist('bb-gear', active ? 'on' : 'off');
     syncGear();
   });
+  const artControls = document.querySelector('.art-switch');
+  if (artControls) {
+    artControls.hidden = false;
+    artControls.addEventListener('click', event => {
+      const button = event.target.closest('[data-art]');
+      if (!button) return;
+      const bounty = button.dataset.art === 'bounty';
+      document.querySelector('.hero-ship').hidden = bounty;
+      document.querySelector('.hero-bounty').hidden = !bounty;
+      artControls.querySelectorAll('button').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+    });
+  }
   let motionPaused = false;
   try { motionPaused = localStorage.getItem('bb-motion') === 'paused'; } catch (_) { /* Storage is optional. */ }
   const motionButton = document.querySelector('.motion-toggle');
@@ -101,16 +113,40 @@
   const worldTabs = Array.from(document.querySelectorAll('.world-tabs [role="tab"]'));
   if (worldTabs.length) {
     document.querySelector('.world-tabs').hidden = false;
+    document.querySelector('.world-navigation').hidden = false;
+    let selectedWorld = 0;
     function selectWorld(tab, focus = false) {
+      selectedWorld = worldTabs.indexOf(tab);
       worldTabs.forEach(button => {
         const active = button === tab;
         button.setAttribute('aria-selected', String(active));
         button.tabIndex = active ? 0 : -1;
         document.getElementById(button.getAttribute('aria-controls')).hidden = !active;
       });
+      document.getElementById('world-position').textContent = `${String(selectedWorld + 1).padStart(2, '0')} / 06`;
       if (focus) tab.focus();
       scheduleProgress();
     }
+    function stepWorld(delta) {
+      const index = (selectedWorld + delta + worldTabs.length) % worldTabs.length;
+      selectWorld(worldTabs[index]);
+      const rail = document.querySelector('.world-tabs');
+      const item = worldTabs[index];
+      rail.scrollTo({left: Math.max(0, item.offsetLeft - rail.offsetLeft - 8), behavior: root.classList.contains('motion-paused') ? 'instant' : 'smooth'});
+    }
+    document.querySelectorAll('[data-world-step]').forEach(button => button.addEventListener('click', () => stepWorld(Number(button.dataset.worldStep))));
+    let gesture;
+    const stage = document.querySelector('.world-stage');
+    stage.addEventListener('pointerdown', event => {
+      if (event.pointerType === 'touch') gesture = {x:event.clientX, y:event.clientY};
+    }, {passive:true});
+    stage.addEventListener('pointerup', event => {
+      if (!gesture || event.pointerType !== 'touch') return;
+      const dx = event.clientX - gesture.x, dy = event.clientY - gesture.y;
+      gesture = null;
+      if (Math.abs(dx) > 65 && Math.abs(dx) > Math.abs(dy) * 1.5) stepWorld(dx < 0 ? 1 : -1);
+    }, {passive:true});
+    stage.addEventListener('pointercancel', () => { gesture = null; });
     worldTabs.forEach((tab, index) => {
       tab.addEventListener('click', () => selectWorld(tab));
       tab.addEventListener('keydown', event => {
@@ -124,6 +160,45 @@
       });
     });
     selectWorld(worldTabs[0]);
+  }
+
+  const personalTrack = document.querySelector('.personal-track');
+  if (personalTrack) {
+    const controls = document.querySelector('.personal-controls');
+    controls.hidden = false;
+    const prev = controls.querySelector('[data-personal-step="-1"]');
+    const next = controls.querySelector('[data-personal-step="1"]');
+    function updatePersonalNavigation() {
+      prev.disabled = personalTrack.scrollLeft <= 2;
+      next.disabled = personalTrack.scrollLeft >= personalTrack.scrollWidth - personalTrack.clientWidth - 2;
+    }
+    function stepPersonal(delta) {
+      const first = personalTrack.querySelector('.personal-card');
+      const distance = first.getBoundingClientRect().width + parseFloat(getComputedStyle(personalTrack).gap);
+      personalTrack.scrollBy({left: distance * delta, behavior: root.classList.contains('motion-paused') ? 'instant' : 'smooth'});
+    }
+    controls.addEventListener('click', event => {
+      const button = event.target.closest('[data-personal-step]');
+      if (button) stepPersonal(Number(button.dataset.personalStep));
+    });
+    personalTrack.addEventListener('keydown', event => {
+      if (event.target !== personalTrack || !['ArrowLeft','ArrowRight'].includes(event.key)) return;
+      event.preventDefault(); stepPersonal(event.key === 'ArrowRight' ? 1 : -1);
+    });
+    personalTrack.addEventListener('scroll', updatePersonalNavigation, {passive:true});
+    window.addEventListener('resize', updatePersonalNavigation, {passive:true});
+    updatePersonalNavigation();
+  }
+
+  if ('IntersectionObserver' in window) {
+    const reveal = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        if (!root.classList.contains('motion-paused')) entry.target.classList.add('studio-arrive');
+        reveal.unobserve(entry.target);
+      });
+    }, {threshold:.12});
+    document.querySelectorAll('.section-heading, .skill, .personal-copy, .about-copy').forEach(el => reveal.observe(el));
   }
 
   const collection = document.querySelector('.project-grid');
@@ -181,10 +256,10 @@
       button.classList.toggle('active', active);
       button.setAttribute('aria-pressed', String(active));
     });
-    count.textContent = `Showing ${visible.size} of ${matching.length} ${matching.length === 1 ? 'voyage' : 'voyages'}${category !== 'All' ? ' · ' + category : ''}`;
+    count.textContent = `Showing ${visible.size} of ${matching.length} ${matching.length === 1 ? 'project' : 'projects'}${category !== 'All' ? ' · ' + category : ''}`;
     empty.hidden = matching.length !== 0;
     more.hidden = !limited || matching.length <= 9;
-    more.innerHTML = `Unroll the complete logbook <span>+${Math.max(0, matching.length - 9)}</span>`;
+    more.innerHTML = `View all projects <span>+${Math.max(0, matching.length - 9)}</span>`;
     if (save) saveState();
     scheduleProgress();
   }
@@ -207,6 +282,13 @@
   document.querySelectorAll('[data-set-filter]').forEach(anchor => anchor.addEventListener('click', () => {
     category = anchor.dataset.setFilter;
     search.value = ''; expanded = false; filterProjects();
+  }));
+  document.querySelectorAll('[data-tech]').forEach(chip => chip.addEventListener('click', event => {
+    event.preventDefault();
+    category = 'All'; search.value = chip.dataset.tech; expanded = false; filterProjects();
+    const url = new URL(location.href); url.hash = 'projects'; history.replaceState(null, '', url);
+    search.focus({preventScroll:true});
+    document.getElementById('projects').scrollIntoView({block:'start', behavior:root.classList.contains('motion-paused') ? 'instant' : 'smooth'});
   }));
   document.addEventListener('keydown', event => {
     const editing = /INPUT|TEXTAREA|SELECT/.test(event.target.tagName) || event.target.isContentEditable;

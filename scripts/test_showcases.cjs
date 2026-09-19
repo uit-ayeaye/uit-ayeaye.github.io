@@ -63,17 +63,17 @@ const slugs = ['hledan','elbaf','onigashima','one-piece','naruto','jjk'];
   }
   const page = await browser.newPage({viewport:{width:390,height:844}});
   await page.goto(base+'/showcase/',{waitUntil:'networkidle'});
-  await page.locator('#preloader').waitFor({state:'hidden',timeout:10000});
+  assert.equal(await page.locator('.experiment-card').count(),6);
   assert.equal(await page.locator('.showcase-sources a[href*="github.com"]').count(),9);
   for (const width of [320,390,768,1024,1440]) {
     await page.setViewportSize({width,height:900});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),false,`Gallery at ${width}`);
   }
   await page.setViewportSize({width:390,height:844});
-  await page.locator('#navToggle').click();
-  assert.equal(await page.locator('#navToggle').getAttribute('aria-expanded'),'true');
+  await page.locator('.menu-toggle').click();
+  assert.equal(await page.locator('.menu-toggle').getAttribute('aria-expanded'),'true');
   await page.keyboard.press('Escape');
-  assert.equal(await page.locator('#navToggle').getAttribute('aria-expanded'),'false');
+  assert.equal(await page.locator('.menu-toggle').getAttribute('aria-expanded'),'false');
   console.log(JSON.stringify(results,null,2));
   await browser.close();
 })().catch(error=>{console.error(error);process.exit(1)});

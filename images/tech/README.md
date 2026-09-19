@@ -1,0 +1,1 @@
+Technology logos from [Devicon](https://github.com/devicons/devicon), pinned to `7330accdbc47e2dc0c19789a48533c4a3c50fe58`. MIT license included. Brands remain the property of their respective owners; used to identify technologies. Other monograms and category diagrams are original interface graphics.
