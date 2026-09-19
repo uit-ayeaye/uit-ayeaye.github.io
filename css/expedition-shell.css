@@ -13,3 +13,4 @@ body.logbook-article { background:radial-gradient(ellipse at top right,#24595c44
 /* Existing scene credit ribbons have their own high stacking layer. */
 body:has(.rtp-credit) .expedition-dock { bottom:74px; z-index:2147483100; }
 body:has(.rtp-credit) .expedition-chart { max-height:calc(100dvh - 160px); }
+.expedition-heading { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }

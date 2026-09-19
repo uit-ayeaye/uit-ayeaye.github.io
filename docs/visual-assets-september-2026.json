@@ -1,0 +1,12 @@
+{
+  "mode": "Built-in image_gen",
+  "captain": {
+    "asset": "images/captain/thomas-captain-v2.webp",
+    "prompt": "Use case: identity-preserve. Edit target: supplied captain portrait. Make his shoulders, upper arms, chest and torso slightly broader and more athletic, still fit and natural, not a bodybuilder. Preserve the same recognizable face, friendly confident small smile, black hair, neck tattoo, straw hat tipped with one hand, red shirt, navy coat with gold trim, brass wrist compass, pose, framing and One Piece anime illustration style. Keep entire hat and both arms inside frame. No text. Genuine transparent background, retain clean alpha edges. This replaces a portfolio hero portrait."
+  },
+  "wanted": {
+    "asset": "images/captain/thomas-wanted-v2.webp",
+    "prompt": "Use case: compositing. Image 1 is the edit target: original One Piece wanted poster. Image 2 is the replacement portrait reference. Replace ONLY the portrait inside the rectangular photograph frame with a head-and-chest view of the smiling, athletic captain from image 2, in matching sepia anime ink. Keep the original poster layout, torn aged parchment, all typography, every single original printed word and symbol unchanged, including every tiny footer letter. The exact large text must stay WANTED / DEAD OR ALIVE / THOMAS·D·LYNN / the original Belly currency symbol and 1,500,000,000- / MARINE. Do not add other text, no Backbenchers Pirates, no fan edition. Preserve all original footer microprint verbatim by retaining those regions. Show entire rectangular poster straight-on on transparent background with subtle worn edges; do not crop any text. The captain keeps recognizable black hair, neck tattoo, friendly smile, red shirt and navy coat but rendered in warm sepia matching the original poster.",
+    "usage": "Only the portrait region is displayed in a CSS photo window over the untouched original bounty-poster.png. This preserves every original printed word and footer glyph."
+  }
+}

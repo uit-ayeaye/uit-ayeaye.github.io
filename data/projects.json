@@ -57,7 +57,8 @@
       ]
     ],
     "credit": "Created with Daniel Kong Thar and the End Game Union team. Published historically through Shoot and Support. Soundtrack: Double U (DJ Wine) × Backbenchers Studio.",
-    "notes": null
+    "notes": null,
+    "preview_caption": "Project interface preview"
   },
   {
     "id": "burmamart",
@@ -93,7 +94,8 @@
       ]
     ],
     "credit": null,
-    "notes": null
+    "notes": null,
+    "preview_caption": "Project interface preview"
   },
   {
     "id": "golden-gates",
@@ -127,7 +129,8 @@
       ]
     ],
     "credit": null,
-    "notes": "Operational pilot. Native app signing, distribution, and physical-device acceptance remain in progress."
+    "notes": "Operational pilot. Native app signing, distribution, and physical-device acceptance remain in progress.",
+    "preview_caption": "Project interface preview"
   },
   {
     "id": "awam",
@@ -152,7 +155,7 @@
       "Mobile"
     ],
     "url": "https://actuallywearemad.com",
-    "image": "/images/projects/awam.jpg",
+    "image": "/images/projects/awam-loading.webp",
     "links": [
       [
         "Explore AWAM",
@@ -164,7 +167,8 @@
       ]
     ],
     "credit": "Meme edits and creative work belong to Gwam Si Ton and the AWAM creator community; my portfolio credit is for the platform engineering.",
-    "notes": null
+    "notes": null,
+    "preview_caption": "Branded loading screen · captured from the original splash component"
   },
   {
     "id": "strikers",
@@ -197,7 +201,8 @@
       ]
     ],
     "credit": "Match data is supplied by API-Football. Third-party reporting, team marks, and broadcast media belong to their respective creators.",
-    "notes": "Scores refresh periodically; broadcast availability depends on supplied sources."
+    "notes": "Scores refresh periodically; broadcast availability depends on supplied sources.",
+    "preview_caption": "Project interface preview"
   },
   {
     "id": "glyph-studio",
@@ -238,7 +243,8 @@
       ]
     ],
     "credit": null,
-    "notes": null
+    "notes": null,
+    "preview_caption": "Project interface preview"
   },
   {
     "id": "myotaw",
@@ -270,7 +276,8 @@
       ]
     ],
     "credit": "Editorial reporting belongs to Myo Taw News. This case study describes the platform implementation.",
-    "notes": null
+    "notes": null,
+    "preview_caption": "Project interface preview"
   },
   {
     "id": "dk-gaming",
@@ -303,7 +310,8 @@
       ]
     ],
     "credit": null,
-    "notes": null
+    "notes": null,
+    "preview_caption": "Project interface preview"
   },
   {
     "id": "welmal",
@@ -335,7 +343,8 @@
       ]
     ],
     "credit": null,
-    "notes": null
+    "notes": null,
+    "preview_caption": "Project interface preview"
   },
   {
     "id": "hledan",
@@ -367,7 +376,8 @@
       ]
     ],
     "credit": "Original Hledan 3D map modeling: Madric A. Browser rendering, interaction, lighting, weather, and optimization: Thomas D. Lynn. In loving memory of Madric A.",
-    "notes": null
+    "notes": null,
+    "preview_caption": "Project interface preview"
   },
   {
     "id": "som-bi",
@@ -408,7 +418,8 @@
         "title": "Lecturer KPI overview",
         "description": "Personal performance, domain scores, and teaching and research activity."
       }
-    ]
+    ],
+    "preview_caption": "Project interface preview"
   },
   {
     "id": "extant",
@@ -439,7 +450,8 @@
       ]
     ],
     "credit": "Music, photographs, and band identity belong to EXTANT and their credited collaborators.",
-    "notes": null
+    "notes": null,
+    "preview_caption": "Project interface preview"
   },
   {
     "id": "nyan",
@@ -471,7 +483,8 @@
       ]
     ],
     "credit": "Production and film work: Nyan and his credited collaborators. Website: Thomas D. Lynn.",
-    "notes": null
+    "notes": null,
+    "preview_caption": "Project interface preview"
   },
   {
     "id": "yoon",
@@ -502,7 +515,8 @@
       ]
     ],
     "credit": null,
-    "notes": null
+    "notes": null,
+    "preview_caption": "Project interface preview"
   },
   {
     "id": "hein",
@@ -534,7 +548,8 @@
       ]
     ],
     "credit": null,
-    "notes": null
+    "notes": null,
+    "preview_caption": "Project interface preview"
   },
   {
     "id": "phyoe",
@@ -565,7 +580,8 @@
       ]
     ],
     "credit": "Films, reporting, and photographs belong to Phyoe Dhana and the collaborators credited on his site.",
-    "notes": null
+    "notes": null,
+    "preview_caption": "Project interface preview"
   },
   {
     "id": "lynn-khar",
@@ -597,7 +613,8 @@
       ]
     ],
     "credit": "Literary works and author identity: Lynn Khar.",
-    "notes": null
+    "notes": null,
+    "preview_caption": "Project interface preview"
   },
   {
     "id": "msct",
@@ -632,7 +649,8 @@
       ]
     ],
     "credit": null,
-    "notes": null
+    "notes": null,
+    "preview_caption": "Project interface preview"
   },
   {
     "id": "epst",
@@ -652,7 +670,7 @@
       "Personal portfolio"
     ],
     "url": null,
-    "image": null,
+    "image": "/images/projects/epst.svg",
     "links": [
       [
         "Supplied project address · currently unavailable",
@@ -660,7 +678,8 @@
       ]
     ],
     "credit": null,
-    "notes": null
+    "notes": null,
+    "preview_caption": "Typographic project illustration · public website currently unavailable"
   },
   {
     "id": "satire",
@@ -691,7 +710,8 @@
       ]
     ],
     "credit": null,
-    "notes": null
+    "notes": null,
+    "preview_caption": "Project interface preview"
   },
   {
     "id": "phaung",
@@ -723,7 +743,8 @@
       ]
     ],
     "credit": null,
-    "notes": null
+    "notes": null,
+    "preview_caption": "Project interface preview"
   },
   {
     "id": "elbaf",
@@ -754,7 +775,8 @@
       ]
     ],
     "credit": "Unofficial fan work inspired by One Piece. Characters and the original world belong to their respective rights holders.",
-    "notes": null
+    "notes": null,
+    "preview_caption": "Project interface preview"
   },
   {
     "id": "onigashima",
@@ -785,7 +807,8 @@
       ]
     ],
     "credit": "Unofficial fan work inspired by One Piece. Characters and the original world belong to their respective rights holders.",
-    "notes": null
+    "notes": null,
+    "preview_caption": "Project interface preview"
   },
   {
     "id": "grand-line-fizz",
@@ -821,7 +844,8 @@
       ]
     ],
     "credit": "3D base project: Meghamittal0920 / One-Piece-3D-Website, Apache-2.0. Original LICENSE and NOTICE are retained in the showcase. One Piece is the property of its respective rights holders.",
-    "notes": null
+    "notes": null,
+    "preview_caption": "Project interface preview"
   },
   {
     "id": "naruto",
@@ -855,7 +879,8 @@
       ]
     ],
     "credit": "Original showcase by Meghamittal0920, as credited in the existing gallery. Naruto belongs to its respective rights holders.",
-    "notes": null
+    "notes": null,
+    "preview_caption": "Project interface preview"
   },
   {
     "id": "jjk",
@@ -877,7 +902,7 @@
       "Parallax"
     ],
     "url": "/showcase/jjk/",
-    "image": "/showcase/jjk/4.webp",
+    "image": "/images/projects/jjk-experience.webp",
     "links": [
       [
         "Portfolio adaptation source",
@@ -889,7 +914,224 @@
       ]
     ],
     "credit": "Original showcase by Meghamittal0920, as credited in the existing gallery. Jujutsu Kaisen belongs to its respective rights holders.",
-    "notes": null
+    "notes": null,
+    "preview_caption": "Domain Expansion · browser experience capture"
+  },
+  {
+    "id": "unilab",
+    "title": "UniLab",
+    "category": "Tools",
+    "url": "https://unilab.ztvmm.live/",
+    "summary": "Private, on-device tools for PDFs, images, audio, video, and everyday study.",
+    "story": "UniLab brings common student file tasks into one open-source workspace. Documents are processed on the device, with a browser app and offline desktop and Android packages. The product repository is separate from its MFU coursework evidence.",
+    "role": "Built the web tools and cross-platform packaging around local file processing and offline use.",
+    "features": [
+      "PDF editing, merging, OCR, forms, and lecture HTML conversion",
+      "Image, audio, video, text, and study utilities in one searchable workspace",
+      "Offline web support; desktop and Android packages include optional processing engines"
+    ],
+    "stack": [
+      "JavaScript",
+      "Web APIs",
+      "Electron",
+      "Capacitor",
+      "OCR",
+      "FFmpeg"
+    ],
+    "links": [
+      [
+        "Product source",
+        "https://github.com/Thiha-Lynn/unilab-releases"
+      ],
+      [
+        "Platform downloads",
+        "https://github.com/Thiha-Lynn/unilab-releases/releases"
+      ]
+    ],
+    "status": "Live · open source",
+    "credit": "AGPL-3.0-only distribution; retained MIT and third-party notices. Desktop preview packages are unsigned/unnotarized; iOS uses the web app.",
+    "eyebrow": "BACKBENCHERS / TOOLS",
+    "image": "/images/projects/unilab.webp",
+    "preview_caption": "Live website capture · September 2026"
+  },
+  {
+    "id": "chinese-studio",
+    "title": "ESC Chinese · Chinese Studio",
+    "category": "Platforms",
+    "url": "https://chinese.ztvmm.live/",
+    "summary": "An open-source Chinese learning companion: lessons, speaking, handwriting, and offline practice.",
+    "story": "Chinese Studio has evolved into the ESC Chinese Language Training Center learning experience. Chinese 2 brings ten lessons and 249 vocabulary entries together with oral rehearsal, stroke-order writing, and downloadable study resources.",
+    "role": "Developed the learning interface, practice flows, local progress, offline packs, and cross-platform releases.",
+    "features": [
+      "Ten Chinese 2 lessons with vocabulary and classroom resources",
+      "Six practice modes, oral rehearsal, and character handwriting",
+      "Local progress, export/restore backups, optional account backups, and offline study"
+    ],
+    "stack": [
+      "React",
+      "TypeScript",
+      "PWA",
+      "Electron",
+      "Capacitor"
+    ],
+    "links": [
+      [
+        "Open-source app",
+        "https://github.com/Thiha-Lynn/chinese-studio"
+      ],
+      [
+        "App releases",
+        "https://github.com/Thiha-Lynn/chinese-studio/releases"
+      ]
+    ],
+    "status": "Live · open source",
+    "credit": "App code: MIT. ESC branding, MFU course materials, and Make Me a Hanzi data retain their separate rights. Chinese 1 is not yet included.",
+    "eyebrow": "BACKBENCHERS / PLATFORMS",
+    "image": "/images/projects/chinese-studio.webp",
+    "preview_caption": "Live website capture · September 2026"
+  },
+  {
+    "id": "academy",
+    "title": "BackBenchers Academy",
+    "category": "Platforms",
+    "url": "https://thiha-lynn.github.io/BackBenchersAcademy/",
+    "summary": "Free Myanmar KG–12 learning, with a textbook library and an explorable 3D campus.",
+    "story": "An early open education project organized around Myanmar’s national curriculum. A working crawler and normalized catalog connect 307 unique curriculum books with a browser bookshelf, PDF reader, and three example 3D lessons. The full curriculum of interactive lessons is still in development.",
+    "role": "Built the textbook indexing pipeline and the immersive learning site, with Unicode Burmese and a 2D mode for lower-powered devices.",
+    "features": [
+      "KG–12 catalog with alternate sources, classifications, and provenance",
+      "3D campus, bookshelf, PDF reader, and three procedural lesson scenes",
+      "Burmese/English interface, offline-first PWA, and a lightweight 2D fallback"
+    ],
+    "stack": [
+      "React",
+      "TypeScript",
+      "Vite",
+      "React Three Fiber",
+      "Python",
+      "PWA"
+    ],
+    "links": [
+      [
+        "Source & roadmap",
+        "https://github.com/Thiha-Lynn/BackBenchersAcademy"
+      ]
+    ],
+    "status": "Open source · early platform",
+    "credit": "Code MIT; original lessons CC BY 4.0. Ministry of Education textbooks retain their original copyright.",
+    "eyebrow": "BACKBENCHERS / PLATFORMS",
+    "image": "/images/projects/academy.webp",
+    "preview_caption": "Live website capture · September 2026"
+  },
+  {
+    "id": "mahar-yangon",
+    "title": "Mahar Yangon Teashop",
+    "category": "People & Culture",
+    "url": "https://thomasdlynn.dev/mahar-yangon-teashop/",
+    "summary": "A warm bilingual website for a family-run Yangon teashop, established in 2009.",
+    "story": "Mahar Yangon Teashop serves North Okkalapa with traditional tea, food, and neighborhood hospitality. The website brings its story, menu, tea culture, real shop imagery, and practical visit information into an approachable Myanmar/English experience.",
+    "role": "Designed and developed the responsive website, visual storytelling, and interactive tea guide.",
+    "features": [
+      "Myanmar and English language toggle",
+      "Tea selection, menu, video reels, and photo lightbox",
+      "Catering information, directions, and tap-to-call contact paths"
+    ],
+    "stack": [
+      "HTML",
+      "CSS",
+      "JavaScript",
+      "WebP",
+      "GitHub Pages"
+    ],
+    "links": [
+      [
+        "Source code",
+        "https://github.com/uit-ayeaye/mahar-yangon-teashop"
+      ]
+    ],
+    "status": "Live · open source",
+    "credit": "Shop identity, photographs, and original media belong to Mahar Yangon Teashop.",
+    "eyebrow": "BACKBENCHERS / PEOPLE & CULTURE",
+    "image": "/images/projects/mahar-yangon.webp",
+    "preview_caption": "Live website capture · September 2026"
+  },
+  {
+    "id": "thakhin-os",
+    "title": "Thakhin OS",
+    "category": "Tools",
+    "url": "https://winkokolatt.me/downloads/thakhin-os-community-edition/",
+    "summary": "A real Debian 12 Linux distribution with a playful Tha Khin Gyi community identity.",
+    "story": "Thakhin OS pairs a satirical community theme with a functional Debian 12 system. Its XFCE desktop, boot artwork, installer, Myanmar language support, and developer tools carry the Tha Khin Gyi identity across the whole operating system.",
+    "role": "Linux distribution customization and community-themed experience, presented alongside the public build source.",
+    "features": [
+      "Debian live-build configuration with a Calamares graphical installer",
+      "XFCE desktop with a Windows 11-inspired Fluent theme",
+      "Myanmar fonts and keyboard support; amd64 and arm64 editions"
+    ],
+    "stack": [
+      "Debian 12",
+      "Shell",
+      "XFCE",
+      "live-build",
+      "Calamares"
+    ],
+    "links": [
+      [
+        "GPL-3.0 source",
+        "https://github.com/winkokolatt/thakhin-os"
+      ]
+    ],
+    "status": "Open source · community edition",
+    "credit": "Published under winkokolatt/thakhin-os. The persona and slogans are satire; the underlying Debian derivative is functional. Preview shows the download website, not a running OS.",
+    "eyebrow": "BACKBENCHERS / TOOLS",
+    "image": "/images/projects/thakhin-os.webp",
+    "preview_caption": "Live website capture · September 2026"
+  },
+  {
+    "id": "campus-one",
+    "title": "Campus One · MFU REG",
+    "category": "Platforms",
+    "url": "https://campus.ztvmm.live/",
+    "summary": "An MFU-inspired university system spanning registration, teaching, finance, and student services.",
+    "story": "Campus One is an independent university-management capstone inspired by MFU’s public catalogues and registrar interface. It connects role-based workflows in a working application, with public-source references and synthetic demonstration records. It is not affiliated with MFU and does not connect to its student systems.",
+    "role": "Built the connected application, registrar workflows, responsive interfaces, and shared backend for the web and mobile experiences.",
+    "features": [
+      "Student, applicant, lecturer, registrar, finance, and administrator workflows",
+      "Registration, prerequisites, timetable conflicts, waitlists, add/drop, and grade publishing",
+      "Admissions, service requests, simulated finance, library circulation, and study-room reservations"
+    ],
+    "stack": [
+      "React",
+      "TypeScript",
+      "Node.js",
+      "PostgreSQL",
+      "PGlite",
+      "Flutter"
+    ],
+    "links": [
+      [
+        "Public demonstration",
+        "https://campus.ztvmm.live/"
+      ]
+    ],
+    "status": "Live · independent capstone",
+    "credit": "MFU-inspired study project, not an official university service or a complete replica. Public demo uses synthetic records; private student reference archives stay local.",
+    "eyebrow": "BACKBENCHERS / PLATFORMS",
+    "image": "/images/projects/campus-one.webp",
+    "preview_caption": "Live website capture · September 2026",
+    "gallery_note": "Live Campus One demo captures. All student names, grades, balances, and transactions are synthetic.",
+    "gallery": [
+      {
+        "image": "/images/projects/campus-reference.webp",
+        "title": "Registrar reference",
+        "description": "MFU-inspired registrar layout with synthetic demo records."
+      },
+      {
+        "image": "/images/projects/campus-workspace.webp",
+        "title": "Student workspace",
+        "description": "Modern dashboard showing the same synthetic student workflows."
+      }
+    ]
   },
   {
     "id": "backbenchers",
@@ -897,14 +1139,13 @@
     "category": "Tools",
     "eyebrow": "Thomas D. Lynn · the captain’s log",
     "status": "This portfolio",
-    "summary": "The ship connecting the work: games, commerce, culture, creative tools, and people.",
-    "story": "This portfolio is the home port for work that refuses to stay in one category. Backbenchers Studio brings together programming, games, and curiosity about what can be built next. The cyber Jolly Roger is the flag; the projects and the people behind them are the story.",
-    "role": "Portfolio design and implementation, project storytelling, and a responsive, accessible presentation of the studio’s work.",
+    "summary": "An indie tech studio building games, apps, and experiments in connected technology.",
+    "story": "Backbenchers Studio is the home for our games, applications, and experiments in IoT and aerial technology. The original designer’s identity combines programming symbols, game-controller buttons, and a quadcopter motif. The cyber-skull Jolly Roger is our pirate-crew variation for this portfolio; it does not replace the original studio mark.",
+    "role": "Studio founder and software developer. The original logo identity was created by our logo designer.",
     "features": [
-      "A navigable project collection with category filters and search.",
-      "Individual project stories, clear roles, and preserved collaborator credits.",
-      "A captain-inspired visual identity based on the supplied Backbenchers artwork.",
-      "Motion controls, keyboard navigation, static content, and a print-friendly résumé."
+      "Original designer identity with a connected coding, gaming, and quadcopter symbol",
+      "Games, applications, creative tools, and experiments in connected hardware",
+      "A separate cyber-skull Jolly Roger for the studio’s One Piece-inspired pirate crew"
     ],
     "stack": [
       "HTML / CSS",
@@ -913,14 +1154,15 @@
       "GitHub Pages"
     ],
     "url": "https://thomasdlynn.dev",
-    "image": "/images/backbenchers-ship.png",
+    "image": "/images/projects/backbenchers-identity.webp",
     "links": [
       [
-        "GitHub",
-        "https://github.com/uit-ayeaye"
+        "Original designer assets",
+        "https://drive.google.com/drive/folders/1iYx5K78QqnHxXc0FmvhJ04f8Ai8cpwa-"
       ]
     ],
-    "credit": null,
-    "notes": null
+    "credit": "Original logo supplied by the studio’s designer in the BB Logo final collection. Cyber-skull artwork is the pirate-crew variation.",
+    "notes": null,
+    "preview_caption": "Original designer logo · studio identity presentation"
   }
 ]

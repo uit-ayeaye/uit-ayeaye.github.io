@@ -45,7 +45,12 @@ assert 'currently unavailable' in (ROOT/'projects/epst/index.html').read_text().
 assert (ROOT/'resume/pdf-source.sha256').read_text().strip() == sha256((ROOT/'templates/resume.html').read_bytes()).hexdigest(), 'Rebuild the PDF after changing the résumé template'
 for slug in ['golden-gates', 'strikers']:
     assert any(p['id'] == slug for p in DATA)
-assert 'ztvmm.live' not in (ROOT/'projects/golden-gates/index.html').read_text(), 'Keep STRIKERS separate from logistics'
+assert 'ztvmm.live' not in next(p for p in DATA if p['id']=='golden-gates')['url'], 'Keep STRIKERS separate from logistics'
 assert 'THE CAPTAIN' not in (ROOT/'resume/thomas-d-lynn-resume.txt').read_text(), 'Text résumé must omit decorative labels'
+for slug in ['unilab','chinese-studio','academy','mahar-yangon','thakhin-os','campus-one']:
+    assert any(p['id'] == slug and p['image'] and p['features'] and p['links'] for p in DATA)
+assert 'backbenchers-identity.webp' in next(p for p in DATA if p['id']=='backbenchers')['image']
+assert 'awam-loading.webp' in next(p for p in DATA if p['id']=='awam')['image']
+assert 'wanted-original' in (ROOT/'index.html').read_text(), 'Preserve original wanted-poster text layer'
 if errors:raise SystemExit('\n'.join(errors))
 print(f'PASS: {len(files)} generated pages; local routes, assets, anchors, credits, private-project boundaries.')

@@ -210,43 +210,102 @@
 
   const previewDialog = document.querySelector('.preview-dialog');
   if (previewDialog && typeof previewDialog.showModal === 'function') {
+    const projects = JSON.parse(document.getElementById('project-data')?.textContent || '[]');
     const previewImage = previewDialog.querySelector('#preview-image');
     const viewport = previewDialog.querySelector('.preview-viewport');
     const zoom = previewDialog.querySelector('.preview-zoom');
+    const scroll = previewDialog.querySelector('.project-log-scroll');
     let opener;
+    const put = (selector, value) => { previewDialog.querySelector(selector).textContent = value || ''; };
     function setZoom(active) {
       viewport.classList.toggle('is-enlarged', active);
       zoom.setAttribute('aria-pressed', String(active));
-      zoom.textContent = active ? 'Fit preview ⊖' : 'Inspect details ⊕';
-      previewDialog.querySelector('.preview-tip').textContent = active ? 'Scroll to explore the screenshot' : 'Screenshot preview';
+      zoom.textContent = active ? 'Fit image ⊖' : 'Inspect image ⊕';
+      put('.preview-tip', active ? 'Scroll inside the image to explore' : 'A page from the project log');
       viewport.scrollTo({left:0,top:0,behavior:'instant'});
     }
-    document.querySelectorAll('[data-preview]').forEach(link => link.addEventListener('click', event => {
-      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      event.preventDefault();
-      opener = link;
-      previewImage.src = link.dataset.preview;
-      previewImage.alt = `${link.dataset.previewTitle} website screenshot`;
-      previewDialog.querySelector('#preview-title').textContent = link.dataset.previewTitle;
-      previewDialog.querySelector('.preview-case').href = link.dataset.previewCase;
-      const live = previewDialog.querySelector('.preview-live');
-      live.hidden = !link.dataset.previewUrl;
-      live.href = link.dataset.previewUrl || '/';
+    function showImage(src, caption) {
+      previewImage.hidden = !src;
+      if (src) previewImage.src = src; else previewImage.removeAttribute('src');
+      previewImage.alt = caption;
+      put('.preview-caption',caption);
+      zoom.hidden = !src;
+      previewDialog.querySelector('.preview-unavailable').hidden = !!src;
       setZoom(false);
-      previewDialog.showModal();
-      root.classList.add('preview-open');
-      previewDialog.querySelector('.preview-close').focus({preventScroll:true});
-    }));
-    zoom.addEventListener('click', () => setZoom(zoom.getAttribute('aria-pressed') !== 'true'));
-    previewDialog.querySelector('.preview-close').addEventListener('click', () => previewDialog.close());
-    previewDialog.addEventListener('click', event => {
-      if (event.target !== previewDialog) return;
-      const bounds = previewDialog.getBoundingClientRect();
-      if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) previewDialog.close();
+    }
+    function list(selector, values) {
+      const container = previewDialog.querySelector(selector);
+      container.replaceChildren(...values.map(value => { const item = document.createElement('li'); item.textContent = value; return item; }));
+    }
+    document.querySelectorAll('[data-preview], a[href^="/projects/"]').forEach(link => {
+      const id = link.dataset.projectId || link.getAttribute('href').split('/')[2];
+      const project = projects.find(p => p.id === id);
+      if (!project) return;
+      link.setAttribute('aria-haspopup','dialog');
+      link.addEventListener('click', event => {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        opener = link;
+        const initialImage = link.dataset.preview || project.image;
+        showImage(initialImage,project.preview_caption || `${project.title} preview`);
+        put('#preview-title',project.title);
+        put('.preview-meta',`${project.category} / ${project.status}`);
+        put('.preview-summary',project.summary);
+        put('.preview-story',project.story);
+        put('.preview-role',project.role);
+        put('.preview-credit',project.credit);
+        previewDialog.querySelector('.preview-credit').hidden = !project.credit;
+        previewDialog.querySelector('.preview-context').open = false;
+        list('.preview-features',project.features);
+        list('.preview-stack',project.stack);
+        const sources = previewDialog.querySelector('.preview-sources');
+        sources.replaceChildren(...project.links.map(([label,href]) => {
+          const a=document.createElement('a'); a.textContent=`${label} ↗`; a.href=href;
+          if(href.startsWith('https://')) { a.target='_blank'; a.rel='noopener noreferrer'; }
+          return a;
+        }));
+        const gallery = previewDialog.querySelector('.preview-gallery');
+        gallery.replaceChildren();
+        if(project.gallery?.length) {
+          const views=[{image:project.image,title:'Overview',description:project.preview_caption},...project.gallery];
+          views.forEach(view => {
+            const button=document.createElement('button'); button.type='button'; button.textContent=view.title;
+            button.setAttribute('aria-pressed',String(view.image===initialImage));
+            button.addEventListener('click',()=>{
+              showImage(view.image,view.description || view.title);
+              gallery.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
+            }); gallery.append(button);
+          });
+        }
+        previewDialog.querySelector('.preview-case').href=`/projects/${project.id}/`;
+        const live=previewDialog.querySelector('.preview-live');
+        live.hidden=!project.url; live.href=project.url || '/';
+        previewDialog.showModal();
+        root.classList.add('preview-open');
+        scroll.scrollTop=0;
+        previewDialog.querySelector('.preview-close').focus({preventScroll:true});
+      });
     });
-    previewDialog.addEventListener('close', () => {
-      root.classList.remove('preview-open');
-      opener?.focus({preventScroll:true});
+    zoom.addEventListener('click',()=>setZoom(zoom.getAttribute('aria-pressed')!=='true'));
+    function closePreview() {
+      previewDialog.close(); root.classList.remove('preview-open'); opener?.focus({preventScroll:true});
+    }
+    previewDialog.querySelector('.preview-close').addEventListener('click',closePreview);
+    previewDialog.addEventListener('cancel',event=>{event.preventDefault();closePreview();});
+    previewDialog.addEventListener('click',event=>{
+      if(event.target!==previewDialog) return;
+      const b=previewDialog.getBoundingClientRect();
+      if(event.clientX<b.left||event.clientX>b.right||event.clientY<b.top||event.clientY>b.bottom) closePreview();
+    });
+    previewDialog.addEventListener('keydown',event=>{
+      if(event.key!=='Tab') return;
+      const items=Array.from(previewDialog.querySelectorAll('a[href],button,[tabindex="0"],summary')).filter(el=>!el.hidden&&el.getClientRects().length);
+      const first=items[0],last=items.at(-1);
+      if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+      else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+    });
+    previewDialog.addEventListener('close',()=>{
+      if (!previewDialog.open) root.classList.remove('preview-open');
     });
   }
 
