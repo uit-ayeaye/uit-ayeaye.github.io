@@ -15,12 +15,12 @@
       themeButton.querySelector('.theme-label').textContent = light ? 'Night ocean' : 'Day logbook';
       themeButton.querySelector('span').textContent = light ? '☾' : '☼';
     }
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', light ? '#f0e7d5' : '#0b1522');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', light ? '#d8cbb1' : '#0b1522');
   }
   syncTheme();
   themeButton?.addEventListener('click', () => {
     root.dataset.theme = root.dataset.theme === 'light' ? 'dark' : 'light';
-    persist('pirate-theme', root.dataset.theme);
+    persist('bb-theme-v2', root.dataset.theme);
     syncTheme();
   });
   const gearButton = document.querySelector('.gear-toggle');
@@ -47,6 +47,7 @@
       ['captain', 'ship', 'bounty'].forEach(name => {
         document.querySelector(`.hero-${name}`).hidden = button.dataset.art !== name;
       });
+      window.voyagePop?.(document.querySelector(`.hero-${button.dataset.art}`));
       artControls.querySelectorAll('button').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
     });
   }
@@ -61,7 +62,7 @@
     motionButton.disabled = reduced.matches;
     motionButton.setAttribute('aria-pressed', String(paused));
     motionButton.querySelector('.motion-label').textContent = reduced.matches ? 'Reduced motion' : paused ? 'Motion off' : 'Motion on';
-    motionButton.title = reduced.matches ? 'Reduced motion follows your system preference' : paused ? 'Enable decorative motion' : 'Pause decorative motion';
+    motionButton.title = reduced.matches ? 'Reduced motion follows your system preference' : paused ? 'Enable animations and preview loops' : 'Pause animations and preview loops';
     motionButton.setAttribute('aria-label', motionButton.title);
   }
   syncMotion();
@@ -114,6 +115,7 @@
   if (worldTabs.length) {
     document.querySelector('.world-tabs').hidden = false;
     document.querySelector('.world-navigation').hidden = false;
+    document.querySelector('.rail-navigation').hidden = false;
     let selectedWorld = 0;
     function selectWorld(tab, focus = false) {
       selectedWorld = worldTabs.indexOf(tab);
@@ -225,6 +227,7 @@
       viewport.scrollTo({left:0,top:0,behavior:'instant'});
     }
     function showImage(src, caption) {
+      window.setVoyagePreview?.('',src);
       previewImage.hidden = !src;
       if (src) previewImage.src = src; else previewImage.removeAttribute('src');
       previewImage.alt = caption;
@@ -237,17 +240,13 @@
       const container = previewDialog.querySelector(selector);
       container.replaceChildren(...values.map(value => { const item = document.createElement('li'); item.textContent = value; return item; }));
     }
-    document.querySelectorAll('[data-preview], a[href^="/projects/"]').forEach(link => {
-      const id = link.dataset.projectId || link.getAttribute('href').split('/')[2];
-      const project = projects.find(p => p.id === id);
-      if (!project) return;
-      link.setAttribute('aria-haspopup','dialog');
-      link.addEventListener('click', event => {
-        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-        event.preventDefault();
-        opener = link;
-        const initialImage = link.dataset.preview || project.image;
+    let currentProject;
+    function openProject(project, initialImageOverride) {
+      currentProject = project;
+        const initialImage = initialImageOverride || project.image;
         showImage(initialImage,project.preview_caption || `${project.title} preview`);
+        window.setVoyagePreview?.(project.video,project.image);
+        if(project.video_caption) put('.preview-caption',project.video_caption);
         put('#preview-title',project.title);
         put('.preview-meta',`${project.category} / ${project.status}`);
         put('.preview-summary',project.summary);
@@ -280,13 +279,30 @@
         previewDialog.querySelector('.preview-case').href=`/projects/${project.id}/`;
         const live=previewDialog.querySelector('.preview-live');
         live.hidden=!project.url; live.href=project.url || '/';
-        previewDialog.showModal();
-        root.classList.add('preview-open');
-        scroll.scrollTop=0;
+
+      put('.record-position', `${String(projects.indexOf(project)+1).padStart(2,'0')} / ${projects.length}`);
+      if (!previewDialog.open) previewDialog.showModal();
+      root.classList.add('preview-open');
+      scroll.scrollTop=0;
+      window.voyagePop?.(previewDialog.querySelector('.project-log-paper'));
+    }
+    document.querySelectorAll('[data-preview], a[href^="/projects/"]').forEach(link => {
+      const id=link.dataset.projectId || link.getAttribute('href').split('/')[2];
+      const project=projects.find(p=>p.id===id);
+      if(!project) return;
+      link.setAttribute('aria-haspopup','dialog');
+      link.addEventListener('click',event=>{
+        if(event.metaKey||event.ctrlKey||event.shiftKey||event.altKey) return;
+        event.preventDefault(); opener=link;
+        openProject(project,link.dataset.preview);
         previewDialog.querySelector('.preview-close').focus({preventScroll:true});
       });
     });
-    zoom.addEventListener('click',()=>setZoom(zoom.getAttribute('aria-pressed')!=='true'));
+    previewDialog.querySelectorAll('[data-record-step]').forEach(button=>button.addEventListener('click',()=>{
+      const index=(projects.indexOf(currentProject)+Number(button.dataset.recordStep)+projects.length)%projects.length;
+      openProject(projects[index]);
+    }));
+    zoom.addEventListener('click',()=>{ window.setVoyagePreview?.('',previewImage.src); setZoom(zoom.getAttribute('aria-pressed')!=='true'); });
     function closePreview() {
       previewDialog.close(); root.classList.remove('preview-open'); opener?.focus({preventScroll:true});
     }

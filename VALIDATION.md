@@ -11,3 +11,17 @@
 - All thumbnail assets visually audited in a contact sheet. Preview frames use contain sizing. EPST is explicitly a project illustration because its live website is unavailable.
 - Résumé PDF rendered and visually checked: one page, searchable single-column text, no illustration in the downloadable ATS-oriented version. The interactive paper résumé uses the updated portrait.
 - This release updates portfolio presentation only; public app screenshots are not certification of every external app workflow or installation target.
+
+## September 20 — tactile logbook and motion previews
+
+- Added a generated, blank archival paper texture with fibers, creases, stains, and irregular CSS tears to project records, résumé paper, and case-study notes.
+- Fixed compact-list thumbnails by removing inherited image padding; adjusted list columns and narrow-phone stacking. Removed the obsolete minimum height beneath world credits.
+- Added shared spring press feedback, animated captain/ship/wanted switching, adjacent gallery arrows, mouse dragging, native horizontal touch scrolling, and previous/next project navigation inside the modal.
+- New `bb-theme-v2` preference starts in dark mode; explicit light choices persist. Day mode uses warm, dimmed parchment colors.
+- All 33 records have silent H.264 preview loops (960×600; 5.45 MB combined). Public websites and six browser worlds were recorded with CUA browser screencasts. AWAM uses its source-rendered mascot loader. SOM BI, EPST, and the studio use explicitly labeled visual presentations; Campus One shows synthetic demo records. Original creator credits remain intact.
+- Videos use no initial media preload, load when visible, play at most two simultaneously, and pause offscreen or when a modal obscures them. Reduced motion, the site motion toggle, data-saver, and 2G/3G connections retain still previews. The project modal has a reachable play/pause control.
+- Static verifier: 37 generated pages passed local routes, assets, anchors, metadata, credits, and private-project boundaries. JavaScript syntax and `git diff --check` passed.
+- Browser: 14 grid/list combinations at 320, 390, 650, 768, 1024, 1440, and 2560 pixels; 7 popup widths; no horizontal overflow and thumbnail image width equals its frame width. All 33 popup records navigated with valid media sources and no media errors. All 33 case studies, gallery, and résumé passed mobile overflow and loaded-image checks.
+- Browser: verified popup pause/resume, global motion-off, OS reduced motion, warmer light toggle, default dark pages, keyboard world selection, adjacent previous/next arrows, mouse rail dragging without accidental selection, wanted-only artwork visibility, résumé loading, and background-video pause while dialogs are open.
+- Touch uses native scrolling plus pointer swipe handling; physical-device testing is not claimed. This browser's CDP touch-event simulator is unavailable.
+- QA artifacts (ignored): `output/qa/tactile-*.json`, desktop/mobile screenshots, and first/middle/final video contact sheets. Capture provenance: `data/preview-loops.json`; image prompt: `docs/visual-assets-september-2026.json`.
