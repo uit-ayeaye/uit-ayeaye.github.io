@@ -4,6 +4,8 @@ from pathlib import Path
 from html import escape as esc
 from urllib.parse import quote, urlparse
 import json
+import re
+from hashlib import sha256
 
 ROOT = Path(__file__).resolve().parents[1]
 PROJECTS = json.loads((ROOT / 'data/projects.json').read_text())
@@ -22,6 +24,14 @@ def link(label, url, cls=''):
     return f'<a class="{esc(cls)}" href="{esc(url)}"{external(url)}>{esc(label)}</a>'
 
 
+def version_assets(markup):
+    def replace(match):
+        attr, url = match.groups()
+        digest = sha256((ROOT / url.lstrip('/')).read_bytes()).hexdigest()[:12]
+        return f'{attr}="{url}?v={digest}"'
+    return re.sub(r'(href|src)="(/(?:css|js)/[^"?]+)"', replace, markup)
+
+
 def head(title, description, canonical, image='/images/og-thomas.jpg'):
     full_image = image if image.startswith('https://') else 'https://thomasdlynn.dev' + image
     schema = {'@context': 'https://schema.org', '@type': 'Person', 'name': 'Thomas D. Lynn', 'alternateName': 'Thiha Lynn', 'url': 'https://thomasdlynn.dev', 'jobTitle': 'Software Engineer', 'sameAs': ['https://github.com/uit-ayeaye'], 'worksFor': {'@type': 'Organization', 'name': 'Backbenchers Studio'}}
@@ -35,7 +45,7 @@ def head(title, description, canonical, image='/images/og-thomas.jpg'):
         schema['@graph'].append({'@type': 'BreadcrumbList', 'itemListElement': [{'@type': 'ListItem', 'position': 1, 'name': 'Portfolio', 'item': 'https://thomasdlynn.dev/'}, {'@type': 'ListItem', 'position': 2, 'name': project['title'], 'item': 'https://thomasdlynn.dev' + canonical}]})
     if canonical == '/':
         schema['@graph'].append({'@type': 'WebSite', '@id': 'https://thomasdlynn.dev/#website', 'name': 'Thomas D. Lynn — Backbenchers Studio', 'url': 'https://thomasdlynn.dev/'})
-    return f'''<!doctype html>
+    return version_assets(f'''<!doctype html>
 <html lang="en" data-theme="dark"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <script>try{{document.documentElement.dataset.theme=localStorage.getItem('pirate-theme')==='light'?'light':'dark';document.documentElement.classList.toggle('gear-five',localStorage.getItem('bb-gear')==='on')}}catch(e){{}}</script>
 <title>{esc(title)}</title><meta name="description" content="{esc(description)}"><meta name="theme-color" content="#0b1522">
@@ -43,12 +53,14 @@ def head(title, description, canonical, image='/images/og-thomas.jpg'):
 <link rel="icon" href="/images/jolly-roger-cyber-nobg.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Pirata+One&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/captains-log.css"><link rel="stylesheet" href="/css/pirate-voyage.css"><link rel="stylesheet" href="/css/logbook-refinement.css"><link rel="stylesheet" href="/css/resume-logbook.css"><link rel="stylesheet" href="/css/grand-line-logbook.css"><script src="/js/captains-log.js" defer></script><script src="/js/resume-logbook.js" defer></script><script type="application/ld+json">{json.dumps(schema)}</script></head><body>
 <a class="skip-link" href="#main">Skip to content</a><div class="reading-progress" aria-hidden="true"></div>
-<header class="site-header"><div class="header-inner"><a class="brand" href="/" aria-label="Backbenchers Studio, home"><img src="/images/jolly-roger-cyber-nobg.png" width="48" height="35" alt=""><span>BACKBENCHERS<small>STUDIO / THOMAS D. LYNN</small></span></a><nav class="main-nav" id="main-nav" aria-label="Main navigation"><a href="/#projects">Projects</a><a href="/#about">About</a><a href="/#skills">Toolkit</a><a href="/#playground">Worlds</a><a href="/resume/" data-resume>CV ↗</a></nav><div class="header-tools"><button class="day-toggle" aria-label="Switch to day logbook" aria-pressed="false" hidden><span aria-hidden="true">☼</span><span class="theme-label">Day logbook</span></button><button class="motion-toggle" aria-pressed="false" title="Pause decorative motion" hidden><span aria-hidden="true">◌</span> <span class="motion-label">Motion on</span></button><a class="header-contact" href="/#contact">LET’S TALK ↗</a><button class="menu-toggle" aria-controls="main-nav" aria-expanded="false" hidden>MENU <span aria-hidden="true">☰</span></button></div></div></header>'''
+<header class="site-header"><div class="header-inner"><a class="brand" href="/" aria-label="Backbenchers Studio, home"><img src="/images/jolly-roger-cyber-nobg.png" width="48" height="35" alt=""><span>BACKBENCHERS<small>STUDIO / THOMAS D. LYNN</small></span></a><nav class="main-nav" id="main-nav" aria-label="Main navigation"><a href="/#projects">Projects</a><a href="/#about">About</a><a href="/#skills">Toolkit</a><a href="/#playground">Worlds</a><a href="/resume/" data-resume>CV ↗</a></nav><div class="header-tools"><button class="day-toggle" aria-label="Switch to day logbook" aria-pressed="false" hidden><span aria-hidden="true">☼</span><span class="theme-label">Day logbook</span></button><button class="motion-toggle" aria-pressed="false" title="Pause decorative motion" hidden><span aria-hidden="true">◌</span> <span class="motion-label">Motion on</span></button><a class="header-contact" href="/#contact">LET’S TALK ↗</a><button class="menu-toggle" aria-controls="main-nav" aria-expanded="false" hidden>MENU <span aria-hidden="true">☰</span></button></div></div></header>''')
 
 
 PREVIEW_DIALOG = '''<dialog class="preview-dialog" aria-labelledby="preview-title"><div class="preview-toolbar"><div><p class="eyebrow">DESIGN VIEWER / BACKBENCHERS</p><h2 id="preview-title">Project preview</h2></div><button class="preview-close" aria-label="Close preview">×</button></div><div class="preview-viewport" tabindex="0" role="region" aria-label="Project screenshot. Scroll to explore when enlarged."><img alt="" id="preview-image"></div><div class="preview-footer"><button class="preview-zoom" aria-pressed="false">Inspect details ⊕</button><span class="preview-tip">Screenshot preview</span><a class="text-link preview-case" href="/">Case study ↗</a><a class="text-link preview-live" href="/" target="_blank" rel="noopener noreferrer">Visit website ↗</a></div></dialog>'''
 
 RESUME_DIALOG = '''<dialog class="resume-dialog" aria-labelledby="resume-dialog-title"><div class="resume-dialog-toolbar"><div><p class="eyebrow">BACKBENCHERS / CREW RECORD</p><h2 id="resume-dialog-title">The captain’s logbook</h2></div><div class="resume-dialog-actions"><a href="/resume/thomas-d-lynn-resume.pdf" download class="resume-pdf">Download PDF ↓</a><button class="resume-print" disabled>Print</button><button class="resume-close" aria-label="Close résumé">×</button></div></div><div class="resume-dialog-scroll"><p class="resume-load-status" role="status">Opening the logbook…</p><div class="resume-dialog-content"></div></div><div class="resume-dialog-footer"><a href="/resume/" class="resume-full-page">Full résumé page ↗</a><a href="/resume/thomas-d-lynn-resume.txt" download>Text résumé ↓</a></div></dialog>'''
+
+RESUME_DIALOG = RESUME_DIALOG.replace('class="resume-dialog"', 'class="resume-dialog" data-resume-version="' + sha256((ROOT / 'templates/resume.html').read_bytes() + (ROOT / 'data/projects.json').read_bytes()).hexdigest()[:12] + '"')
 
 FOOTER = PREVIEW_DIALOG + RESUME_DIALOG + '''<footer class="site-footer wrap"><a href="/" class="footer-brand"><img src="/images/jolly-roger-cyber-nobg.png" alt="" width="38" height="27"> BACKBENCHERS STUDIO</a><p>© 2026 Thomas D. Lynn · Backbenchers Studio.<br>One Piece fan tribute. Original characters belong to their creators.</p><a href="#main">BACK TO TOP ↑</a></footer></body></html>'''
 

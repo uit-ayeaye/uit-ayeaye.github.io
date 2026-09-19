@@ -23,7 +23,7 @@
       const controller = new AbortController();
       const timeout = window.setTimeout(() => controller.abort(), 12000);
       try {
-        const response = await fetch('/resume/', { signal: controller.signal });
+        const response = await fetch(`/resume/?v=${encodeURIComponent(dialog.dataset.resumeVersion || 'logbook')}`, { signal: controller.signal, cache: 'no-cache' });
         if (!response.ok) throw new Error('Resume unavailable');
         const documentCopy = new DOMParser().parseFromString(await response.text(), 'text/html');
         const paper = documentCopy.querySelector('.resume-paper');
