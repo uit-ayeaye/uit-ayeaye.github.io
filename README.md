@@ -31,7 +31,7 @@ python3 scripts/verify_portfolio.py
 
 Commit the generated `index.html`, `projects/*/index.html`, `resume/index.html`, `showcase/index.html`, and `sitemap.xml` together with their source files. GitHub Pages serves them directly; it does not run the generator.
 
-The homepage retains all projects in HTML for no-JavaScript access. JavaScript adds category filters, multi-word search, URL state, an expandable collection, night-ocean/day-logbook themes, a Gear 5 color accent, card/list layouts, a showcase selector with thumbnails, arrow controls, keyboard navigation and touch swiping, a scrollable personal website collection, technology-to-project search, motion preferences, and mobile navigation. Motion respects the operating system’s reduced-motion setting. No analytics, autoplay audio, or live third-party embeds are added.
+The homepage retains all projects in HTML for no-JavaScript access. JavaScript adds category filters, multi-word search, URL state, an expandable collection, night-ocean/day-logbook themes, a Gear 5 color accent, card/list layouts, a showcase selector with thumbnails, arrow controls, keyboard navigation and touch swiping, a scrollable personal website collection, technology-to-project search (with marked documentation links when no matching project is listed), motion preferences, and mobile navigation. Motion respects the operating system’s reduced-motion setting. No analytics, autoplay audio, or live third-party embeds are added.
 
 ## Browser verification
 

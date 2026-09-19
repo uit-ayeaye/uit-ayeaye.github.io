@@ -103,6 +103,7 @@ GLYPHS = [
  '<path d="m3 12 18-9-6 18-4-7-8-2Z M11 14 21 3"/>',
 ]
 MONOGRAMS = {'Photon':'P','WebGL':'GL','FFmpeg':'▶','HLS':'≋','OpenType':'Aa','fontmake':'ƒ','Telegram':'↗','Messenger':'↯','GSAP':'G'}
+TECH_DOCS = {'Dart':'https://dart.dev/overview', 'Node.js':'https://nodejs.org/en/learn/getting-started/introduction-to-nodejs', 'Nginx':'https://nginx.org/en/docs/'}
 
 def skill_cards():
     out = ''
@@ -110,7 +111,10 @@ def skill_cards():
         chips = ''
         for name, icon in TECH[i]:
             visual = f'<img src="/images/tech/{icon}.svg" alt="" width="28" height="28" loading="lazy">' if icon else f'<span class="tech-monogram" aria-hidden="true">{MONOGRAMS[name]}</span>'
-            chips += f'<a class="tech-chip" href="/?q={quote(name)}#projects" data-tech="{esc(name)}" aria-label="Find projects using {esc(name)}">{visual}<span>{esc(name)}</span></a>'
+            if name in TECH_DOCS:
+                chips += f'<a class="tech-chip" href="{TECH_DOCS[name]}" target="_blank" rel="noopener noreferrer" aria-label="{esc(name)} documentation (opens in a new tab)" title="{esc(name)} documentation">{visual}<span>{esc(name)} ↗</span></a>'
+            else:
+                chips += f'<a class="tech-chip" href="/?q={quote(name)}#projects" data-tech="{esc(name)}" aria-label="Find projects using {esc(name)}">{visual}<span>{esc(name)}</span></a>'
         out += f'<article class="skill"><div class="skill-header"><svg viewBox="0 0 24 24" aria-hidden="true">{GLYPHS[i]}</svg><span class="skill-number">0{i+1} / CAPABILITY</span></div><h3>{title}</h3><p>{desc}</p><div class="tech-grid">{chips}</div><a href="/projects/{slug}/">{label} ↗</a></article>'
     return out
 
