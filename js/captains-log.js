@@ -273,7 +273,7 @@
       if (!previewDialog.open) previewDialog.showModal();
       root.classList.add('preview-open');
       scroll.scrollTop=0;
-      window.voyagePop?.(previewDialog.querySelector('.project-log-paper'));
+      // The dialog reveals the paper; keep its text stationary for selection.
     }
     document.querySelectorAll('[data-preview], a[href^="/projects/"]').forEach(link => {
       const id=link.dataset.projectId || link.getAttribute('href').split('/')[2];

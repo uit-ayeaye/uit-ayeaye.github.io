@@ -5,6 +5,25 @@
  // Decorative motion defaults on for each page; OS reduced motion always takes precedence.
  const still=()=>reduced.matches||root.classList.contains('motion-paused');
  const animations=new WeakMap();
+ const readingSurface='.resume-paper,.project-log-paper,.scroll-sheet,.case-main,.post-body,.project-body,.personal-copy,.case-sidebar,.expedition-chart,.main-nav';
+ // Selecting ink is not a request to open the link beneath the mouse release.
+ let textGesture=null;
+ document.addEventListener('pointerdown',event=>{
+  const paperLink=event.target.closest('a');
+  if(paperLink?.closest(readingSurface))paperLink.draggable=false;
+  textGesture=event.button===0&&event.target.closest(readingSurface)?{x:event.clientX,y:event.clientY,moved:false}:null;
+ },true);
+ document.addEventListener('pointerup',event=>{
+  if(textGesture)textGesture.moved=Math.hypot(event.clientX-textGesture.x,event.clientY-textGesture.y)>5;
+ },true);
+ document.addEventListener('pointercancel',()=>{textGesture=null;},true);
+ document.addEventListener('click',event=>{
+  const selecting=textGesture?.moved&&!window.getSelection()?.isCollapsed;
+  textGesture=null;
+  if(event.detail&&selecting&&event.target.closest(readingSurface)){
+   event.preventDefault();event.stopImmediatePropagation();
+  }
+ },true);
  window.voyagePop=element=>{
   if(!element||still()) return;
   animations.get(element)?.cancel();
@@ -44,7 +63,9 @@
  });
  document.addEventListener('click',event=>{
   const target=event.target.closest('button:not(:disabled),a[href],[role="button"]');
-  if(!target||still()||event.defaultPrevented&&target.closest('.is-dragging')) return;
+  if(!target||still()||event.defaultPrevented) return;
+  // Paper links use an ink highlight: never scale the text or its hit target.
+  if(target.closest(readingSurface)) return;
   animations.get(target)?.cancel();
   animations.set(target,play(target,[
    {scale:'.96'},{scale:'1.025',offset:.6},{scale:'1'}
@@ -104,15 +125,17 @@
  // Native touch scrolling; mouse drag adds the same affordance on a laptop.
  document.querySelectorAll('.world-tabs,.personal-track').forEach(rail=>{
   let drag=null, suppress=false;
-  rail.addEventListener('dragstart',event=>event.preventDefault());
+  rail.addEventListener('dragstart',event=>{if(!event.target.closest('.personal-copy'))event.preventDefault();});
   rail.addEventListener('pointerdown',event=>{
-   if(event.pointerType!=='mouse'||event.button!==0) return;
-   suppress=false; drag={x:event.clientX,left:rail.scrollLeft,id:event.pointerId,moved:false};
+   suppress=false;
+   if(event.pointerType!=='mouse'||event.button!==0||event.target.closest('.personal-copy')) return;
+   drag={x:event.clientX,y:event.clientY,left:rail.scrollLeft,id:event.pointerId,moved:false};
   });
   rail.addEventListener('pointermove',event=>{
    if(!drag) return;
-   const dx=event.clientX-drag.x;
-   if(Math.abs(dx)>6&&!drag.moved){drag.moved=true;rail.setPointerCapture(event.pointerId);rail.classList.add('is-dragging');}
+   const dx=event.clientX-drag.x,dy=event.clientY-drag.y;
+   if(!drag.moved&&Math.abs(dy)>8&&Math.abs(dy)>Math.abs(dx)){drag=null;return;}
+   if(Math.abs(dx)>8&&Math.abs(dx)>Math.abs(dy)*1.25&&!drag.moved){drag.moved=true;rail.setPointerCapture(event.pointerId);rail.classList.add('is-dragging');}
    if(drag.moved){event.preventDefault();rail.scrollLeft=drag.left-dx;}
   });
   const finish=()=>{if(!drag)return;suppress=drag.moved;drag=null;rail.classList.remove('is-dragging');};

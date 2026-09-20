@@ -4,6 +4,7 @@ from pathlib import Path
 from html import escape
 from hashlib import sha256
 import random
+import reportlab
 from bs4 import BeautifulSoup
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
@@ -18,10 +19,21 @@ paper=BeautifulSoup((ROOT/'resume/index.html').read_text(),'html.parser').select
 for name,file in [('Kalam','Kalam-Regular.ttf'),('Kalam-Bold','Kalam-Bold.ttf'),('Pirata','PirataOne-Regular.ttf')]:
     pdfmetrics.registerFont(TTFont(name,str(ROOT/'images/fonts'/file)))
 pdfmetrics.registerFontFamily('Kalam',normal='Kalam',bold='Kalam-Bold',italic='Kalam',boldItalic='Kalam-Bold')
+# Embed body fonts and their Unicode maps; viewers need no substitute font metrics.
+for name,file in [('ResumeSans','Vera.ttf'),('ResumeSans-Bold','VeraBd.ttf')]:
+    pdfmetrics.registerFont(TTFont(name,str(Path(reportlab.__file__).parent/'fonts'/file)))
+pdfmetrics.registerFontFamily('ResumeSans',normal='ResumeSans',bold='ResumeSans-Bold',italic='ResumeSans',boldItalic='ResumeSans-Bold')
 def text(element):
     return escape(element.get_text(' ',strip=True)).replace('↗','').replace('—','-').replace('–','-').replace('’',"'")
 def rich(element):
     value=text(element)
+    links=[element] if element.name=='a' else element.find_all('a',href=True)
+    for a in links:
+        href=a.get('href','')
+        if href.startswith('/'):href='https://thomasdlynn.dev'+href
+        if href.startswith(('https://','mailto:')):
+            label=text(a)
+            value=value.replace(label,'<link href="'+escape(href,quote=True)+'" color="#60351e"><u>'+label+'</u></link>',1)
     # Preserve the emphasis and all content of ordinary skill-list items.
     if element.name=='li' and element.strong:
         strong=text(element.strong);value=value.replace(strong,'<b>'+strong+'</b>',1)
@@ -44,27 +56,27 @@ def background(canvas,doc):
     canvas.rect(29,30,w-58,h-60,fill=1,stroke=0);canvas.setFillAlpha(1)
     canvas.setStrokeColor(colors.HexColor('#a4895d'));canvas.setLineWidth(.4)
     canvas.rect(24,27,w-48,h-54,fill=0,stroke=1)
-    canvas.setFillColor(colors.HexColor('#735235'));canvas.setFont('Helvetica',7)
+    canvas.setFillColor(colors.HexColor('#735235'));canvas.setFont('ResumeSans',7)
     canvas.drawString(53,h-49,'BACKBENCHERS STUDIO / THE COMPLETE LOGBOOK')
     canvas.drawRightString(w-53,42,f'THOMAS D. LYNN  /  {doc.page:02}')
     canvas.drawString(53,42,'thomasdlynn.dev')
     if doc.page==1:canvas.drawImage(portrait,w-144,h-205,width=83,height=112,mask='auto',preserveAspectRatio=True)
     canvas.restoreState()
 def plain_footer(canvas,doc):
-    canvas.saveState();canvas.setFont('Helvetica',8);canvas.setFillColor(colors.HexColor('#555555'))
+    canvas.saveState();canvas.setFont('ResumeSans',8);canvas.setFillColor(colors.HexColor('#555555'))
     canvas.drawString(16*mm,10*mm,'Thomas D. Lynn | thomasdlynn.dev');canvas.drawRightString(A4[0]-16*mm,10*mm,str(doc.page));canvas.restoreState()
 def build(artful=False):
-    body='Helvetica';bold='Helvetica-Bold';ink=colors.HexColor('#29251e') if artful else colors.black
+    body='ResumeSans';bold='ResumeSans-Bold';ink=colors.HexColor('#29251e') if artful else colors.black
     styles={
       'name':ParagraphStyle('Name',fontName='Pirata' if artful else bold,fontSize=35 if artful else 25,leading=40 if artful else 29,spaceAfter=10,textColor=ink),
       'role':ParagraphStyle('Role',fontName=bold,fontSize=12 if artful else 11,leading=17,spaceAfter=4,textColor=ink),
       'meta':ParagraphStyle('Meta',fontName=body,fontSize=10 if artful else 9,leading=13.5,spaceAfter=5,textColor=ink),
       'note':ParagraphStyle('Note',fontName=body,fontSize=10 if artful else 9,leading=13.5,spaceAfter=5,keepWithNext=True,textColor=ink),
       'accent':ParagraphStyle('Accent',fontName='Kalam',fontSize=13,leading=18,spaceAfter=8,textColor=ink),
-      'body':ParagraphStyle('Body',fontName=body,fontSize=11.5 if artful else 10,leading=17.5 if artful else 14,spaceAfter=7,textColor=ink),
+      'body':ParagraphStyle('Body',fontName=body,fontSize=11 if artful else 10,leading=16.5 if artful else 14,spaceAfter=7,textColor=ink),
       'section':ParagraphStyle('Section',fontName='Pirata' if artful else bold,fontSize=23 if artful else 13,leading=27 if artful else 17,spaceBefore=17,spaceAfter=9,keepWithNext=True,textColor=colors.HexColor('#713b27') if artful else ink),
       'entry':ParagraphStyle('Entry',fontName=bold,fontSize=14 if artful else 11,leading=18 if artful else 15,spaceAfter=4,keepWithNext=True,textColor=ink),
-      'stack':ParagraphStyle('Stack',fontName='Helvetica',fontSize=8,leading=11,spaceAfter=10,textColor=colors.HexColor('#624b30') if artful else colors.HexColor('#444444')),
+      'stack':ParagraphStyle('Stack',fontName=body,fontSize=8,leading=11,spaceAfter=10,textColor=colors.HexColor('#624b30') if artful else colors.HexColor('#444444')),
     }
     def paragraph(el,style='body'):return Paragraph(rich(el),styles[style])
     story=[paragraph(paper.select_one('h1'),'name'),paragraph(paper.select_one('.resume-role'),'role'),paragraph(paper.select_one('.resume-alias'),'accent' if artful else 'meta')]
@@ -82,7 +94,7 @@ def build(artful=False):
                 for p in child.find_all('p',recursive=False):row.append(paragraph(p,'stack' if 'resume-stack' in p.get('class',[]) else 'body'))
                 story.append(KeepTogether(row))
             elif child.name=='ul':
-                for li in child.find_all('li',recursive=False):story.append(paragraph(li))
+                for li in child.find_all('li',recursive=False):story.append(KeepTogether([paragraph(li)]))
             elif child.name=='h3':story.append(paragraph(child,'entry'))
             elif child.name=='p':
                 if 'resume-signature' in child.get('class',[]) and not artful:continue

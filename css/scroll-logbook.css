@@ -45,9 +45,9 @@ details[open]>.motion-disclosure>.scroll-sheet::after { animation:scroll-fold-pa
 .expedition-dock[open] .expedition-chart { transform-origin:50% 100%; animation:scroll-chart-open .4s cubic-bezier(.16,1,.3,1); }
 .logbook-article .post-body { background:var(--scroll-paper); }
 @keyframes scroll-envelope-open {
- 0% { opacity:.3; clip-path:inset(0 0 94% 0 round 12px); transform:perspective(1200px) rotateX(-5deg) translateY(-8px); }
+ 0% { opacity:.3; clip-path:inset(0 0 94% 0 round 12px); }
  55% { opacity:1; }
- 100% { opacity:1; clip-path:inset(0 round 12px); transform:none; }
+ 100% { opacity:1; clip-path:inset(0 round 12px); }
 }
 @keyframes scroll-chart-open {
  from { opacity:.3; clip-path:inset(92% 0 0 0); translate:0 8px; }
@@ -108,3 +108,18 @@ details[open]>.motion-disclosure>.scroll-sheet::after { animation:scroll-fold-pa
 .expedition-chart,.main-nav.is-open { box-shadow:inset 0 0 28px #633b1740,0 24px 45px #0005; }
 .scroll-sheet :is(.skill-detail>p,.world-credit,.captain-memory p,.personal-copy p),.preview-context .scroll-sheet p { color:#291c10; }
 .project-log-paper .preview-meta,.project-log-paper .preview-credit,.scroll-sheet :is(.collection-hint,.personal-copy h3>span) { color:#50361e; }
+
+/* Native text selection stays aligned with the ink, including inside dialogs. */
+:is(.resume-paper,.project-log-paper,.scroll-sheet,.case-main,.post-body,.project-body,.personal-copy,.case-sidebar,.expedition-chart,.main-nav) {
+ -webkit-user-select:text; user-select:text; touch-action:auto;
+}
+:is(.resume-paper,.project-log-paper,.scroll-sheet,.case-main,.post-body,.project-body,.personal-copy,.case-sidebar,.expedition-chart,.main-nav) :is(p,li,h1,h2,h3,h4) { cursor:text; }
+:is(.resume-paper,.project-log-paper,.scroll-sheet,.case-main,.post-body,.project-body,.personal-copy,.case-sidebar,.expedition-chart,.main-nav) ::selection { background:#75402c; color:#fff5dc; text-shadow:none; }
+:is(.resume-paper,.project-log-paper,.scroll-sheet,.case-main,.post-body,.project-body,.personal-copy,.case-sidebar,.expedition-chart,.main-nav)::selection { background:#75402c; color:#fff5dc; }
+:is(.resume-paper,.project-log-paper,.scroll-sheet,.case-main,.post-body,.project-body,.personal-copy,.case-sidebar,.expedition-chart,.main-nav) a { cursor:pointer; touch-action:manipulation; -webkit-user-drag:none; }
+:is(.resume-paper,.project-log-paper,.scroll-sheet) a:is(:hover,:focus-visible) { color:#53220f; background-color:#fff0bc70; text-decoration:underline; text-underline-offset:4px; }
+:is(.resume-paper,.project-log-paper,.scroll-sheet) a:focus-visible { outline:2px solid #70351e; outline-offset:3px; }
+:is(.resume-paper,.project-log-paper,.scroll-sheet) a:active { scale:none; translate:none; }
+.resume-paper .resume-contact a { display:inline-flex; align-items:center; min-height:44px; }
+.personal-copy { cursor:auto; }
+@media print { :is(.resume-paper,.project-log-paper,.scroll-sheet) a { background:none!important; } }

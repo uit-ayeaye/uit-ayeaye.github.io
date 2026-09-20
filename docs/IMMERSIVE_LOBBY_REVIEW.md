@@ -47,3 +47,11 @@ Removed a 390px breakpoint that made list mode identical to cards. The mobile ma
 ## Vintage parchment restoration
 
 Restored the richer amber, stains, folds, and darkened edges of the original paper at the user’s request. A light amber wash replaces the near-opaque cream layer, while the readable body fonts and spacing remain. Shared dropdowns, toolkit inserts, project logs, voyage charts, and article surfaces use the same weathered stock and more irregular tears. CV/project dialog chrome returns to a dark nautical frame with brass text and wax-seal close controls. The illustrated PDF carries the matching texture on all eight pages; the plain PDF remains unchanged. Verified mobile CV, project popup, chart, and toolkit, 320px navigation overflow, desktop résumé, and all eight PDF pages visually.
+
+## Accurate text selection and paper links
+
+Paper text now uses native selection with a dark-ink highlight, explicit text/link cursors, stable click targets, and 44px résumé contact targets. Selecting link text does not navigate or open a project modal. Paper anchors disable native link dragging; the personal collection’s mouse-drag rail excludes its copy, while image dragging still scrolls the rail. Removed the spring transform on project paper and the 3D movement from dialog reveals; the scroll clipping and vintage texture remain. The shared behavior and styles also cover article paper, case-study copy, sidebars, and navigation charts.
+
+Browser checks selected exact phrases and project names, confirmed no accidental modal, verified that the next normal click opens the project, and selected Nyan Production without moving the collection (scrollLeft remained 1). Dragging its imagery then moved the rail to 571 without opening a project. Mobile CV at 320px had no overflow and all three contact links measured 44px high. No console errors were observed.
+
+Both PDFs now embed the body font and Unicode mapping (ReportLab’s bundled Bitstream Vera) and preserve 37 actual link annotations for contacts and project references. All canonical résumé section text was verified in extraction. The illustrated PDF remains eight pages; plain remains six. Skill rows stay together, with revised illustrated body spacing to avoid a stranded line. The native PDF viewer’s selection handles and Ask for change overlay are controlled by the viewer, not the website.
