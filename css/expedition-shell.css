@@ -20,3 +20,19 @@ button,summary,a.button { transition:scale .18s,box-shadow .2s; }
 button:active,summary:active,a.button:active { scale:.96; }
 .logbook-article .post-body { background:#e0cda6 url('/images/resume/weathered-paper.webp') center/100% 100%; }
 @media(prefers-reduced-motion:reduce) { button,summary,a { transition:none!important; scale:none!important; } }
+/* The same softly lit controls accompany the individual worlds and journal. */
+.expedition-dock>summary { background:linear-gradient(145deg,#263e46ee,#101e2aee); border-color:#8fa5a266; box-shadow:0 4px 0 #050c14,0 12px 32px #0006,inset 0 1px #ffffff1a; transition:box-shadow .25s,translate .25s; }
+.expedition-dock>summary:hover { translate:0 -2px; box-shadow:0 6px 0 #050c14,0 16px 38px #0007; }
+.expedition-chart { border-radius:18px; box-shadow:0 24px 80px #0009; transform-origin:90% 100%; }
+.expedition-dock[open] .expedition-chart { animation:chart-unfold .32s cubic-bezier(.16,1,.3,1); }
+.expedition-chart a { border-radius:12px; padding:10px 7px; transition:background .2s,translate .2s; }
+.expedition-chart a:hover { translate:3px 0; }
+.expedition-chart a span { transition:translate .2s; }.expedition-chart a:hover span { translate:2px -2px; }
+.expedition-dock>summary>span { transition:rotate .3s; }.expedition-dock[open]>summary>span { rotate:45deg; }
+@keyframes chart-unfold { from { opacity:0; transform:translateY(12px) scale(.95); } to { opacity:1; transform:none; } }
+.interactive-surface { overflow:hidden; isolation:isolate; }
+.interaction-static { position:relative; }
+.tap-bloom { position:absolute; pointer-events:none; width:160px; height:160px; margin:-80px; border-radius:50%; background:radial-gradient(circle,#fff4,transparent 70%); z-index:3; }
+@media(prefers-reduced-motion:reduce) { .expedition-dock * { animation:none!important; transition:none!important; translate:none!important; } }
+
+.motion-paused .expedition-dock * { animation:none!important; transition:none!important; translate:none!important; scale:none!important; }

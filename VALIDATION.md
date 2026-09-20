@@ -25,3 +25,11 @@
 - Browser: verified popup pause/resume, global motion-off, OS reduced motion, warmer light toggle, default dark pages, keyboard world selection, adjacent previous/next arrows, mouse rail dragging without accidental selection, wanted-only artwork visibility, résumé loading, and background-video pause while dialogs are open.
 - Touch uses native scrolling plus pointer swipe handling; physical-device testing is not claimed. This browser's CDP touch-event simulator is unavailable.
 - QA artifacts (ignored): `output/qa/tactile-*.json`, desktop/mobile screenshots, and first/middle/final video contact sheets. Capture provenance: `data/preview-loops.json`; image prompt: `docs/visual-assets-september-2026.json`.
+
+## September 20 — midnight studio refinement
+
+- Added dimmed surfaces, layered button/card shadows, mobile action alignment, and shared control states across generated portfolio pages.
+- Six original SVG skill illustrations and compact technology symbols replace the oversized arches and placeholder monograms.
+- Added reversible disclosure animation, staggered world/tool entrances, local click blooms, and progressive page transitions. Both OS and saved motion preferences suppress effects.
+- Browser: 33 modal records, 33 case-study routes, 28 responsive theme/layout combinations, six world docks, two articles, gallery, résumé, search, filters, keyboard navigation, rapid disclosure clicks, and preference persistence verified.
+- Static asset/link/anchor verifier, JS syntax, and whitespace checks passed. Detailed scope and limits: `docs/MIDNIGHT_STUDIO_REVIEW.md`.

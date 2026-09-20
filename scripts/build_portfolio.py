@@ -56,7 +56,7 @@ def head(title, description, canonical, image='/images/og-thomas.jpg'):
 <title>{esc(title)}</title><meta name="description" content="{esc(description)}"><meta name="theme-color" content="#0b1522">
 <link rel="canonical" href="https://thomasdlynn.dev{canonical}"><meta property="og:type" content="website"><meta property="og:title" content="{esc(title)}"><meta property="og:description" content="{esc(description)}"><meta property="og:url" content="https://thomasdlynn.dev{canonical}"><meta property="og:image" content="{esc(full_image)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="{esc(title)}"><meta name="twitter:description" content="{esc(description)}"><meta name="twitter:image" content="{esc(full_image)}"><meta property="og:site_name" content="Thomas D. Lynn · Backbenchers Studio"><meta property="og:locale" content="en_US"><meta property="og:image:alt" content="{esc(title)}"><meta name="author" content="Thomas D. Lynn"><meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="icon" href="/images/jolly-roger-cyber-nobg.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Pirata+One&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/css/captains-log.css"><link rel="stylesheet" href="/css/pirate-voyage.css"><link rel="stylesheet" href="/css/logbook-refinement.css"><link rel="stylesheet" href="/css/resume-logbook.css"><link rel="stylesheet" href="/css/grand-line-logbook.css"><link rel="stylesheet" href="/css/project-log.css"><link rel="stylesheet" href="/css/tactile-voyage.css"><script src="/js/tactile-voyage.js" defer></script><script src="/js/captains-log.js" defer></script><script src="/js/resume-logbook.js" defer></script><script src="/js/preview-loops.js" defer></script><script type="application/ld+json">{json.dumps(schema)}</script></head><body>
+<link rel="stylesheet" href="/css/captains-log.css"><link rel="stylesheet" href="/css/pirate-voyage.css"><link rel="stylesheet" href="/css/logbook-refinement.css"><link rel="stylesheet" href="/css/resume-logbook.css"><link rel="stylesheet" href="/css/grand-line-logbook.css"><link rel="stylesheet" href="/css/project-log.css"><link rel="stylesheet" href="/css/tactile-voyage.css"><link rel="stylesheet" href="/css/midnight-studio.css"><script src="/js/tactile-voyage.js" defer></script><script src="/js/captains-log.js" defer></script><script src="/js/resume-logbook.js" defer></script><script src="/js/preview-loops.js" defer></script><script type="application/ld+json">{json.dumps(schema)}</script></head><body>
 <a class="skip-link" href="#main">Skip to content</a><div class="reading-progress" aria-hidden="true"></div>
 <header class="site-header"><div class="header-inner"><a class="brand" href="/" aria-label="Backbenchers Studio, home"><img src="/images/jolly-roger-cyber-nobg.png" width="48" height="35" alt=""><span>BACKBENCHERS<small>STUDIO / THOMAS D. LYNN</small></span></a><nav class="main-nav" id="main-nav" aria-label="Main navigation"><a href="/#projects">Projects</a><a href="/#about">About</a><a href="/#skills">Toolkit</a><a href="/#playground">Worlds</a><a href="/resume/" data-resume>CV ↗</a></nav><div class="header-tools"><button class="day-toggle" aria-label="Switch to day logbook" aria-pressed="false" hidden><span aria-hidden="true">☼</span><span class="theme-label">Day logbook</span></button><button class="motion-toggle" aria-pressed="false" title="Pause decorative motion" hidden><span aria-hidden="true">◌</span> <span class="motion-label">Motion on</span></button><a class="header-contact" href="/#contact">LET’S TALK ↗</a><button class="menu-toggle" aria-controls="main-nav" aria-expanded="false" hidden>MENU <span aria-hidden="true">☰</span></button></div></div></header>''')
 
@@ -143,15 +143,29 @@ TECH = [
  [('Python','python'),('FFmpeg',None),('HLS',None),('OpenType',None),('fontmake',None)],
  [('Telegram',None),('Messenger',None),('GSAP',None),('GitHub Pages','github'),('Nginx','nginx')],
 ]
+# Original miniature toolkit illustrations. Brand assets retain their attribution.
 GLYPHS = [
- '<path d="m8 8-3 4 3 4m8-8 3 4-3 4M10 19l4-14"/>',
- '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M7 6.5h.01M10 6.5h.01M8 13h8m-8 3h5"/>',
- '<rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 5h4m-3 14h2M9 9h6v5H9z"/>',
- '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 4 16 4 16 0V5M4 12c0 4 16 4 16 0"/>',
- '<path d="m4 20 7-16h2l7 16M7 14h10M3 20h4m10 0h4"/><circle cx="12" cy="4" r="1"/>',
- '<path d="m3 12 18-9-6 18-4-7-8-2Z M11 14 21 3"/>',
+ '<path class="mascot-fill" d="M10 15h28l4 19-8 3-6-6h-8l-6 6-8-3Z"/><path d="M16 15h16c4 0 6 3 7 7l3 11c1 5-4 7-7 4l-7-6h-8l-7 6c-3 3-8 1-7-4l3-11c1-4 3-7 7-7Z"/><path d="M12 24h8m-4-4v8M20 8l4 3 4-3"/><circle class="mascot-eye" cx="31" cy="22" r="2"/><circle class="mascot-eye" cx="35" cy="27" r="2"/>',
+ '<rect class="mascot-fill" x="6" y="10" width="36" height="28" rx="6"/><rect x="6" y="10" width="36" height="28" rx="6"/><path d="M6 18h36m-9-5h3M20 29q4 5 8 0"/><circle class="mascot-eye" cx="17" cy="25" r="1.6"/><circle class="mascot-eye" cx="31" cy="25" r="1.6"/><path d="m10 5 1-3m29 40 3 3"/>',
+ '<rect class="mascot-fill" x="13" y="5" width="23" height="38" rx="7"/><rect x="13" y="5" width="23" height="38" rx="7"/><path d="M21 10h7m-6 27h5m-8-12q5 5 10 0M6 20l-3 2 3 2m36-13 3 2-3 2"/><circle class="mascot-eye" cx="20" cy="21" r="1.5"/><circle class="mascot-eye" cx="29" cy="21" r="1.5"/>',
+ '<rect class="mascot-fill" x="7" y="9" width="34" height="30" rx="6"/><rect x="7" y="9" width="34" height="30" rx="6"/><path d="M7 24h34m-25-8h1m5 0h1m9 0h2m-18 15h1m5 0h1m9 0h2M19 43h10M24 5V2"/><circle cx="24" cy="3" r="1"/>',
+ '<rect class="mascot-fill" x="6" y="18" width="28" height="22" rx="6"/><rect x="6" y="18" width="28" height="22" rx="6"/><circle cx="14" cy="11" r="6"/><circle cx="28" cy="10" r="7"/><path d="m34 25 9-5v18l-9-5M16 29l8-4v9Z"/><path d="m4 7-2-2"/>',
+ '<rect class="mascot-fill" x="9" y="14" width="30" height="25" rx="8"/><rect x="9" y="14" width="30" height="25" rx="8"/><path d="M24 14V8m-7 23q7 5 14 0M5 23v7m38-7v7m-28 9-2 4m22-4 2 4"/><circle cx="24" cy="6" r="3"/><circle class="mascot-eye" cx="18" cy="24" r="2"/><circle class="mascot-eye" cx="30" cy="24" r="2"/>',
 ]
-MONOGRAMS = {'Photon':'P','WebGL':'GL','FFmpeg':'▶','HLS':'≋','OpenType':'Aa','fontmake':'ƒ','Telegram':'↗','Messenger':'↯','GSAP':'G'}
+TECH_SYMBOLS = {
+ 'Photon':'<circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="10" ry="5" transform="rotate(-35 12 12)"/><path d="m19 3 2 2"/>',
+ 'WebGL':'<path d="m12 2 9 5v10l-9 5-9-5V7Zm0 10L3 7m9 5 9-5m-9 5v10M7 5l10 14"/>',
+ 'FFmpeg':'<rect x="2" y="4" width="20" height="16" rx="3"/><path d="m10 8 6 4-6 4ZM5 5v14m14-14v14"/>',
+ 'HLS':'<path d="M3 9v6m4-10v14m5-16v18m5-15v12m4-8v4"/>',
+ 'OpenType':'<path d="m3 20 6-16 6 16M5 15h8m2-5h7m-3 0v10"/>',
+ 'fontmake':'<path d="m4 18 2-5L17 2l5 5-11 11-5 2ZM14 5l5 5M3 23h18"/>',
+ 'Telegram':'<path d="m2 11 20-8-5 19-5-7-6 3 1-6Zm5 1L22 3 12 15"/>',
+ 'Messenger':'<path d="M21 11a9 9 0 0 1-13 8l-5 2 1-5a9 9 0 1 1 17-5Z"/><path d="m6 13 5-5 2 4 5-3-5 7-2-4Z"/>',
+ 'GSAP':'<path d="m14 2-9 12h6l-1 8 9-13h-6Z"/>',
+}
+def tech_visual(name, icon):
+    return f'<img src="/images/tech/{icon}.svg" alt="" width="28" height="28" loading="lazy">' if icon else f'<svg class="tech-symbol" viewBox="0 0 24 24" aria-hidden="true">{TECH_SYMBOLS[name]}</svg>'
+
 TECH_DOCS = {'Dart':'https://dart.dev/overview', 'Node.js':'https://nodejs.org/en/learn/getting-started/introduction-to-nodejs', 'Nginx':'https://nginx.org/en/docs/'}
 
 def skill_cards():
@@ -159,12 +173,13 @@ def skill_cards():
     for i, (n, title, _, desc, slug, label) in enumerate(SKILLS):
         chips = ''
         for name, icon in TECH[i]:
-            visual = f'<img src="/images/tech/{icon}.svg" alt="" width="28" height="28" loading="lazy">' if icon else f'<span class="tech-monogram" aria-hidden="true">{MONOGRAMS[name]}</span>'
+            visual = tech_visual(name, icon)
             if name in TECH_DOCS:
                 chips += f'<a class="tech-chip" href="{TECH_DOCS[name]}" target="_blank" rel="noopener noreferrer" aria-label="{esc(name)} documentation (opens in a new tab)" title="{esc(name)} documentation">{visual}<span>{esc(name)} ↗</span></a>'
             else:
                 chips += f'<a class="tech-chip" href="/?q={quote(name)}#projects" data-tech="{esc(name)}" aria-label="Find projects using {esc(name)}">{visual}<span>{esc(name)}</span></a>'
-        out += f'<details class="skill"><summary><span class="skill-header"><svg viewBox="0 0 24 24" aria-hidden="true">{GLYPHS[i]}</svg><span class="skill-number">0{i+1}</span><span class="skill-plus" aria-hidden="true">＋</span></span><h3>{title}</h3><span class="skill-teaser">{" · ".join(name for name, _ in TECH[i][:3])}</span></summary><div class="skill-detail"><p>{desc}</p><div class="tech-grid">{chips}</div><a href="/projects/{slug}/">{label} ↗</a></div></details>'
+        peek = ''.join(f'<span>{tech_visual(name, icon)}</span>' for name, icon in TECH[i][:3])
+        out += f'<details class="skill"><summary><span class="skill-header"><span class="skill-mascot"><svg viewBox="0 0 48 48" aria-hidden="true">{GLYPHS[i]}</svg></span><span class="skill-number">0{i+1}</span><span class="skill-plus" aria-hidden="true">＋</span></span><h3>{title}</h3><span class="skill-teaser">{" · ".join(name for name, _ in TECH[i][:3])}</span><span class="skill-peek" aria-hidden="true">{peek}<small>{len(TECH[i])} tools to explore ↗</small></span></summary><div class="skill-detail"><p>{desc}</p><div class="tech-grid">{chips}</div><a href="/projects/{slug}/">{label} ↗</a></div></details>'
     return out
 
 

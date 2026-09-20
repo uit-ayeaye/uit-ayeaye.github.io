@@ -19,6 +19,7 @@ Open [localhost:4173](http://localhost:4173).
 - `data/projects.json` — reviewed project stories, role, features, technologies, links, preview image, and credits.
 - `templates/home.html` — homepage sections and copy.
 - `templates/resume.html` — shared résumé content for the page, popup, plain text, and PDF.
+- `css/midnight-studio.css` / `js/tactile-voyage.js` — dimmed surfaces, illustrated toolkit cards, shared button feedback, and reversible disclosures.
 - `css/logbook-refinement.css` / `css/resume-logbook.css` / `js/resume-logbook.js` — simplified homepage and immersive CV.
 - `scripts/build_resume_pdf.py` — one-page PDF generation (ReportLab and BeautifulSoup required).
 - `scripts/build_portfolio.py` — static HTML generation for the homepage, showcase gallery, case studies, résumé, and sitemap.
@@ -53,7 +54,7 @@ node scripts/test_portfolio.cjs
 
 Tests cover all six categories, search/reset, URL state, keyboard behavior, mobile navigation, saved preferences, showcase tabs/source links, no-JS access, reduced motion, case-study routes, and both themes/layouts at widths from 320 to 2560 pixels. `scripts/test_showcases.cjs` separately smoke-tests all six scene launches and selected desktop/touch interactions. `verify_portfolio.py` checks local links/assets/anchors and SOM BI’s publication boundaries.
 
-Technology marks are served locally from Devicon; the pinned revision, license, and attribution are in `images/tech/README.md` and `images/tech/LICENSE-DEVICON.txt`. Other technology symbols are custom monograms.
+Technology marks are served locally from Devicon; the pinned revision, license, and attribution are in `images/tech/README.md` and `images/tech/LICENSE-DEVICON.txt`. Other technology symbols and the six toolkit mascots are original SVG illustrations.
 
 ## Existing experiences
 

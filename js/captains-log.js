@@ -125,6 +125,7 @@
         button.tabIndex = active ? 0 : -1;
         document.getElementById(button.getAttribute('aria-controls')).hidden = !active;
       });
+      window.voyageReveal?.(document.getElementById(tab.getAttribute('aria-controls')));
       document.getElementById('world-position').textContent = `${String(selectedWorld + 1).padStart(2, '0')} / 06`;
       if (focus) tab.focus();
       scheduleProgress();
