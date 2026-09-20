@@ -45,12 +45,12 @@ summary:active { scale:none!important; }
 /* An illustrated reading edition: quiet paper beneath crisp, generous text. */
 @media screen {
  .resume-stage { max-width:940px; padding:30px; }
- .resume-paper { --resume-hand:'Kalam',Georgia,serif; --resume-ink:#29251e; --resume-muted:#51483c; width:100%; max-width:840px; margin-inline:auto; padding:44px 64px; font:400 18px/1.78 var(--sans); background:linear-gradient(90deg,#fcf2dcaa,#fff8e9f0 9%,#fff8e9f5 50%,#fff8e9f0 91%,#fcf2dcaa),#eee0c0 url('/images/resume/weathered-paper.webp') top center/100% 1100px repeat-y; box-shadow:inset 0 0 30px #9b744b22; }
+ .resume-paper { --resume-hand:'Kalam',Georgia,serif; --resume-ink:#251a10; --resume-muted:#4a321e; width:100%; max-width:840px; margin-inline:auto; padding:44px 64px; font:400 18px/1.78 var(--sans); background:linear-gradient(90deg,#633b1729,#ffe7ad38 9%,#ffebbc47 50%,#ffe7ad38 91%,#633b1729),#d7b36e url('/images/resume/weathered-paper.webp') top center/100% 1100px repeat-y; box-shadow:inset 0 0 36px #6039154a; }
  .resume-paper :is(.resume-section p,.resume-skill-list,.resume-contact,.resume-role,.resume-entry-heading>span) { font-family:var(--sans); font-style:normal; text-shadow:none; color:var(--resume-ink); }
  .resume-paper .resume-section { max-width:64ch; margin:42px auto 0; scroll-margin-top:115px; }
  .resume-paper .resume-section p,.resume-paper .resume-skill-list { font-size:18px; line-height:1.78; letter-spacing:.005em; color:var(--resume-ink); }
  .resume-paper .resume-section p+p { margin-top:16px; }
- .resume-paper .resume-role { font-size:19px; font-weight:600; line-height:1.5; }
+ .resume-paper p.resume-role { font-family:var(--resume-hand); font-size:20px; font-weight:700; line-height:1.5; }
  .resume-paper .resume-alias { font:400 18px/1.6 var(--resume-hand); color:#51422e; text-shadow:none; }
  .resume-paper .resume-contact { font-size:15px; font-style:normal; gap:9px 22px; }
  .resume-paper .resume-section>h2,.resume-paper .resume-section>h3:first-child { font:400 32px/1.25 var(--pirate); text-transform:none; letter-spacing:.3px; color:#593521; text-shadow:0 1px #fffdf388; border-bottom:1px solid #745d3744; padding-bottom:12px; margin-bottom:20px; }

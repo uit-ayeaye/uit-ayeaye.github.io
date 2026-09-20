@@ -39,8 +39,8 @@ def background(canvas,doc):
     for y in range(int(h)-15,14,-15):path.lineTo(12+rng.uniform(-2.5,2.5),y)
     path.close();canvas.clipPath(path,stroke=0)
     canvas.drawImage(texture,9,10,width=w-18,height=h-20)
-    # A translucent cream wash quiets the creases under the reading column.
-    canvas.setFillColor(colors.HexColor('#fff8e9'));canvas.setFillAlpha(.9)
+    # A light amber wash preserves the old-map texture beneath readable ink.
+    canvas.setFillColor(colors.HexColor('#ffe7ad'));canvas.setFillAlpha(.22)
     canvas.rect(29,30,w-58,h-60,fill=1,stroke=0);canvas.setFillAlpha(1)
     canvas.setStrokeColor(colors.HexColor('#a4895d'));canvas.setLineWidth(.4)
     canvas.rect(24,27,w-48,h-54,fill=0,stroke=1)

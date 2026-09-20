@@ -43,3 +43,7 @@ Verified open/Escape behavior on all eight standalone voyage menus, the article 
 ## Layout and header follow-up
 
 Removed a 390px breakpoint that made list mode identical to cards. The mobile manifest now uses 68–84px thumbnails beside readable text; grid mode retains full-width covers. Desktop keeps three-column cards versus horizontal list rows. Switching gives a short fade, with reduced motion respected. The Chart control opens the shared parchment navigation at every viewport width, with Escape, outside-click, and link dismissal. Checked at 320px, 390px, and 1440px; six toolkit panels and all icons passed again without overflow or console errors. Pausing then reloading correctly starts the next visit with motion on.
+
+## Vintage parchment restoration
+
+Restored the richer amber, stains, folds, and darkened edges of the original paper at the user’s request. A light amber wash replaces the near-opaque cream layer, while the readable body fonts and spacing remain. Shared dropdowns, toolkit inserts, project logs, voyage charts, and article surfaces use the same weathered stock and more irregular tears. CV/project dialog chrome returns to a dark nautical frame with brass text and wax-seal close controls. The illustrated PDF carries the matching texture on all eight pages; the plain PDF remains unchanged. Verified mobile CV, project popup, chart, and toolkit, 320px navigation overflow, desktop résumé, and all eight PDF pages visually.
