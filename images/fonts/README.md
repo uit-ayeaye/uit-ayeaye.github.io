@@ -1,0 +1,1 @@
+Self-hosted Latin WOFF2 subsets of DM Sans, IBM Plex Mono, Pirata One, and Kalam, downloaded from Google Fonts CSS on September 20, 2026. Each family is distributed under its included SIL Open Font License. Fonts use font-display: swap; decorative résumé handwriting is limited to the paper document.

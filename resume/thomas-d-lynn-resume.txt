@@ -8,19 +8,29 @@ hello@thomasdlynn.dev
 
 thomasdlynn.dev
 
-github.com/uit-ayeaye
+github.com/Thiha-Lynn
 
-Professional summary
+The person behind the work
 
-Independent software engineer building multiplayer games, web platforms, mobile applications, and creative tools. Works across customer-facing experiences and the APIs, admin tools, media pipelines, and operational workflows behind them.
+I’m Thomas D. Lynn, also known as Thiha Lynn: an independent software engineer, creative developer, and founder of Backbenchers Studio. With roots in Myanmar, my work connects practical software with games, culture, learning, and the web.
 
-Technical skills
+I build across the whole product: the screen a visitor sees, the app a customer carries, the dashboard a team operates, and the services that connect them. My portfolio spans multiplayer games, logistics, commerce, publishing, education, creative tools, and browser worlds.
+
+A little pirate spirit runs through this logbook. For me, that means curiosity, an independent approach, and making room for people’s stories alongside the engineering. The playful presentation comes with real project notes, clear contributions, and credit for the people whose work helped shape each build.
+
+My working toolkit
 
 Web & backend: React, Next.js, Vue / Nuxt, Laravel, PHP, Express, JavaScript, TypeScript.
 
 Mobile & games: Flutter / Dart, Android / Java, iOS / Swift, Unity, C#, Photon.
 
 Data & creative systems: MySQL, PostgreSQL, SQLite, Python, Three.js, React Three Fiber, GSAP, FFmpeg / HLS.
+
+Interfaces & motion: responsive layouts, accessible navigation, progressive enhancement, browser animation, real-time scenes, and touch interaction.
+
+Delivery & operations: Git / GitHub, static hosting, Nginx, PWA packaging, offline-first workflows, provider integrations, and Telegram / Messenger automation.
+
+Creative production: media processing, adaptive video delivery, Myanmar glyph drawing, font generation, and content-led portfolio design.
 
 Selected project experience
 
@@ -82,9 +92,245 @@ Vanguard senior-project team contribution: role-based KPI dashboards, university
 
 Nuxt / Vue · Express · MySQL · Firebase Auth · Chart.js
 
-Additional work
+The complete project ledger
 
-Commerce and mobile systems for Welmal and DK Gaming; publishing workflows for Myo Taw News; portfolios for filmmakers, a producer, a teacher, a trainer, and a poet. Browser rendering, weather, and interaction for Hledan, with original map modeling credited to Madric A.
+The rest of the 33 documented projects. These notes describe my contribution; linked case studies include current status, collaborators, sources, and deeper context.
+
+Myo Taw News
+
+Platforms / Live publication
+
+Backend and implementation for the news platform, content-management workflows, and public reading experience.
+
+Laravel · Filament · PHP · Media workflows
+
+DK Gaming Shop
+
+Commerce / Web + mobile + bots
+
+Full shop-system implementation spanning storefront, admin management, wholesaler integration, mobile apps, and Telegram operations.
+
+Next.js · Provider APIs · Python · Telegram · Mobile
+
+Welmal
+
+Commerce / Ongoing client project
+
+Commerce implementation across the web experience, backend and admin tools, plus customer mobile applications.
+
+Laravel · React / TypeScript · Java · Swift
+
+Hledan Junction
+
+Immersive / Playable · tribute
+
+Web rendering and interaction: adapting the map for the browser, lighting, weather, navigation, and performance work for phones and laptops.
+
+Three.js · WebGL · Lighting & weather · Mobile optimization
+
+EXTANT
+
+People & Culture / Ongoing project
+
+Ongoing band-site design and implementation, shaping music, imagery, release information, and contact into one immersive experience.
+
+HTML / CSS · JavaScript · Music & video
+
+Nyan Production
+
+People & Culture / Portfolio
+
+Portfolio design and implementation, video-first presentation, filtering, and media delivery decisions.
+
+Astro · JavaScript · Lenis · Video optimization
+
+Yoon Nadi Htet
+
+People & Culture / Portfolio
+
+Personal portfolio website with an education-focused story, teaching gallery, and accessible contact path.
+
+HTML / CSS · JavaScript · Responsive design
+
+Hein Zaw Fitness
+
+People & Culture / Portfolio
+
+Fitness portfolio design and frontend implementation, with scroll-linked motion and reusable content sections.
+
+React · Vite · Framer Motion · Lenis
+
+Phyoe Dhana
+
+People & Culture / Portfolio
+
+Website design and implementation around the filmmaker’s existing body of work and public story.
+
+HTML / CSS · JavaScript · Media storytelling
+
+Lynn Khar
+
+People & Culture / Website + ordering workflows
+
+Author website and supporting book pre-order automation through Telegram and Messenger.
+
+Web development · Telegram · Messenger · Workflow automation
+
+MSCT PTE LTD
+
+Commerce / Company website
+
+Corporate website implementation and the public connection between MSCT’s business and the BurmaMart app ecosystem.
+
+HTML / CSS · JavaScript · Corporate web
+
+EPST
+
+People & Culture / Portfolio · link unavailable
+
+Portfolio website project, as supplied by the project owner. Detailed features and academic claims are intentionally left unasserted until the source can be reviewed.
+
+Personal portfolio
+
+Thakhin Gyi — a satire
+
+People & Culture / Satirical web experiment
+
+Satirical website implementation, character-driven presentation, interactive sections, and visual storytelling.
+
+HTML / CSS · JavaScript · Satirical design
+
+Phaung’s Beauty Lab
+
+Commerce / Demo / sample
+
+Demo storefront design and implementation for perfume discovery and listing.
+
+Vite · JavaScript · CSS · Netlify
+
+Elbaf: The Under-Realm
+
+Immersive / Playable fan project
+
+Interactive browser experience, scene composition, procedural character work, and keyboard/touch interaction.
+
+React Three Fiber · Rapier · Procedural rigging
+
+Onigashima: The Raid
+
+Immersive / Playable fan project
+
+Interactive scene development, environmental composition, water rendering, and navigable experiences.
+
+React Three Fiber · WebGL · Water shaders
+
+Grand Line Fizz
+
+Immersive / Adaptation & extension
+
+Adaptation and extension of the credited 3D base project: character cans, content, scene work, interaction, and static deployment.
+
+Next.js · React Three Fiber · GSAP · Three.js
+
+Sage Mode Awakening
+
+Immersive / Adaptation & optimization
+
+Integration, presentation, and immersive-web adaptation of a credited original showcase.
+
+GSAP · Canvas · JavaScript
+
+Domain Expansion
+
+Immersive / Adaptation & optimization
+
+Integration, presentation, and immersive-web adaptation of a credited original showcase.
+
+GSAP · Canvas · Parallax
+
+UniLab
+
+Tools / Live · open source
+
+Built the web tools and cross-platform packaging around local file processing and offline use.
+
+JavaScript · Web APIs · Electron · Capacitor · OCR · FFmpeg
+
+ESC Chinese · Chinese Studio
+
+Platforms / Live · open source
+
+Developed the learning interface, practice flows, local progress, offline packs, and cross-platform releases.
+
+React · TypeScript · PWA · Electron · Capacitor
+
+BackBenchers Academy
+
+Platforms / Open source · early platform
+
+Built the textbook indexing pipeline and the immersive learning site, with Unicode Burmese and a 2D mode for lower-powered devices.
+
+React · TypeScript · Vite · React Three Fiber · Python · PWA
+
+Mahar Yangon Teashop
+
+People & Culture / Live · open source
+
+Designed and developed the responsive website, visual storytelling, and interactive tea guide.
+
+HTML · CSS · JavaScript · WebP · GitHub Pages
+
+Thakhin OS
+
+Tools / Open source · community edition
+
+Linux distribution customization and community-themed experience, presented alongside the public build source.
+
+Debian 12 · Shell · XFCE · live-build · Calamares
+
+Campus One · MFU REG
+
+Platforms / Live · independent capstone
+
+Built the connected application, registrar workflows, responsive interfaces, and shared backend for the web and mobile experiences.
+
+React · TypeScript · Node.js · PostgreSQL · PGlite · Flutter
+
+Backbenchers Studio
+
+Tools / This portfolio
+
+Studio founder and software developer. The original logo identity was created by our logo designer.
+
+HTML / CSS · JavaScript · Python · GitHub Pages
+
+How I approach a build
+
+Start with the people using it. A merchant’s order flow, a courier’s handover, a teacher’s portfolio, and a player’s first session all need different decisions.
+
+Connect the whole experience. I work across public interfaces, mobile clients, APIs, administrative tools, and the workflows behind them.
+
+Make character useful. Typography, motion, and visual storytelling should help people understand what they can do next.
+
+Design for the device in hand. Responsive layouts, touch controls, reduced-motion settings, offline features, and lower-powered-device modes appear throughout the work.
+
+Keep the story honest. I distinguish original work from adaptations, label demonstrations, protect internal data, and preserve creator credits.
+
+Hledan is especially personal: my friend Madric A made the original map of this little piece of Yangon. My contribution brings it to the browser through lighting, weather, navigation, and performance work. His authorship remains part of the experience.
+
+The next chapter
+
+My work sits where useful products and expressive experiences meet. Explore the project stories for implementation details, browse my public code on
+
+GitHub
+
+, or reach me at
+
+hello@thomasdlynn.dev
+
+to discuss a build.
+
+Thomas D. Lynn
 
 PROJECT-BASED RÉSUMÉ · SEPTEMBER 2026
 

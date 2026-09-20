@@ -38,25 +38,13 @@
     persist('bb-gear', active ? 'on' : 'off');
     syncGear();
   });
-  const artControls = document.querySelector('.art-switch');
-  if (artControls) {
-    artControls.hidden = false;
-    artControls.addEventListener('click', event => {
-      const button = event.target.closest('[data-art]');
-      if (!button) return;
-      ['captain', 'ship', 'bounty'].forEach(name => {
-        document.querySelector(`.hero-${name}`).hidden = button.dataset.art !== name;
-      });
-      window.voyagePop?.(document.querySelector(`.hero-${button.dataset.art}`));
-      artControls.querySelectorAll('button').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
-    });
-  }
   let motionPaused = false;
   try { motionPaused = localStorage.getItem('bb-motion') === 'paused'; } catch (_) { /* Storage is optional. */ }
   const motionButton = document.querySelector('.motion-toggle');
   function syncMotion() {
     const paused = reduced.matches || motionPaused;
     root.classList.toggle('motion-paused', paused);
+    document.dispatchEvent(new Event('voyage-preferences'));
     if (!motionButton) return;
     motionButton.hidden = false;
     motionButton.disabled = reduced.matches;
@@ -255,6 +243,7 @@
         put('.preview-role',project.role);
         put('.preview-credit',project.credit);
         previewDialog.querySelector('.preview-credit').hidden = !project.credit;
+        previewDialog.querySelector('.preview-context').dispatchEvent(new Event('voyage-reset'));
         previewDialog.querySelector('.preview-context').open = false;
         list('.preview-features',project.features);
         list('.preview-stack',project.stack);
@@ -326,18 +315,24 @@
     });
   }
 
-  // Small, pointer-driven depth; native touch scrolling stays unchanged.
+  // One frame per pointer update; cached bounds avoid read/write layout thrashing.
   const finePointer = matchMedia('(hover: hover) and (pointer: fine)');
-  document.querySelectorAll('.framed-preview, .browser-frame, .voyage-art').forEach(card => {
+  document.querySelectorAll('.framed-preview, .browser-frame').forEach(card => {
+    let bounds, frame=0, point;
+    const reset=()=>{ cancelAnimationFrame(frame); frame=0; bounds=null; card.style.removeProperty('--tilt-x'); card.style.removeProperty('--tilt-y'); };
+    card.addEventListener('pointerenter',()=>{bounds=card.getBoundingClientRect();},{passive:true});
     card.addEventListener('pointermove', event => {
-      if (!finePointer.matches || root.classList.contains('motion-paused')) return;
-      const box = card.getBoundingClientRect();
-      card.style.setProperty('--tilt-x', `${((event.clientY - box.top) / box.height - .5) * -3}deg`);
-      card.style.setProperty('--tilt-y', `${((event.clientX - box.left) / box.width - .5) * 3}deg`);
+      if(!finePointer.matches||root.classList.contains('motion-paused')||!root.classList.contains('immersive-mode')) return;
+      point={x:event.clientX,y:event.clientY};
+      if(frame) return;
+      frame=requestAnimationFrame(()=>{
+        frame=0; bounds ||= card.getBoundingClientRect();
+        card.style.setProperty('--tilt-x',`${((point.y-bounds.top)/bounds.height-.5)*-2}deg`);
+        card.style.setProperty('--tilt-y',`${((point.x-bounds.left)/bounds.width-.5)*2}deg`);
+      });
     }, {passive:true});
-    card.addEventListener('pointerleave', () => {
-      card.style.removeProperty('--tilt-x'); card.style.removeProperty('--tilt-y');
-    });
+    card.addEventListener('pointerleave',reset);
+    document.addEventListener('voyage-preferences',reset);
   });
 
   const collection = document.querySelector('.project-grid');

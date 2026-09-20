@@ -33,3 +33,7 @@
 - Added reversible disclosure animation, staggered world/tool entrances, local click blooms, and progressive page transitions. Both OS and saved motion preferences suppress effects.
 - Browser: 33 modal records, 33 case-study routes, 28 responsive theme/layout combinations, six world docks, two articles, gallery, résumé, search, filters, keyboard navigation, rapid disclosure clicks, and preference persistence verified.
 - Static asset/link/anchor verifier, JS syntax, and whitespace checks passed. Detailed scope and limits: `docs/MIDNIGHT_STUDIO_REVIEW.md`.
+
+## September 20, 2026 — immersive lobby refinement
+
+See `docs/IMMERSIVE_LOBBY_REVIEW.md` for the latest scope, browser checks, PDF review, and limitations. Metadata validation now covers all 44 sitemap URLs.

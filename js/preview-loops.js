@@ -9,7 +9,7 @@
   let playing=0;
   const modal=document.querySelector('dialog[open]');
   videos.forEach(video=>{
-   const eligible=allowed()&&video.dataset.paused!=='true'&&visible.has(video)&&!video.hidden&&!video.closest('[hidden]')&&(!modal||modal.contains(video))&&playing<2;
+   const eligible=allowed()&&video.dataset.paused!=='true'&&visible.has(video)&&!video.hidden&&!video.closest('[hidden]')&&(!modal||modal.contains(video))&&playing<(matchMedia('(max-width:700px)').matches?1:2);
    if(eligible&&video.dataset.src){
     playing++;
     if(!video.getAttribute('src')){video.src=video.dataset.src;video.load();}
@@ -37,6 +37,7 @@
  };
  document.querySelector('.preview-motion')?.addEventListener('click',()=>{const v=document.querySelector('#preview-loop');v.dataset.paused=String(v.dataset.paused!=='true');reconcile();});
  new MutationObserver(reconcile).observe(root,{attributes:true,attributeFilter:['class']});
+ document.querySelectorAll('.world-panel').forEach(panel=>new MutationObserver(reconcile).observe(panel,{attributes:true,attributeFilter:['hidden']}));
  document.addEventListener('visibilitychange',reconcile);reduced.addEventListener('change',reconcile);
  connection?.addEventListener('change',reconcile);
  document.querySelectorAll('dialog').forEach(dialog=>dialog.addEventListener('close',reconcile));

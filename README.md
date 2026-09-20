@@ -2,7 +2,7 @@
 
 A portfolio of games, commerce, culture, and creative tools, at **[thomasdlynn.dev](https://thomasdlynn.dev)**.
 
-The landing page combines a restrained One Piece identity with a professional portfolio: switchable original ship/wanted artwork, a shared pirate/sans/monospace type system, six cinematic browser experiments, a five-site personal website collection, 27 searchable project stories, visual technology tiles, and a captain’s logbook CV with PDF/text downloads. It retains the End Game Union story, Madric A’s Hledan tribute, and original creator credits.
+The landing page combines a restrained One Piece identity with a professional portfolio: a draggable three-character lobby, a shared pirate/sans/monospace type system, six cinematic browser experiments, a five-site personal website collection, 33 searchable project stories, visual technology tiles, and a complete handwritten captain’s logbook CV with illustrated PDF, plain PDF, and text downloads. It retains the End Game Union story, Madric A’s Hledan tribute, and original creator credits.
 
 ## Preview
 
@@ -19,9 +19,12 @@ Open [localhost:4173](http://localhost:4173).
 - `data/projects.json` — reviewed project stories, role, features, technologies, links, preview image, and credits.
 - `templates/home.html` — homepage sections and copy.
 - `templates/resume.html` — shared résumé content for the page, popup, plain text, and PDF.
+- `css/immersive-voyage.css` / `js/character-select.js` — game-style character lobby, paper typography, and mobile refinement.
+- `css/portfolio.css` — generated stylesheet bundle; edit its source files instead.
+- `scripts/refine_site_metadata.py` — canonical, search, and social metadata across all 44 public routes.
 - `css/midnight-studio.css` / `js/tactile-voyage.js` — dimmed surfaces, illustrated toolkit cards, shared button feedback, and reversible disclosures.
 - `css/logbook-refinement.css` / `css/resume-logbook.css` / `js/resume-logbook.js` — simplified homepage and immersive CV.
-- `scripts/build_resume_pdf.py` — one-page PDF generation (ReportLab and BeautifulSoup required).
+- `scripts/build_resume_pdf.py` — PDF generation (ReportLab and BeautifulSoup required).
 - `scripts/build_portfolio.py` — static HTML generation for the homepage, showcase gallery, case studies, résumé, and sitemap.
 - `css/captains-log.css` / `css/pirate-voyage.css` / `js/captains-log.js` — portfolio layout, pirate themes, and interactions.
 - `docs/PROJECT_RESEARCH.md` — research sources, attribution, availability, and content limits.
@@ -35,7 +38,7 @@ python3 scripts/build_resume_pdf.py
 python3 scripts/verify_portfolio.py
 ```
 
-Commit the generated `index.html`, `projects/*/index.html`, `resume/index.html`, `resume/thomas-d-lynn-resume.pdf`, `resume/thomas-d-lynn-resume.txt`, `resume/pdf-source.sha256`, `showcase/index.html`, and `sitemap.xml` together with their source files. GitHub Pages serves them directly; it does not run the generator.
+Commit the generated `index.html`, `projects/*/index.html`, `resume/index.html`, `resume/thomas-d-lynn-resume.pdf`, `resume/thomas-d-lynn-logbook.pdf`, `css/portfolio.css`, `resume/thomas-d-lynn-resume.txt`, `resume/pdf-source.sha256`, `showcase/index.html`, and `sitemap.xml` together with their source files. GitHub Pages serves them directly; it does not run the generator.
 
 Project thumbnails show complete screenshots in browser frames. Click a thumbnail to open the accessible design viewer, fit the full screenshot or inspect its details, then visit the case study or website. Without JavaScript, thumbnail links open the original image.
 
@@ -73,3 +76,5 @@ The first six projects form the default selection. Full personal-site and capabi
 `python3 scripts/build_portfolio.py` also reapplies the isolated voyage menu to the six standalone scene entry pages and both blog articles. Run it again after rebuilding any scene so its generated HTML retains the shared navigation. The original scene credits and engines are preserved.
 
 SOM BI’s three previews are interface recreations using sample data. To regenerate: run `python3 scripts/build_som_previews.py`, then `node scripts/render_som_previews.cjs` (requires `sharp`), followed by the portfolio build. Keep the sample-data labeling in every export.
+
+See `docs/IMMERSIVE_LOBBY_REVIEW.md` for the character lobby, detailed résumé, mobile motion fixes, and SEO verification.

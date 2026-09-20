@@ -37,13 +37,13 @@
  };
  const surfaces='button:not(:disabled),a.button,.tech-chip,.floating-waypoint';
  // Independent WebGL experiences own their control positioning. Enhance their dock only.
- const surfaceScope=document.querySelector('link[href^="/css/midnight-studio.css"]')?document:document.querySelector('.expedition-dock');
+ const surfaceScope=document.body.classList.contains('portfolio-site')?document:document.querySelector('.expedition-dock');
  surfaceScope?.querySelectorAll(surfaces).forEach(el=>{
   if(getComputedStyle(el).position==='static') el.classList.add('interaction-static');
   el.classList.add('interactive-surface');
  });
  document.addEventListener('click',event=>{
-  const target=event.target.closest('button:not(:disabled),a[href],summary,[role="button"]');
+  const target=event.target.closest('button:not(:disabled),a[href],[role="button"]');
   if(!target||still()||event.defaultPrevented&&target.closest('.is-dragging')) return;
   animations.get(target)?.cancel();
   animations.set(target,play(target,[
@@ -69,33 +69,31 @@
   while(summary.nextSibling) content.append(summary.nextSibling);
   details.append(content);
   let effect=null,desired=details.open;
+  const clear=()=>{content.style.height='';content.style.overflow='';content.inert=false;};
   const settle=()=>{
-   if(!effect) return;
-   effect.cancel(); effect=null; details.open=desired;
-   details.style.height=''; details.style.overflow=''; content.inert=false;
+   if(!effect)return;
+   effect.onfinish=null;effect.cancel();effect=null;details.open=desired;clear();
   };
   disclosures.push(settle);
+  details.addEventListener('voyage-reset',()=>{desired=false;settle();details.open=false;clear();});
   summary.addEventListener('click',event=>{
-   if(still()) return; // Native disclosure remains the reduced-motion fallback.
+   if(still()) return;
    event.preventDefault();
    desired=effect?!desired:!details.open;
-   const start=details.getBoundingClientRect().height;
-   effect?.cancel(); details.style.height='';
-   details.open=desired;
-   const end=details.getBoundingClientRect().height;
-   details.open=true; content.inert=!desired;
-   details.style.overflow='hidden';
-   effect=play(details,[{height:`${start}px`},{height:`${end}px`}],{duration:340,easing:'cubic-bezier(.22,1,.36,1)'});
-   effect.onfinish=()=>{effect=null;details.open=desired;details.style.height='';details.style.overflow='';content.inert=false;};
-   if(desired) {
-    play(content,[{opacity:.25,translate:'0 8px'},{opacity:1,translate:'0 0'}],{duration:350,easing:'ease-out'});
-    content.querySelectorAll('.tech-chip').forEach((chip,i)=>play(chip,[{opacity:0,translate:'0 10px'},{opacity:1,translate:'0 0'}],{duration:280,delay:45+i*30,fill:'backwards',easing:'ease-out'}));
-   }
+   const start=details.open?content.getBoundingClientRect().height:0;
+   if(effect){effect.onfinish=null;effect.cancel();effect=null;}
+   // Measure only the body; never toggle the native disclosure closed to measure it.
+   // This avoids scroll-anchor jumps and prevents summaries from shrinking under a tap.
+   details.open=true; content.style.height='auto';
+   const end=desired?content.getBoundingClientRect().height:0;
+   content.inert=!desired;content.style.overflow='clip';
+   effect=play(content,[{height:`${start}px`,opacity:desired?.5:1},{height:`${end}px`,opacity:desired?1:0}],{duration:260,easing:'cubic-bezier(.2,.8,.2,1)'});
+   effect.onfinish=()=>{effect=null;details.open=desired;clear();};
   });
  });
  const stopMotion=()=>{
   if(!still()) return;
-  disclosures.forEach(settle);
+  disclosures.forEach(settle=>settle());
   active.forEach(effect=>effect.cancel());
   document.querySelectorAll('.tap-bloom').forEach(el=>el.remove());
  };

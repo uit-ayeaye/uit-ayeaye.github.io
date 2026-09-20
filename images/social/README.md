@@ -1,0 +1,9 @@
+# Captain's Studio social cover
+
+`thomas-captains-studio-v3.jpg` is the 1200 × 630 sharing cover for the homepage, résumé, gallery, and articles. Individual projects and worlds retain their own raster project previews. The versioned filename replaces the former wanted-poster thumbnail for newly fetched links.
+
+Created September 20, 2026 with Codex's built-in image generation tool, using `images/captain/thomas-captain-v2.webp` as the character reference. The generated PNG was resized and encoded as a JPEG for web delivery. This is illustrated portfolio artwork, not a photograph.
+
+## Generation prompt
+
+Create a polished wide landscape social-sharing cover image for Thomas D. Lynn's existing Backbenchers Studio software engineering portfolio. Aspect ratio 1.91:1, ideally 1536x804 or 1200x630. Input image is a character identity reference: preserve the recognizable illustrated male captain, face, black hair, straw hat, dark navy and brass coat, red shirt, and friendly confident expression. Place a cropped waist-up captain on the right third, without clipping hat or face. Left side is restrained beautifully typeset cream display text, exact wording 'Thomas D. Lynn' very large in expressive blackletter inspired serif, below it 'Software Engineer & Creative Developer' in smaller clear clean sans serif. Small upper-left label 'BACKBENCHERS STUDIO'. Small bottom-left 'thomasdlynn.dev'. Dark midnight navy and deep teal atmosphere, subtly glowing sea-chart compass rings behind portrait, fine grain and faint chart grid, warm brass accents and restrained coral glints. Rich soft shadows, premium game character selection screen feeling, spacious composition. Keep all text readable at tiny preview size with at least 7 percent safe margins. Flat edge-to-edge finished graphic; no device mockup, no website controls, no wanted poster, no bounty typography, no paper backdrop, no invented logos, no extra characters. Final image must have opaque dark background.

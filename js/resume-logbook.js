@@ -34,6 +34,9 @@
           replacement.replaceChildren(...heading.childNodes);
           heading.replaceWith(replacement);
         });
+        // Prefix fragment targets so opening the dialog on /resume/ never duplicates IDs.
+        paper.querySelectorAll('[id]').forEach(el=>{el.id='popup-'+el.id;});
+        paper.querySelectorAll('a[href^="#"]').forEach(a=>{a.setAttribute('href','#popup-'+a.getAttribute('href').slice(1));});
         content.replaceChildren(document.importNode(paper, true));
         status.hidden = true;
         print.disabled = false;
@@ -66,6 +69,12 @@
       dialog.querySelector('.resume-close').focus({ preventScroll: true });
       loadResume();
     });
+  });
+  content.addEventListener('click',event=>{
+    const a=event.target.closest('a[href^="#popup-"]');
+    if(!a)return;
+    const target=content.querySelector(a.getAttribute('href'));
+    if(target){event.preventDefault();target.scrollIntoView({behavior:root.classList.contains('motion-paused')?'instant':'smooth',block:'start'});}
   });
   print.addEventListener('click', async () => {
     // Let fonts/images settle before the native print preview captures the document.
