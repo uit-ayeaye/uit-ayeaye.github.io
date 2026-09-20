@@ -69,12 +69,6 @@ button:disabled { cursor:default; opacity:.45; }
  .rail-navigation { padding-top:15px; }
  .art-switch { gap:6px; }.art-switch button { min-height:44px; }
 }
-@media(max-width:390px) {
- .manifest .project-card { grid-template-columns:1fr; gap:14px; }
- .manifest .project-card .project-body { padding:0 8px 3px 14px; }
- .manifest .project-cover .preview-screen { aspect-ratio:16/9; }
- .manifest .project-card h3 { font-size:24px; }
-}
 .motion-paused :is(button,.button,summary,.hero-art-window>*,dialog) { animation:none!important; transition:none!important; }
 @media(prefers-reduced-motion:reduce) {
  :is(button,.button,summary,[role=button],.text-link,.floating-waypoint,dialog) { animation:none!important; transition:none!important; scale:none!important; }

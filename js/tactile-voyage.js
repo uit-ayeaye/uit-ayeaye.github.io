@@ -2,7 +2,7 @@
 (() => {
  'use strict';
  const root=document.documentElement, reduced=matchMedia('(prefers-reduced-motion: reduce)');
- try { if(localStorage.getItem('bb-motion')==='paused') root.classList.add('motion-paused'); } catch (_) { /* Storage is optional. */ }
+ // Decorative motion defaults on for each page; OS reduced motion always takes precedence.
  const still=()=>reduced.matches||root.classList.contains('motion-paused');
  const animations=new WeakMap();
  window.voyagePop=element=>{
@@ -66,7 +66,9 @@
   const summary=details.querySelector(':scope>summary');
   if(!summary) return;
   const content=document.createElement('div'); content.className='motion-disclosure';
-  while(summary.nextSibling) content.append(summary.nextSibling);
+  const sheet=document.createElement('div'); sheet.className='scroll-sheet';
+  while(summary.nextSibling) sheet.append(summary.nextSibling);
+  content.append(sheet);
   details.append(content);
   let effect=null,desired=details.open;
   const clear=()=>{content.style.height='';content.style.overflow='';content.inert=false;};
@@ -87,7 +89,7 @@
    details.open=true; content.style.height='auto';
    const end=desired?content.getBoundingClientRect().height:0;
    content.inert=!desired;content.style.overflow='clip';
-   effect=play(content,[{height:`${start}px`,opacity:desired?.5:1},{height:`${end}px`,opacity:desired?1:0}],{duration:260,easing:'cubic-bezier(.2,.8,.2,1)'});
+   effect=play(content,[{height:`${start}px`,opacity:desired?.6:1,clipPath:'inset(0)'},{height:`${end}px`,opacity:desired?1:.3,clipPath:desired?'inset(0)':'inset(0 0 8% 0)'}],{duration:320,easing:'cubic-bezier(.2,.8,.2,1)'});
    effect.onfinish=()=>{effect=null;details.open=desired;clear();};
   });
  });

@@ -1040,12 +1040,6 @@ button:disabled { cursor:default; opacity:.45; }
  .rail-navigation { padding-top:15px; }
  .art-switch { gap:6px; }.art-switch button { min-height:44px; }
 }
-@media(max-width:390px) {
- .manifest .project-card { grid-template-columns:1fr; gap:14px; }
- .manifest .project-card .project-body { padding:0 8px 3px 14px; }
- .manifest .project-cover .preview-screen { aspect-ratio:16/9; }
- .manifest .project-card h3 { font-size:24px; }
-}
 .motion-paused :is(button,.button,summary,.hero-art-window>*,dialog) { animation:none!important; transition:none!important; }
 @media(prefers-reduced-motion:reduce) {
  :is(button,.button,summary,[role=button],.text-link,.floating-waypoint,dialog) { animation:none!important; transition:none!important; scale:none!important; }
@@ -1274,26 +1268,36 @@ summary:active { scale:none!important; }
 .skill .tech-chip img[src$='/astro.svg'] { filter:drop-shadow(0 0 2px #e5d5ff99); }
 .skill .skill-detail { padding-top:18px; }
 .skill .tech-chip { margin-top:0; }
-/* Ink on an archival sheet: handwriting in the document, clear controls outside it. */
+/* An illustrated reading edition: quiet paper beneath crisp, generous text. */
 @media screen {
- .resume-paper { --resume-hand:'Kalam',Georgia,serif; background:#e5cf9f url('/images/resume/weathered-paper.webp') top center/100% 1100px repeat-y; box-shadow:inset 0 0 55px #764d2038; }
- .resume-paper :is(.resume-section p,.resume-skill-list,.resume-contact,.resume-alias,.resume-role,.resume-entry-heading>span) { font-family:var(--resume-hand); text-shadow:.35px .65px 0 #fff1ce88,0 -.25px #53351155; }
- .resume-paper .resume-section p,.resume-paper .resume-skill-list { font-size:17px; line-height:1.75; color:#392b1e; }
- .resume-paper .resume-role { font-size:19px; line-height:1.5; }
- .resume-paper .resume-alias { font-size:15px; }
- .resume-paper .resume-contact { font-size:16px; }
- .resume-paper .resume-section>h2,.resume-paper .resume-section>h3:first-child { font:400 29px/1.25 var(--pirate); text-transform:none; letter-spacing:.3px; color:#673721; text-shadow:0 1px #fff0c388; border-bottom:1px solid #745d3744; }
- .resume-paper .resume-entry-heading h3,.resume-paper .resume-entry-heading h4 { font:700 20px/1.4 var(--resume-hand); color:#412718; }
- .resume-paper .resume-entry-heading>span { font-size:14px; }
- .resume-paper .resume-section .resume-stack { font:11px/1.8 var(--mono); color:#634627; padding:7px 0 10px; border-bottom:1px dashed #785b3238; text-shadow:none; }
- .resume-paper .resume-entry { margin-bottom:25px; }
- .resume-paper .resume-section { margin-top:35px; }
- .resume-paper .resume-section-note { font-family:var(--resume-hand); color:#735037; }
- .resume-personal-note { margin-top:20px; border-left:2px solid #98623f66; padding:8px 0 8px 17px; }
- .resume-paper .resume-signature { font:700 27px/1.6 var(--resume-hand); rotate:-3deg; margin-top:16px; color:#5b3521; }
- .resume-paper .resume-index { display:flex; flex-wrap:wrap; gap:7px 15px; margin:22px 0; padding:12px 0; border-block:1px dashed #87623c55; font:11px/1.7 var(--mono); }
- .resume-paper .resume-index a { min-height:32px; display:inline-flex; align-items:center; }
- .resume-dialog-scroll { scroll-padding-top:20px; }
+ .resume-stage { max-width:940px; padding:30px; }
+ .resume-paper { --resume-hand:'Kalam',Georgia,serif; --resume-ink:#29251e; --resume-muted:#51483c; width:100%; max-width:840px; margin-inline:auto; padding:44px 64px; font:400 18px/1.78 var(--sans); background:linear-gradient(90deg,#fcf2dcaa,#fff8e9f0 9%,#fff8e9f5 50%,#fff8e9f0 91%,#fcf2dcaa),#eee0c0 url('/images/resume/weathered-paper.webp') top center/100% 1100px repeat-y; box-shadow:inset 0 0 30px #9b744b22; }
+ .resume-paper :is(.resume-section p,.resume-skill-list,.resume-contact,.resume-role,.resume-entry-heading>span) { font-family:var(--sans); font-style:normal; text-shadow:none; color:var(--resume-ink); }
+ .resume-paper .resume-section { max-width:64ch; margin:42px auto 0; scroll-margin-top:115px; }
+ .resume-paper .resume-section p,.resume-paper .resume-skill-list { font-size:18px; line-height:1.78; letter-spacing:.005em; color:var(--resume-ink); }
+ .resume-paper .resume-section p+p { margin-top:16px; }
+ .resume-paper .resume-role { font-size:19px; font-weight:600; line-height:1.5; }
+ .resume-paper .resume-alias { font:400 18px/1.6 var(--resume-hand); color:#51422e; text-shadow:none; }
+ .resume-paper .resume-contact { font-size:15px; font-style:normal; gap:9px 22px; }
+ .resume-paper .resume-section>h2,.resume-paper .resume-section>h3:first-child { font:400 32px/1.25 var(--pirate); text-transform:none; letter-spacing:.3px; color:#593521; text-shadow:0 1px #fffdf388; border-bottom:1px solid #745d3744; padding-bottom:12px; margin-bottom:20px; }
+ .resume-paper .resume-entry-heading h3,.resume-paper .resume-entry-heading h4 { font:700 21px/1.4 var(--sans); color:#30291f; }
+ .resume-paper .resume-entry-heading { display:block; }
+ .resume-paper .resume-entry-heading>span { display:block; text-align:left; font-size:14px; line-height:1.6; color:#5d5041; margin-top:4px; }
+ .resume-paper .resume-section .resume-stack { font:500 13px/1.8 var(--sans); color:#554735; padding:10px 0 15px; border-bottom:1px solid #785b3226; text-shadow:none; }
+ .resume-paper .resume-entry { margin-bottom:30px; }
+ .resume-paper .resume-section .resume-section-note { font:400 15px/1.7 var(--sans); color:#5b4c3c; margin-bottom:22px; }
+ .resume-paper .resume-skill-list li { padding:13px 0 16px; border-bottom:1px solid #785b3226; margin:0; }
+ .resume-paper .resume-skill-list li:first-child { padding-top:0; }
+ .resume-paper .resume-skill-list li:last-child { border-bottom:0; }
+ .resume-paper .resume-skill-list strong { display:block; font-weight:700; margin-bottom:5px; color:#32291e; }
+ .resume-paper .resume-personal-note { margin-top:24px; border-left:3px solid #ad835b88; padding:12px 0 12px 20px; }
+ .resume-paper .resume-section .resume-signature { font:700 29px/1.6 var(--resume-hand); rotate:-2deg; margin-top:20px; color:#5b3521; }
+ .resume-paper .resume-index { display:flex; flex-wrap:wrap; gap:8px 20px; margin:24px 0; padding:16px 0; border-block:1px dashed #87623c55; font:500 12px/1.7 var(--sans); }
+ .resume-paper .resume-index a { min-height:40px; display:inline-flex; align-items:center; }
+ .resume-paper a { text-decoration-thickness:1px; text-underline-offset:4px; }
+ .resume-dialog-scroll { scroll-padding-top:20px; padding:24px 30px 32px; }
+ .resume-dialog .resume-section { scroll-margin-top:10px; }
+ .resume-paper-footer { font-size:10px; line-height:1.8; }
 }
 @media(max-width:700px) {
  .character-select.voyage-art { height:555px; min-height:555px; width:min(100%,430px); margin:5px auto 10px; }
@@ -1317,10 +1321,14 @@ summary:active { scale:none!important; }
  .site-header { backdrop-filter:none; background:var(--paper); }
  .world-hud>span,.world-actions .text-link,.floating-waypoint { backdrop-filter:none; }
  .preview-dialog::backdrop,.resume-dialog::backdrop { backdrop-filter:none; background:#030b14e8; }
- .resume-paper .resume-section p,.resume-paper .resume-skill-list { font-size:17px; line-height:1.7; }
+ .resume-paper .resume-section p,.resume-paper .resume-skill-list { font-size:17px; line-height:1.78; }
+ .resume-stage { padding:12px 4px; }
+ .resume-paper { padding:30px 23px; }
+ .resume-dialog-scroll { padding:14px 5px 22px; }
+ .resume-paper .resume-section { margin-top:32px; }
  .resume-paper .resume-role { font-size:17px; }.resume-paper .resume-contact { font-size:15px; }
  .resume-paper .resume-section>h2,.resume-paper .resume-section>h3:first-child { font-size:27px; }
- .resume-paper .resume-index { font-size:10px; }
+ .resume-paper .resume-index { font-size:12px; gap:6px 16px; }
 }
 @media(prefers-reduced-motion:reduce) {
  .character-select .hero-art-window { transition:none; }
@@ -1331,3 +1339,108 @@ summary:active { scale:none!important; }
 .character-select .character-dossier>span:last-child { text-align:center; }
 
 .character-select .hero-art-window> :is(.hero-captain,.hero-ship,.hero-bounty) { min-height:0; height:100%; max-height:100%; }
+
+/* Shared parchment and scroll reveals for the portfolio, articles, and world menus. */
+:root {
+ --scroll-ink:#30291f;
+ --scroll-paper:linear-gradient(100deg,#d2ad7066,#fff4d9ef 12%,#fff7e5f2 85%,#c79d5f66),url('/images/resume/weathered-paper.webp') center/cover;
+ --scroll-tear:polygon(0 5px,7% 1px,14% 6px,23% 2px,34% 5px,45% 0,57% 5px,69% 1px,81% 5px,92% 0,100% 4px,100% calc(100% - 6px),91% 100%,80% calc(100% - 4px),68% 100%,55% calc(100% - 5px),42% 100%,30% calc(100% - 4px),18% 100%,7% calc(100% - 5px),0 100%);
+}
+.scroll-sheet,.expedition-chart,.project-log-paper,.case-sidebar { background:var(--scroll-paper); color:var(--scroll-ink); }
+.scroll-sheet { position:relative; isolation:isolate; padding:25px 22px; margin:15px 0 5px; clip-path:var(--scroll-tear); box-shadow:inset 0 0 20px #88623b1a; }
+/* A quiet compass mark stays outside the reading column. */
+.scroll-sheet::before { content:'✧'; position:absolute; right:8px; top:8px; font:34px/1 Georgia,serif; color:#8c683321; pointer-events:none; z-index:-1; }
+.scroll-sheet::after { content:''; position:absolute; top:0; left:0; right:0; height:14px; pointer-events:none; background:linear-gradient(#81613b00,#8b633b55,#fff4dbaa); opacity:0; }
+details[open]>.motion-disclosure>.scroll-sheet::after { animation:scroll-fold-pass .38s ease-out; }
+.motion-disclosure { transform-origin:50% 0; }
+.scroll-sheet :is(.skill-detail>p,.world-credit,.captain-memory p,.personal-toolbar>span,.personal-copy p,.personal-copy h3,.personal-copy .eyebrow) { color:#443b2e; }
+.scroll-sheet .skill-detail { padding-top:0; }
+.scroll-sheet .skill-detail>p,.scroll-sheet .world-credit { font-size:15px; line-height:1.75; }
+.scroll-sheet :is(.skill-detail>a,.world-source,.text-link) { color:#713c25; border-color:#81644355; }
+.scroll-sheet .skill-detail>a { font-size:13px; }
+.scroll-sheet .tech-chip,.scroll-sheet .tech-chip:hover { background:linear-gradient(145deg,#25383e,#14232c); color:#f5ecdb; border-color:#856c4455; }
+.scroll-sheet .tech-chip>span:last-child { color:#f5ecdb; }
+.scroll-sheet .tech-chip img:is([src$='/threejs.svg'],[src$='/express.svg'],[src$='/github.svg'],[src$='/prisma.svg'],[src$='/unity.svg']) { filter:brightness(0) invert(.9); }
+.personal-disclosure[open] .scroll-sheet .personal-toolbar { margin-top:3px; }
+.scroll-sheet .personal-controls button { background:#20333b; color:#f1d69d; }
+.scroll-sheet :is(.collection-hint,.personal-copy h3>span) { color:#66513a; }
+.captain-memory .scroll-sheet p { color:#443b2e; font-size:15px; line-height:1.8; }
+.preview-context .scroll-sheet { padding:10px 0; margin-top:0; background:none; clip-path:none; box-shadow:none; }
+.preview-context .scroll-sheet::before { display:none; }
+.preview-context .scroll-sheet p { font-size:15px; line-height:1.8; color:#443b2e; }
+.project-log-paper .preview-features { font-size:15px; line-height:1.75; }
+.project-log-paper .preview-meta,.project-log-paper .preview-credit { color:#66503a; }
+.project-log-paper .preview-stack li { font-size:12px; }
+.resume-dialog-toolbar,.project-log .preview-toolbar,.resume-dialog-footer,.project-log .preview-footer { background:var(--scroll-paper); color:var(--scroll-ink); border-color:#8b6b3b55; }
+.resume-dialog-toolbar h2,.project-log .preview-toolbar h2 { color:#442b1a; }
+.resume-dialog-toolbar .eyebrow,.project-log .preview-toolbar .eyebrow { color:#705334; }
+.resume-dialog-footer a,.project-log .preview-footer .text-link,.record-position { color:#4e3922; }
+.project-log .preview-tip { color:#655037; }
+.resume-dialog-actions .resume-print { color:#4e3922; border-color:#9a7953; }
+.resume-close,.project-log .preview-close { border-radius:50%; border:3px double #d08d6f; color:#fff2d8; background:radial-gradient(circle at 32% 22%,#b55a43,#792e24); box-shadow:0 3px 7px #381e2033; }
+.resume-close:hover,.project-log .preview-close:hover { background:#9a4835; }
+.resume-dialog[open],.project-log[open] { transform-origin:50% 0; animation:scroll-envelope-open .46s cubic-bezier(.16,1,.3,1); }
+.expedition-chart { border-radius:2px; clip-path:var(--scroll-tear); padding:28px 24px; color:var(--scroll-ink); }
+.expedition-chart::before { content:'✧  THE GRAND LINE  ✧'; display:block; font:10px/1.6 'IBM Plex Mono',monospace; letter-spacing:1.5px; color:#795936; margin-bottom:15px; border-bottom:1px solid #89673c50; padding-bottom:12px; }
+.expedition-chart p { font-size:12px; }
+.expedition-chart a { font-size:14px; line-height:1.6; }
+.expedition-dock[open] .expedition-chart { transform-origin:50% 100%; animation:scroll-chart-open .4s cubic-bezier(.16,1,.3,1); }
+.logbook-article .post-body { background:var(--scroll-paper); }
+@keyframes scroll-envelope-open {
+ 0% { opacity:.3; clip-path:inset(0 0 94% 0 round 12px); transform:perspective(1200px) rotateX(-5deg) translateY(-8px); }
+ 55% { opacity:1; }
+ 100% { opacity:1; clip-path:inset(0 round 12px); transform:none; }
+}
+@keyframes scroll-chart-open {
+ from { opacity:.3; clip-path:inset(92% 0 0 0); translate:0 8px; }
+ to { opacity:1; clip-path:inset(0); translate:0 0; }
+}
+@keyframes scroll-fold-pass { 0% { top:0; opacity:.7; } 85% { opacity:.5; } 100% { top:100%; opacity:0; } }
+@media(max-width:650px) {
+ .main-nav.is-open { background:var(--scroll-paper); color:var(--scroll-ink); border-radius:0; clip-path:var(--scroll-tear); border-color:#89673c55; padding:22px 25px; gap:4px 20px; max-height:calc(100dvh - 90px); overflow:auto; transform-origin:50% 0; animation:scroll-envelope-open .38s cubic-bezier(.16,1,.3,1); }
+ .main-nav.is-open::before { content:'✧  CHART YOUR NEXT STOP'; flex-basis:100%; font:11px/1.6 var(--mono); letter-spacing:1px; color:#795936; padding-bottom:10px; border-bottom:1px solid #89673c50; }
+ .main-nav.is-open a { color:#3a2d1f; font-size:16px; min-height:46px; }
+ .main-nav.is-open a::after { background:#8b4630; }
+ .scroll-sheet { padding:23px 15px; }
+ .skill .scroll-sheet .tech-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; }
+ .skill .scroll-sheet .tech-chip { min-width:0; min-height:78px; padding:10px 3px; }
+ .skill .scroll-sheet .tech-chip>span:last-child { font-size:11px; overflow-wrap:anywhere; }
+ .resume-dialog[open],.project-log[open] { animation-duration:.35s; }
+}
+@media(max-width:768px) {
+ .logbook-article .nav-links { background:var(--scroll-paper); color:var(--scroll-ink); border-color:#89673c55; }
+ .logbook-article .nav-links.active { animation:scroll-envelope-open .38s cubic-bezier(.16,1,.3,1); transform-origin:50% 0; }
+ .logbook-article .nav-links a { color:#3a2d1f; }
+ .logbook-article .nav-toggle.active span { background:#713c25; }
+}
+.motion-paused .scroll-sheet::after,.motion-paused :is(.resume-dialog,.project-log,.expedition-chart,.main-nav,.nav-links) { animation:none!important; }
+@media(prefers-reduced-motion:reduce) {
+ .scroll-sheet::after,.resume-dialog[open],.project-log[open],.expedition-dock[open] .expedition-chart,.main-nav.is-open,.logbook-article .nav-links.active { animation:none!important; transform:none!important; translate:none!important; }
+}
+@media print { .scroll-sheet { background:white; clip-path:none; box-shadow:none; }.scroll-sheet::after { display:none; } }
+
+/* The header opens a captain's chart on every screen size. */
+.js .main-nav:not(.is-open) { display:none; }
+.menu-toggle { display:flex; align-items:center; gap:9px; min-height:44px; font:11px var(--mono); }
+.menu-toggle>span { font-size:23px; }
+.main-nav.is-open { position:absolute; top:100%; left:auto; right:32px; width:min(480px,calc(100vw - 32px)); display:grid; grid-template-columns:1fr 1fr; gap:5px 22px; padding:28px; background:var(--scroll-paper); color:var(--scroll-ink); border:1px solid #89673c55; border-radius:0; clip-path:var(--scroll-tear); max-height:calc(100dvh - 100px); overflow:auto; box-shadow:0 24px 45px #0005; transform-origin:50% 0; animation:scroll-envelope-open .42s cubic-bezier(.16,1,.3,1); }
+.main-nav.is-open::before { content:'✧  THE GRAND LINE / VOYAGE CHART'; grid-column:1/-1; font:10px/1.7 var(--mono); letter-spacing:1px; color:#795936; padding-bottom:12px; margin-bottom:8px; border-bottom:1px solid #89673c50; }
+.main-nav.is-open a { display:flex; align-items:center; color:#3a2d1f; font-size:16px; min-height:48px; padding:10px 5px; border-bottom:1px dashed #89673c45; }
+.main-nav.is-open a::after { background:#8b4630; }
+.menu-toggle[aria-expanded=true] { color:var(--gold); }
+@media(max-width:650px) {
+ .main-nav.is-open { right:12px; width:calc(100vw - 24px); padding:25px 22px; }
+ .menu-toggle { font-size:0; gap:0; }
+ /* A ledger row stays horizontal on phones; grid cards keep their large covers. */
+ .project-grid.manifest { gap:0; }
+ .manifest .project-card { grid-template-columns:84px minmax(0,1fr); gap:14px; padding:20px 0; align-items:start; }
+ .manifest .project-cover .preview-screen { aspect-ratio:1; padding:0; }
+ .manifest .project-card .project-body { padding:0; border-left:0; min-width:0; }
+ .manifest .project-card .project-body::before { display:none; }
+ .manifest .project-card h3 { font-size:19px; line-height:1.25; margin:6px 0 8px; }
+ .manifest .project-card h3 a { gap:8px; }
+ .manifest .project-card h3 span { font-size:16px; }
+ .manifest .project-summary { font-size:12px; line-height:1.6; }
+ .manifest .project-eyebrow { font-size:8px; }
+}
+@media(max-width:350px) { .manifest .project-card { grid-template-columns:68px minmax(0,1fr); gap:12px; }.manifest .project-card h3 { font-size:17px; } }

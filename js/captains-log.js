@@ -39,7 +39,7 @@
     syncGear();
   });
   let motionPaused = false;
-  try { motionPaused = localStorage.getItem('bb-motion') === 'paused'; } catch (_) { /* Storage is optional. */ }
+  // Each page arrives with motion on; the visitor can pause this page at any time.
   const motionButton = document.querySelector('.motion-toggle');
   function syncMotion() {
     const paused = reduced.matches || motionPaused;
@@ -57,7 +57,6 @@
   reduced.addEventListener('change', syncMotion);
   motionButton?.addEventListener('click', () => {
     motionPaused = !motionPaused;
-    try { localStorage.setItem('bb-motion', motionPaused ? 'paused' : 'on'); } catch (_) { /* Continue without persistence. */ }
     syncMotion();
   });
 
@@ -352,6 +351,9 @@
     layout = button.dataset.layout;
     persist('bb-layout', layout);
     syncLayout();
+    if (!root.classList.contains('motion-paused')) {
+      collection.animate([{opacity:.5,translate:'0 8px'},{opacity:1,translate:'0 0'}],{duration:260,easing:'ease-out'});
+    }
   });
   syncLayout();
   const cards = Array.from(collection.querySelectorAll('.project-card'));

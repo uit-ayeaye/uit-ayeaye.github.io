@@ -42,26 +42,36 @@ summary:active { scale:none!important; }
 .skill .tech-chip img[src$='/astro.svg'] { filter:drop-shadow(0 0 2px #e5d5ff99); }
 .skill .skill-detail { padding-top:18px; }
 .skill .tech-chip { margin-top:0; }
-/* Ink on an archival sheet: handwriting in the document, clear controls outside it. */
+/* An illustrated reading edition: quiet paper beneath crisp, generous text. */
 @media screen {
- .resume-paper { --resume-hand:'Kalam',Georgia,serif; background:#e5cf9f url('/images/resume/weathered-paper.webp') top center/100% 1100px repeat-y; box-shadow:inset 0 0 55px #764d2038; }
- .resume-paper :is(.resume-section p,.resume-skill-list,.resume-contact,.resume-alias,.resume-role,.resume-entry-heading>span) { font-family:var(--resume-hand); text-shadow:.35px .65px 0 #fff1ce88,0 -.25px #53351155; }
- .resume-paper .resume-section p,.resume-paper .resume-skill-list { font-size:17px; line-height:1.75; color:#392b1e; }
- .resume-paper .resume-role { font-size:19px; line-height:1.5; }
- .resume-paper .resume-alias { font-size:15px; }
- .resume-paper .resume-contact { font-size:16px; }
- .resume-paper .resume-section>h2,.resume-paper .resume-section>h3:first-child { font:400 29px/1.25 var(--pirate); text-transform:none; letter-spacing:.3px; color:#673721; text-shadow:0 1px #fff0c388; border-bottom:1px solid #745d3744; }
- .resume-paper .resume-entry-heading h3,.resume-paper .resume-entry-heading h4 { font:700 20px/1.4 var(--resume-hand); color:#412718; }
- .resume-paper .resume-entry-heading>span { font-size:14px; }
- .resume-paper .resume-section .resume-stack { font:11px/1.8 var(--mono); color:#634627; padding:7px 0 10px; border-bottom:1px dashed #785b3238; text-shadow:none; }
- .resume-paper .resume-entry { margin-bottom:25px; }
- .resume-paper .resume-section { margin-top:35px; }
- .resume-paper .resume-section-note { font-family:var(--resume-hand); color:#735037; }
- .resume-personal-note { margin-top:20px; border-left:2px solid #98623f66; padding:8px 0 8px 17px; }
- .resume-paper .resume-signature { font:700 27px/1.6 var(--resume-hand); rotate:-3deg; margin-top:16px; color:#5b3521; }
- .resume-paper .resume-index { display:flex; flex-wrap:wrap; gap:7px 15px; margin:22px 0; padding:12px 0; border-block:1px dashed #87623c55; font:11px/1.7 var(--mono); }
- .resume-paper .resume-index a { min-height:32px; display:inline-flex; align-items:center; }
- .resume-dialog-scroll { scroll-padding-top:20px; }
+ .resume-stage { max-width:940px; padding:30px; }
+ .resume-paper { --resume-hand:'Kalam',Georgia,serif; --resume-ink:#29251e; --resume-muted:#51483c; width:100%; max-width:840px; margin-inline:auto; padding:44px 64px; font:400 18px/1.78 var(--sans); background:linear-gradient(90deg,#fcf2dcaa,#fff8e9f0 9%,#fff8e9f5 50%,#fff8e9f0 91%,#fcf2dcaa),#eee0c0 url('/images/resume/weathered-paper.webp') top center/100% 1100px repeat-y; box-shadow:inset 0 0 30px #9b744b22; }
+ .resume-paper :is(.resume-section p,.resume-skill-list,.resume-contact,.resume-role,.resume-entry-heading>span) { font-family:var(--sans); font-style:normal; text-shadow:none; color:var(--resume-ink); }
+ .resume-paper .resume-section { max-width:64ch; margin:42px auto 0; scroll-margin-top:115px; }
+ .resume-paper .resume-section p,.resume-paper .resume-skill-list { font-size:18px; line-height:1.78; letter-spacing:.005em; color:var(--resume-ink); }
+ .resume-paper .resume-section p+p { margin-top:16px; }
+ .resume-paper .resume-role { font-size:19px; font-weight:600; line-height:1.5; }
+ .resume-paper .resume-alias { font:400 18px/1.6 var(--resume-hand); color:#51422e; text-shadow:none; }
+ .resume-paper .resume-contact { font-size:15px; font-style:normal; gap:9px 22px; }
+ .resume-paper .resume-section>h2,.resume-paper .resume-section>h3:first-child { font:400 32px/1.25 var(--pirate); text-transform:none; letter-spacing:.3px; color:#593521; text-shadow:0 1px #fffdf388; border-bottom:1px solid #745d3744; padding-bottom:12px; margin-bottom:20px; }
+ .resume-paper .resume-entry-heading h3,.resume-paper .resume-entry-heading h4 { font:700 21px/1.4 var(--sans); color:#30291f; }
+ .resume-paper .resume-entry-heading { display:block; }
+ .resume-paper .resume-entry-heading>span { display:block; text-align:left; font-size:14px; line-height:1.6; color:#5d5041; margin-top:4px; }
+ .resume-paper .resume-section .resume-stack { font:500 13px/1.8 var(--sans); color:#554735; padding:10px 0 15px; border-bottom:1px solid #785b3226; text-shadow:none; }
+ .resume-paper .resume-entry { margin-bottom:30px; }
+ .resume-paper .resume-section .resume-section-note { font:400 15px/1.7 var(--sans); color:#5b4c3c; margin-bottom:22px; }
+ .resume-paper .resume-skill-list li { padding:13px 0 16px; border-bottom:1px solid #785b3226; margin:0; }
+ .resume-paper .resume-skill-list li:first-child { padding-top:0; }
+ .resume-paper .resume-skill-list li:last-child { border-bottom:0; }
+ .resume-paper .resume-skill-list strong { display:block; font-weight:700; margin-bottom:5px; color:#32291e; }
+ .resume-paper .resume-personal-note { margin-top:24px; border-left:3px solid #ad835b88; padding:12px 0 12px 20px; }
+ .resume-paper .resume-section .resume-signature { font:700 29px/1.6 var(--resume-hand); rotate:-2deg; margin-top:20px; color:#5b3521; }
+ .resume-paper .resume-index { display:flex; flex-wrap:wrap; gap:8px 20px; margin:24px 0; padding:16px 0; border-block:1px dashed #87623c55; font:500 12px/1.7 var(--sans); }
+ .resume-paper .resume-index a { min-height:40px; display:inline-flex; align-items:center; }
+ .resume-paper a { text-decoration-thickness:1px; text-underline-offset:4px; }
+ .resume-dialog-scroll { scroll-padding-top:20px; padding:24px 30px 32px; }
+ .resume-dialog .resume-section { scroll-margin-top:10px; }
+ .resume-paper-footer { font-size:10px; line-height:1.8; }
 }
 @media(max-width:700px) {
  .character-select.voyage-art { height:555px; min-height:555px; width:min(100%,430px); margin:5px auto 10px; }
@@ -85,10 +95,14 @@ summary:active { scale:none!important; }
  .site-header { backdrop-filter:none; background:var(--paper); }
  .world-hud>span,.world-actions .text-link,.floating-waypoint { backdrop-filter:none; }
  .preview-dialog::backdrop,.resume-dialog::backdrop { backdrop-filter:none; background:#030b14e8; }
- .resume-paper .resume-section p,.resume-paper .resume-skill-list { font-size:17px; line-height:1.7; }
+ .resume-paper .resume-section p,.resume-paper .resume-skill-list { font-size:17px; line-height:1.78; }
+ .resume-stage { padding:12px 4px; }
+ .resume-paper { padding:30px 23px; }
+ .resume-dialog-scroll { padding:14px 5px 22px; }
+ .resume-paper .resume-section { margin-top:32px; }
  .resume-paper .resume-role { font-size:17px; }.resume-paper .resume-contact { font-size:15px; }
  .resume-paper .resume-section>h2,.resume-paper .resume-section>h3:first-child { font-size:27px; }
- .resume-paper .resume-index { font-size:10px; }
+ .resume-paper .resume-index { font-size:12px; gap:6px 16px; }
 }
 @media(prefers-reduced-motion:reduce) {
  .character-select .hero-art-window { transition:none; }

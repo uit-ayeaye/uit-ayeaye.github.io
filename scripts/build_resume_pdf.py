@@ -39,6 +39,9 @@ def background(canvas,doc):
     for y in range(int(h)-15,14,-15):path.lineTo(12+rng.uniform(-2.5,2.5),y)
     path.close();canvas.clipPath(path,stroke=0)
     canvas.drawImage(texture,9,10,width=w-18,height=h-20)
+    # A translucent cream wash quiets the creases under the reading column.
+    canvas.setFillColor(colors.HexColor('#fff8e9'));canvas.setFillAlpha(.9)
+    canvas.rect(29,30,w-58,h-60,fill=1,stroke=0);canvas.setFillAlpha(1)
     canvas.setStrokeColor(colors.HexColor('#a4895d'));canvas.setLineWidth(.4)
     canvas.rect(24,27,w-48,h-54,fill=0,stroke=1)
     canvas.setFillColor(colors.HexColor('#735235'));canvas.setFont('Helvetica',7)
@@ -51,23 +54,25 @@ def plain_footer(canvas,doc):
     canvas.saveState();canvas.setFont('Helvetica',8);canvas.setFillColor(colors.HexColor('#555555'))
     canvas.drawString(16*mm,10*mm,'Thomas D. Lynn | thomasdlynn.dev');canvas.drawRightString(A4[0]-16*mm,10*mm,str(doc.page));canvas.restoreState()
 def build(artful=False):
-    body='Kalam' if artful else 'Helvetica';bold='Kalam-Bold' if artful else 'Helvetica-Bold';ink=colors.HexColor('#3b2819') if artful else colors.black
+    body='Helvetica';bold='Helvetica-Bold';ink=colors.HexColor('#29251e') if artful else colors.black
     styles={
       'name':ParagraphStyle('Name',fontName='Pirata' if artful else bold,fontSize=35 if artful else 25,leading=40 if artful else 29,spaceAfter=10,textColor=ink),
       'role':ParagraphStyle('Role',fontName=bold,fontSize=12 if artful else 11,leading=17,spaceAfter=4,textColor=ink),
       'meta':ParagraphStyle('Meta',fontName=body,fontSize=10 if artful else 9,leading=13.5,spaceAfter=5,textColor=ink),
       'note':ParagraphStyle('Note',fontName=body,fontSize=10 if artful else 9,leading=13.5,spaceAfter=5,keepWithNext=True,textColor=ink),
-      'body':ParagraphStyle('Body',fontName=body,fontSize=12 if artful else 10,leading=16.3 if artful else 14,spaceAfter=7,textColor=ink),
+      'accent':ParagraphStyle('Accent',fontName='Kalam',fontSize=13,leading=18,spaceAfter=8,textColor=ink),
+      'body':ParagraphStyle('Body',fontName=body,fontSize=11.5 if artful else 10,leading=17.5 if artful else 14,spaceAfter=7,textColor=ink),
       'section':ParagraphStyle('Section',fontName='Pirata' if artful else bold,fontSize=23 if artful else 13,leading=27 if artful else 17,spaceBefore=17,spaceAfter=9,keepWithNext=True,textColor=colors.HexColor('#713b27') if artful else ink),
       'entry':ParagraphStyle('Entry',fontName=bold,fontSize=14 if artful else 11,leading=18 if artful else 15,spaceAfter=4,keepWithNext=True,textColor=ink),
       'stack':ParagraphStyle('Stack',fontName='Helvetica',fontSize=8,leading=11,spaceAfter=10,textColor=colors.HexColor('#624b30') if artful else colors.HexColor('#444444')),
     }
     def paragraph(el,style='body'):return Paragraph(rich(el),styles[style])
-    story=[paragraph(paper.select_one('h1'),'name'),paragraph(paper.select_one('.resume-role'),'role'),paragraph(paper.select_one('.resume-alias'),'meta')]
+    story=[paragraph(paper.select_one('h1'),'name'),paragraph(paper.select_one('.resume-role'),'role'),paragraph(paper.select_one('.resume-alias'),'accent' if artful else 'meta')]
     for a in paper.select('.resume-contact a'):story.append(paragraph(a,'meta'))
     if artful:story.append(Spacer(1,9))
     for section in paper.select('.resume-section'):
         if section.get('id')=='resume-ledger':story.append(CondPageBreak(185))
+        if artful and section.get('id')=='resume-practice':story.append(CondPageBreak(440))
         story.append(Paragraph(text(section.h2),styles['section']))
         for child in section.find_all(recursive=False):
             if child.name=='h2':continue
@@ -81,7 +86,7 @@ def build(artful=False):
             elif child.name=='h3':story.append(paragraph(child,'entry'))
             elif child.name=='p':
                 if 'resume-signature' in child.get('class',[]) and not artful:continue
-                story.append(paragraph(child,'stack' if 'resume-stack' in child.get('class',[]) else 'note' if 'resume-section-note' in child.get('class',[]) else 'body'))
+                story.append(paragraph(child,'accent' if artful and 'resume-signature' in child.get('class',[]) else 'stack' if 'resume-stack' in child.get('class',[]) else 'note' if 'resume-section-note' in child.get('class',[]) else 'body'))
     dest=ROOT/'resume'/('thomas-d-lynn-logbook.pdf' if artful else 'thomas-d-lynn-resume.pdf')
     doc=SimpleDocTemplate(str(dest),pagesize=A4,leftMargin=20*mm if artful else 16*mm,rightMargin=20*mm if artful else 16*mm,topMargin=25*mm if artful else 17*mm,bottomMargin=23*mm if artful else 18*mm,title='Thomas D. Lynn - '+('Complete Illustrated Logbook' if artful else 'Software Engineer Resume'),author='Thomas D. Lynn',subject='Software engineering, creative development, and 33 documented projects',pageCompression=1)
     callback=background if artful else plain_footer
