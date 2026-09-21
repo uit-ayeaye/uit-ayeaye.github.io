@@ -39,7 +39,7 @@ def version_assets(markup):
     return re.sub(r'(href|src)="(/(?:css|js)/[^"?]+)"', replace, markup)
 
 
-def head(title, description, canonical, image='/images/social/thomas-captains-studio-v3.jpg'):
+def head(title, description, canonical, image='/images/social/thomas-captains-studio-v4.jpg'):
     full_image = image if image.startswith('https://') else 'https://thomasdlynn.dev' + image
     schema = {'@context': 'https://schema.org', '@type': 'Person', 'name': 'Thomas D. Lynn', 'alternateName': 'Thiha Lynn', 'url': 'https://thomasdlynn.dev', 'jobTitle': 'Software Engineer', 'sameAs': ['https://github.com/Thiha-Lynn'], 'worksFor': {'@type': 'Organization', 'name': 'Backbenchers Studio'}}
     schema.update({'@id': 'https://thomasdlynn.dev/#person', 'image': 'https://thomasdlynn.dev/images/captain/thomas-captain-v2.webp', 'email': 'mailto:hello@thomasdlynn.dev', 'knowsAbout': ['Software engineering', 'Game development', 'Web development', 'Mobile applications', 'Logistics software']})
@@ -201,7 +201,7 @@ def build_home():
         filters += f'<button class="filter" data-filter="{esc(cat)}" aria-pressed="false">{esc(cat)} <sup>{sum(p["category"] == cat for p in PROJECTS)}</sup></button>'
     skills = skill_cards()
     content = template.replace('{{COUNT}}', str(len(PROJECTS))).replace('{{FILTERS}}', filters).replace('{{CARDS}}', '\n'.join(card(p, i) for i, p in enumerate(PROJECTS, 1))).replace('{{SKILLS}}', skills).replace('{{PLAYGROUND}}', playground()).replace('{{PERSONAL_COLLECTION}}', personal_collection())
-    home_head = head('Thomas D. Lynn — Software Engineer & Creative Developer', 'Independent software engineering, games, commerce, and creative web development. Explore the projects and stories of Thomas D. Lynn, aka Thiha Lynn.', '/').replace('href="/#', 'href="#')
+    home_head = head('Thomas D. Lynn — Software Engineer & Creative Builder', 'Independent software engineering, games, commerce, and creative web development. Explore the projects and stories of Thomas D. Lynn, aka Thiha Lynn.', '/').replace('href="/#', 'href="#')
     (ROOT / 'index.html').write_text(home_head + content + FOOTER)
 
 
@@ -225,7 +225,7 @@ def build_project(p, i):
     markup = f'''<main id="main" class="case-page"><div class="wrap"><a class="back-link" href="/#projects">← ALL PROJECTS</a><div class="case-top"><p class="eyebrow">PROJECT {i+1:02} / {esc(p['category'])}</p><span class="small-label">{esc(p['status'])}</span></div><h1>{esc(p['title'])}</h1><p class="case-deck">{esc(p['summary'])}</p><p class="eyebrow case-org">{esc(p['eyebrow'])}</p><div class="case-hero">{illustration(p)}</div>{gallery}<div class="case-grid"><div class="case-main"><section><p class="eyebrow red">THE STORY</p><h2>The context.</h2><p>{esc(p['story'])}</p></section><section><p class="eyebrow red">MY CONTRIBUTION</p><h2>My role.</h2><p>{esc(p['role'])}</p></section><section><p class="eyebrow red">INSIDE THE BUILD</p><h2>The details that make it work.</h2><ul class="feature-list">{''.join('<li>'+esc(f)+'</li>' for f in p['features'])}</ul></section>{credit}{signoff}</div><aside class="case-sidebar"><p class="eyebrow">TECHNOLOGIES</p><ul class="stack-list">{''.join('<li>'+esc(t)+'</li>' for t in p['stack'])}</ul>{call_to_action}<div class="case-sources"><p class="eyebrow">EXPLORE / SOURCES</p>{source_html}</div><p class="case-date">PROJECT NOTES · SEPTEMBER 2026</p></aside></div><nav class="next-voyage" aria-label="Next project"><span class="eyebrow">KEEP EXPLORING</span><a href="/projects/{next_p['id']}/">{esc(next_p['title'])}<span>↗</span></a></nav></div></main>'''
     dest = ROOT / 'projects' / p['id']
     dest.mkdir(parents=True, exist_ok=True)
-    (dest / 'index.html').write_text(head(p['title'] + ' — Thomas D. Lynn', p['summary'], '/projects/' + p['id'] + '/', p['image'] or '/images/social/thomas-captains-studio-v3.jpg') + markup + FOOTER)
+    (dest / 'index.html').write_text(head(p['title'] + ' — Thomas D. Lynn', p['summary'], '/projects/' + p['id'] + '/', p['image'] or '/images/social/thomas-captains-studio-v4.jpg') + markup + FOOTER)
 
 
 def build_resume():

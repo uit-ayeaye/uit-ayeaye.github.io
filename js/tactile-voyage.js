@@ -64,6 +64,8 @@
  document.addEventListener('click',event=>{
   const target=event.target.closest('button:not(:disabled),a[href],[role="button"]');
   if(!target||still()||event.defaultPrevented) return;
+  // Touch already has CSS press feedback; a second bounce moves the next tap target.
+  if(event.pointerType==='touch'||matchMedia('(hover: none)').matches) return;
   // Paper links use an ink highlight: never scale the text or its hit target.
   if(target.closest(readingSurface)) return;
   animations.get(target)?.cancel();

@@ -55,7 +55,7 @@ for url in routes:
     assert 'href="https://github.com/uit-ayeaye"' not in markup, f'{route}: outdated profile'
 for name in ['logbook','resume']:
     assert (ROOT/f'resume/thomas-d-lynn-{name}.pdf').read_bytes().startswith(b'%PDF-')
-assert 'thomas-captains-studio-v3.jpg' in (ROOT/'index.html').read_text()
+assert 'thomas-captains-studio-v4.jpg' in (ROOT/'index.html').read_text()
 assert 'github.com/Thiha-Lynn' in (ROOT/'resume/thomas-d-lynn-resume.txt').read_text()
 som=next(p for p in DATA if p['id']=='som-bi')
 assert som['url'] is None and not som['links'], 'SOM must not link to internal service'

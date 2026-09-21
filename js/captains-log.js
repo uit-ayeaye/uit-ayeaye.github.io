@@ -128,10 +128,14 @@
     let gesture;
     const stage = document.querySelector('.world-stage');
     stage.addEventListener('pointerdown', event => {
-      if (event.pointerType === 'touch') gesture = {x:event.clientX, y:event.clientY};
+      gesture = null;
+      if (event.pointerType === 'touch' && event.isPrimary && !event.target.closest('a,button,summary,details,input,select,textarea,[role=button]')) gesture = {x:event.clientX, y:event.clientY, id:event.pointerId};
+    }, {passive:true});
+    stage.addEventListener('pointermove', event => {
+      if (gesture && gesture.id === event.pointerId && Math.abs(event.clientY-gesture.y)>10 && Math.abs(event.clientY-gesture.y)>=Math.abs(event.clientX-gesture.x)) gesture=null;
     }, {passive:true});
     stage.addEventListener('pointerup', event => {
-      if (!gesture || event.pointerType !== 'touch') return;
+      if (!gesture || gesture.id !== event.pointerId) return;
       const dx = event.clientX - gesture.x, dy = event.clientY - gesture.y;
       gesture = null;
       if (Math.abs(dx) > 65 && Math.abs(dx) > Math.abs(dy) * 1.5) stepWorld(dx < 0 ? 1 : -1);

@@ -6,7 +6,7 @@ from html import escape, unescape
 import json, re
 ROOT=Path(__file__).resolve().parents[1]
 SITE='https://thomasdlynn.dev'
-COVER='/images/social/thomas-captains-studio-v3.jpg'
+COVER='/images/social/thomas-captains-studio-v4.jpg'
 PROJECTS=json.loads((ROOT/'data/projects.json').read_text())
 IMAGES=json.loads((ROOT/'data/social-images.json').read_text())
 class Head(HTMLParser):
@@ -27,7 +27,7 @@ for route in paths:
     markup=file.read_text();head,body=markup.split('</head>',1)
     meta=Head(head).meta
     title=unescape(re.search(r'<title>(.*?)</title>',head,re.S).group(1))
-    description=meta.get('description','Explore the work of Thomas D. Lynn, software engineer and creative developer at Backbenchers Studio.')
+    description=meta.get('description','Explore the work of Thomas D. Lynn, software engineer and creative builder at Backbenchers Studio.')
     image=COVER
     project=next((p for p in PROJECTS if route=='/projects/'+p['id']+'/'),None)
     if route.startswith('/showcase/') and route!='/showcase/':
@@ -48,7 +48,7 @@ for route in paths:
     head=re.sub(r'<link\b(?=[^>]*\brel=["\']canonical["\'])[^>]*>','',head,flags=re.I)
     head=re.sub(r'<!-- studio-seo:start -->.*?<!-- studio-seo:end -->','',head,flags=re.S)
     info=IMAGES[image]
-    values={'description':description,'author':'Thomas D. Lynn','robots':'index, follow, max-image-preview:large','og:type':'article' if article else 'website','og:title':title,'og:description':description,'og:url':SITE+route,'og:site_name':'Thomas D. Lynn · Backbenchers Studio','og:locale':'my_MM' if language=='my' else 'en_US','og:image':SITE+image,'og:image:secure_url':SITE+image,'og:image:type':info['mime'],'og:image:width':info['width'],'og:image:height':info['height'],'og:image:alt':(project['title']+' project preview' if project else 'Thomas D. Lynn — Software Engineer & Creative Developer, illustrated captain on a midnight sea chart'),'twitter:card':'summary_large_image','twitter:title':title,'twitter:description':description,'twitter:image':SITE+image,'twitter:image:alt':(project['title']+' project preview' if project else 'Thomas D. Lynn and Backbenchers Studio')}
+    values={'description':description,'author':'Thomas D. Lynn','robots':'index, follow, max-image-preview:large','og:type':'article' if article else 'website','og:title':title,'og:description':description,'og:url':SITE+route,'og:site_name':'Thomas D. Lynn · Backbenchers Studio','og:locale':'my_MM' if language=='my' else 'en_US','og:image':SITE+image,'og:image:secure_url':SITE+image,'og:image:type':info['mime'],'og:image:width':info['width'],'og:image:height':info['height'],'og:image:alt':(project['title']+' project preview' if project else 'Thomas D. Lynn — Software Engineer & Creative Builder, illustrated captain on a midnight sea chart'),'twitter:card':'summary_large_image','twitter:title':title,'twitter:description':description,'twitter:image':SITE+image,'twitter:image:alt':(project['title']+' project preview' if project else 'Thomas D. Lynn and Backbenchers Studio')}
     extras='<link rel="canonical" href="'+SITE+route+'">'+''.join(tag(k,v) for k,v in values.items())
     if article:
         en=SITE+'/blog/opus-4-6-ai-engineering.html';my=SITE+'/blog/opus-4-6-ai-engineering-mm.html'

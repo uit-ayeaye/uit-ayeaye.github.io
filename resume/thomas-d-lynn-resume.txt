@@ -1,6 +1,6 @@
 Thomas D. Lynn
 
-Software Engineer & Creative Developer
+Software Engineer & Creative Builder
 
 Thiha Lynn · Backbenchers Studio
 
@@ -12,7 +12,7 @@ github.com/Thiha-Lynn
 
 The person behind the work
 
-I’m Thomas D. Lynn, also known as Thiha Lynn: an independent software engineer, creative developer, and founder of Backbenchers Studio. With roots in Myanmar, my work connects practical software with games, culture, learning, and the web.
+I’m Thomas D. Lynn, also known as Thiha Lynn: an independent software engineer, creative builder, and founder of Backbenchers Studio. With roots in Myanmar, my work connects practical software with games, culture, learning, and the web.
 
 I build across the whole product: the screen a visitor sees, the app a customer carries, the dashboard a team operates, and the services that connect them. My portfolio spans multiplayer games, logistics, commerce, publishing, education, creative tools, and browser worlds.
 

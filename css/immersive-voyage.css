@@ -113,3 +113,30 @@ summary:active { scale:none!important; }
 .character-select .character-dossier>span:last-child { text-align:center; }
 
 .character-select .hero-art-window> :is(.hero-captain,.hero-ship,.hero-bounty) { min-height:0; height:100%; max-height:100%; }
+
+/* A single animation owns character changes; legacy floating/arrival effects
+   otherwise fight the lobby transition and shift art during a touch scroll. */
+.character-select .hero-art-window { translate:none; transition:none; }
+.character-select .hero-art-window> :is(.hero-captain,.hero-ship,.hero-bounty):not([hidden]) { animation:none; }
+.world-stage { touch-action:pan-y pinch-zoom; }
+@media (hover:none), (pointer:coarse) {
+ .character-select .floating-waypoint { animation:none; transform:none; }
+ .character-select .hero-art-window> :is(.hero-captain,.hero-ship,.hero-bounty) { filter:none; }
+ .portfolio-site :is(button,.button,summary,[role=button],.text-link,.floating-waypoint):active { scale:1; translate:none; }
+}
+
+/* Floating chart pins: decoration moves, the 64px touch targets stay anchored. */
+.character-select .art-switch { background:none; border:0; box-shadow:none; gap:10px; padding:0; bottom:28px; overflow:visible; }
+.character-select .art-switch button { position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px; min-height:68px; padding:9px 4px; border:1px solid #c8ab7259; border-radius:18px; color:#cbd6d6; background:linear-gradient(145deg,#22353ee8,#0c1821f5); box-shadow:0 7px 0 #050d1380,0 12px 22px #0003,inset 0 1px #fff1; transition:background .2s,border-color .2s,color .2s,box-shadow .2s; }
+.character-marker { position:relative; display:grid; place-items:center; width:23px; height:23px; color:#b9a276; }
+.character-marker svg { width:21px; height:21px; }
+.character-marker::after { content:""; position:absolute; inset:-5px; border:1px solid currentColor; border-radius:50%; opacity:0; pointer-events:none; }
+.character-select .art-switch button[aria-pressed=true] { color:#fbe7b8; border-color:#e9c87e; background:linear-gradient(145deg,#4a412b,#222c2e); box-shadow:0 6px 0 #0a1118,0 0 24px #ecc16a20,inset 0 1px #ffe1a052; }
+.character-select .art-switch button[aria-pressed=true] .character-marker { color:#f5cf7a; }
+.character-select .art-switch button[aria-pressed=true] .character-marker::after { opacity:.65; }
+.immersive-mode .character-select.character-in-view:not(.character-still) [aria-pressed=true] .character-marker::after { animation:chart-pin-beacon 2.8s ease-out infinite; }
+@keyframes chart-pin-beacon { 0%,100% { opacity:.2; scale:.85; } 45% { opacity:.7; scale:1.14; } }
+.character-select .art-switch button:focus-visible { outline:2px solid #ffe4a8; outline-offset:5px; }
+@media(hover:hover) and (pointer:fine) { .character-select .art-switch button:hover { border-color:#e9c87e; box-shadow:0 7px 0 #050d1380,0 0 24px #ecc16a25; } }
+@media(max-width:700px) { .character-select .art-switch { bottom:30px; gap:8px; }.character-select .art-switch button { min-height:68px; font-size:10px; padding:9px 3px; }.character-hint { bottom:5px; } }
+@media(prefers-reduced-motion:reduce) { .character-select .character-marker::after { animation:none!important; } }
