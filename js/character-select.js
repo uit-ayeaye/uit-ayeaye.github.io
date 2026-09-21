@@ -23,11 +23,14 @@
   {key:'ship',name:'The voyager',role:'THE EXPLORER',description:'Games, products, and worlds worth exploring.'},
   {key:'bounty',name:'The wanted one',role:'THE ORIGINAL',description:'Myanmar roots. A little pirate spirit.'}
  ];
- let selected=0,entrance=null,gesture=null;
+ let selected=0,entrance=null,gesture=null,request=0;
+ const ready=index=>Promise.all([...pose(index).querySelectorAll('img'),...(pose(index).matches('img')?[pose(index)]:[])].map(img=>{img.loading='eager';return img.decode?.().catch(()=>{});}));
  const pose=index=>lobby.querySelector('.hero-'+cast[index].key);
- function select(index,direction=1,announce=true){
+ async function select(index,direction=1,announce=true){
   index=(index+cast.length)%cast.length;
+  const ticket=++request;
   resetGesture();
+  if(announce){await ready(index);if(ticket!==request)return;}
   entrance?.cancel();
   selected=index;
   cast.forEach((item,i)=>{pose(i).hidden=i!==index;tabs[i].setAttribute('aria-pressed',String(i===index));});
@@ -38,13 +41,13 @@
   lobby.querySelector('.character-description').textContent=item.description;
   if(announce)lobby.querySelector('.character-status').textContent=`${item.name}. ${item.description} ${index+1} of 3.`;
   if(!still()&&announce)entrance=pose(index).animate([
-   {opacity:0,translate:`${direction*20}px 0`,scale:'.99'},
-   {opacity:1,translate:'0 0',scale:'1'}
-  ],{duration:280,easing:'cubic-bezier(.16,1,.3,1)'});
+   {opacity:.4,translate:`${direction*12}px 0`},
+   {opacity:1,translate:'0 0'}
+  ],{duration:200,easing:'cubic-bezier(.16,1,.3,1)'});
  }
  lobby.querySelector('.art-switch').hidden=false;
  lobby.querySelector('.character-arrows').hidden=false;
- tabs.forEach((tab,i)=>tab.addEventListener('click',()=>{if(i!==selected)select(i,i>selected?1:-1);}));
+ tabs.forEach((tab,i)=>tab.addEventListener('click',()=>select(i,i>selected?1:-1)));
  lobby.querySelectorAll('[data-character-step]').forEach(button=>button.addEventListener('click',()=>select(selected+Number(button.dataset.characterStep),Number(button.dataset.characterStep))));
  stage.addEventListener('keydown',event=>{
   const destination={ArrowRight:selected+1,ArrowLeft:selected-1,Home:0,End:2}[event.key];
@@ -56,12 +59,14 @@
  function resetGesture(){
   const current=gesture;gesture=null;
   stage.classList.remove('is-character-dragging');
+  if(current){cancelAnimationFrame(current.frame);pose(selected).style.translate='';}
   if(current&&stage.hasPointerCapture(current.id))stage.releasePointerCapture(current.id);
  }
  stage.addEventListener('pointerdown',event=>{
   if(!event.isPrimary){resetGesture();return;}
   if(event.button!==0)return;
   resetGesture();
+  entrance?.cancel();
   gesture={x:event.clientX,y:event.clientY,dx:0,id:event.pointerId,axis:null,width:stage.clientWidth};
  });
  stage.addEventListener('pointermove',event=>{
@@ -75,8 +80,13 @@
   }
   if(!gesture.axis)return;
   gesture.dx=dx;
-  // Keep the stage and its neighbouring links fixed beneath the finger.
-  // Only the selected illustration animates after a completed swipe.
+  // Bounded feedback moves only the illustration, once per display frame.
+  // The clipped stage and its neighbouring links never move with the gesture.
+  if(!still()&&!gesture.frame)gesture.frame=requestAnimationFrame(()=>{
+   if(!gesture)return;
+   pose(selected).style.translate=`${Math.max(-24,Math.min(24,gesture.dx*.18))}px 0`;
+   gesture.frame=0;
+  });
   event.preventDefault();
  });
  const finish=event=>{
@@ -94,15 +104,14 @@
  window.addEventListener('blur',resetGesture);
  const sync=()=>{if(still()||document.hidden){entrance?.cancel();resetGesture();}lobby.classList.toggle('character-still',still()||document.hidden||!root.classList.contains('immersive-mode'));};
  document.addEventListener('voyage-preferences',sync);document.addEventListener('visibilitychange',sync);reduced.addEventListener('change',sync);
- // Warm hidden choices before they enter view so the first tap has no blank frame.
- const warmup=new IntersectionObserver(entries=>{
-  if(!entries.some(entry=>entry.isIntersecting))return;
-  lobby.querySelectorAll('img[loading="lazy"]').forEach(img=>{
-   img.loading='eager';img.decode?.().catch(()=>{});
-  });
-  warmup.disconnect();
- },{rootMargin:'400px'});
- warmup.observe(lobby);
+ // Wait for the primary image before warming smaller alternate artwork.
+ // Data-saving connections load alternatives only when requested.
+ const warm=()=>{
+  if(navigator.connection?.saveData||/(^|-)[23]g$/.test(navigator.connection?.effectiveType||''))return;
+  const run=()=>{ready(1).then(()=>ready(2));};
+  if('requestIdleCallback' in window)requestIdleCallback(run,{timeout:2000});else setTimeout(run,500);
+ };
+ if(document.readyState==='complete')warm();else window.addEventListener('load',warm,{once:true});
  new IntersectionObserver(entries=>lobby.classList.toggle('character-in-view',entries[0].isIntersecting),{threshold:.1}).observe(lobby);
  select(0,1,false);sync();
 })();

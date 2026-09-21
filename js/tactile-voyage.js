@@ -57,8 +57,11 @@
  const surfaces='button:not(:disabled),a.button,.tech-chip,.floating-waypoint';
  // Independent WebGL experiences own their control positioning. Enhance their dock only.
  const surfaceScope=document.body.classList.contains('portfolio-site')?document:document.querySelector('.expedition-dock');
- surfaceScope?.querySelectorAll(surfaces).forEach(el=>{
-  if(getComputedStyle(el).position==='static') el.classList.add('interaction-static');
+ // Read positions before writing classes to avoid one forced layout per control.
+ const controls=[...(surfaceScope?.querySelectorAll(surfaces)||[])];
+ const positions=controls.map(el=>getComputedStyle(el).position);
+ controls.forEach((el,i)=>{
+  if(positions[i]==='static') el.classList.add('interaction-static');
   el.classList.add('interactive-surface');
  });
  document.addEventListener('click',event=>{
@@ -84,8 +87,15 @@
   effect?.addEventListener('cancel',remove,{once:true});
  });
  // Native details semantics, enhanced with interruptible open AND close motion.
+ document.querySelectorAll('.skill').forEach(details=>{
+  details.addEventListener('toggle',()=>{
+   const body=details.querySelector('.skill-detail');
+   animations.get(body)?.cancel();
+   if(details.open&&!still()) animations.set(body,play(body,[{opacity:0},{opacity:1}],{duration:180,easing:'ease-out'}));
+  });
+ });
  const disclosures=[];
- document.querySelectorAll('.skill,.personal-disclosure,.world-caption,.captain-memory,.preview-context').forEach(details=>{
+ document.querySelectorAll('.personal-disclosure,.world-caption,.captain-memory,.preview-context').forEach(details=>{
   const summary=details.querySelector(':scope>summary');
   if(!summary) return;
   const content=document.createElement('div'); content.className='motion-disclosure';

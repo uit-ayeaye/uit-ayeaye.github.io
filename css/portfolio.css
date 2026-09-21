@@ -1367,6 +1367,44 @@ summary:active { scale:none!important; }
 @media(max-width:700px) { .character-select .art-switch { bottom:30px; gap:8px; }.character-select .art-switch button { min-height:68px; font-size:10px; padding:9px 3px; }.character-hint { bottom:5px; } }
 @media(prefers-reduced-motion:reduce) { .character-select .character-marker::after { animation:none!important; } }
 
+/* Keep rotating decoration and swipe feedback inside the lobby's paint bounds. */
+.hero-grid { grid-template-columns:minmax(0,1.08fr) minmax(0,1fr); }
+.hero-grid>* { min-width:0; }
+.character-select.voyage-art { overflow:clip; contain:layout paint; }
+.character-select .hero-art-window { grid-template-columns:minmax(0,1fr); overflow:clip; overscroll-behavior-x:contain; }
+.character-select .hero-art-window> :is(.hero-captain,.hero-ship,.hero-bounty) { max-width:100%; filter:none; }
+.character-select .art-switch button { min-width:0; flex-basis:0; }
+.character-select .floating-waypoint { backdrop-filter:none; }
+@media(max-width:650px) { .hero-grid { grid-template-columns:minmax(0,1fr); } }
+@media(hover:none), (pointer:coarse) {
+ /* A rotating ellipse expands its layer beyond the phone viewport. */
+ .immersive-mode .character-select .art-orbit { animation:none!important; }
+ body.portfolio-site::before { display:none; }
+}
+
+/* The toolkit is one instrument panel, with a shared surface for every tool. */
+.skills-grid { align-items:start; }
+.skill { border-radius:20px; background:linear-gradient(135deg,#1c3038,#101e28); box-shadow:inset 0 1px #ffffff0c; transition:border-color .2s; }
+.skill::after { display:none; }
+.skill[open] { background:linear-gradient(135deg,#1c3038,#101e28); box-shadow:inset 0 1px #ffffff0c; }
+.skill .skill-header .skill-mascot { border-radius:16px; rotate:0deg; box-shadow:none; background:#0d1c25; }
+.skill[open] .skill-mascot,.skill:hover .skill-mascot { rotate:0deg; translate:none; }
+.skill .skill-peek { gap:5px; }
+.skill .skill-peek>span { rotate:none; margin:0; border:1px solid #647d8540; border-radius:7px; background:#11232d; }
+.skill .skill-peek small { margin-left:8px; }
+.skill[open] .skill-peek { display:none; }
+.skill .skill-detail { margin-top:20px; padding-top:18px; border-top:1px solid #8ca5ab33; }
+.skill .skill-detail>p { font-size:14px; line-height:1.75; color:#c4d1d5; }
+.skill .tech-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:18px; }
+.skill .tech-chip { min-width:0; min-height:88px; margin:0; padding:13px 6px; border-radius:12px; background:#0c1c25; color:#e8f0ef; border:1px solid #63818d40; box-shadow:none; transition:background .18s,border-color .18s; }
+.skill .tech-chip>span:last-child { overflow-wrap:anywhere; font-size:12px; }
+.skill .tech-chip img,.skill .tech-chip .tech-symbol { width:30px; height:30px; object-fit:contain; }
+.skill :is(.tech-chip,.skill-peek) img:is([src$='/threejs.svg'],[src$='/express.svg'],[src$='/github.svg'],[src$='/prisma.svg'],[src$='/unity.svg']) { filter:brightness(0) invert(.9); }
+.skill .tech-chip:hover,.skill .tech-chip:focus-visible { transform:none; translate:none; background:#253d46; border-color:var(--skill-accent); }
+.skill .skill-detail>a { color:var(--skill-accent); font-size:13px; line-height:1.6; }
+.skill>summary:focus-visible { outline:2px solid var(--skill-accent); outline-offset:8px; border-radius:8px; }
+@media(max-width:380px) { .skill { padding:18px; }.skill .tech-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
 /* Shared parchment and scroll reveals for the portfolio, articles, and world menus. */
 :root {
  --scroll-ink:#291c10;

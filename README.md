@@ -78,3 +78,5 @@ The first six projects form the default selection. Full personal-site and capabi
 SOM BI’s three previews are interface recreations using sample data. To regenerate: run `python3 scripts/build_som_previews.py`, then `node scripts/render_som_previews.cjs` (requires `sharp`), followed by the portfolio build. Keep the sample-data labeling in every export.
 
 See `docs/IMMERSIVE_LOBBY_REVIEW.md` for the character lobby, detailed résumé, mobile motion fixes, and SEO verification.
+
+See `docs/MOBILE_PERFORMANCE_REVIEW.md` for the contained character lobby, responsive artwork, unified toolkit panels, and touch-device preview policy. Run `node scripts/test_mobile_lobby.cjs` with the same Playwright environment for real touch swipe, overflow, toolkit, reduced-motion, and explicit media-playback checks.
