@@ -255,21 +255,24 @@
     "category": "Platforms",
     "eyebrow": "Independent media · Myanmar",
     "status": "Live publication",
-    "summary": "A news platform with publishing and media workflows behind the stories.",
+    "summary": "A multilingual publishing platform with LLM translation and retrieval-grounded reply drafting.",
     "story": "Myo Taw needs to publish quickly, keep Burmese typography readable, and bring articles and video together. The project supports a newsroom covering current Myanmar affairs and conflict, with attention to Nay Pyi Taw and local communities.",
-    "role": "Backend and implementation for the news platform, content-management workflows, and public reading experience.",
+    "role": "Backend and implementation for the news platform, editorial workflows and public reading experience, including Gemini / DeepSeek integration and keyword-based RAG reply drafting.",
     "features": [
       "Article and video publishing with categories and a dedicated editorial management surface.",
       "Local Laravel/Filament implementation with media import and publishing services.",
       "Burmese, English, and Chinese navigation is available on the public site.",
-      "Implemented Gemini / DeepSeek translation integration with parallel language requests, glossary prompts, output checks, token-usage accounting and editor controls."
+      "Implemented Gemini / DeepSeek translation integration with parallel language requests, glossary prompts, output checks, token-usage accounting and editor controls.",
+      "Implemented retrieval-augmented generation (RAG) for reply drafting: keyword retrieval from active knowledge entries and related article context, supplied to an LLM with review controls. Retrieval quality and live rollout were not benchmarked in this review."
     ],
     "stack": [
       "Laravel",
       "Filament",
       "PHP",
       "Gemini / DeepSeek APIs",
-      "Media workflows"
+      "Media workflows",
+      "RAG / knowledge retrieval",
+      "Prompt engineering"
     ],
     "url": "https://myotaw.com",
     "image": "/images/projects/myotaw.jpg",

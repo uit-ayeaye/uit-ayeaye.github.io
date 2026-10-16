@@ -1,10 +1,10 @@
 Thomas D. Lynn
 
-Full-Stack Software Engineer · AI-Assisted Product Development
+Software Engineer · Full-Stack Platforms, LLM Integration & RAG
 
 Thiha Lin · Backbenchers Studio
 
-hello@thomasdlynn.dev
+6631503092@lamduan.mfu.ac.th
 
 thomasdlynn.dev
 
@@ -12,7 +12,7 @@ github.com/Thiha-Lynn
 
 LinkedIn / Thiha Lin
 
-Full-stack engineering, grounded in client needs
+Professional summary
 
 I’m Thiha Lin, also known as Thomas D. Lynn, a Software Engineering student at Mae Fah Luang University and founder of Backbenchers Studio. I build complete digital products across web, backend, mobile and operational tools, using AI-assisted development alongside practical software engineering.
 
@@ -24,7 +24,7 @@ Education & cooperative placement
 
 Mae Fah Luang University · B.Eng. Software Engineering · 2023–present. Recorded GPAX: 3.53 through semester 2, academic year 2025.
 
-Available for cooperative education January–May 2027, anywhere in Thailand, including Chiang Mai. Exact placement dates and expected graduation date to be confirmed.
+Available for cooperative education January–May 2027, anywhere in Thailand, including Chiang Mai. Expected graduation: approximately June 2027. Exact placement dates to be agreed.
 
 LLM security certifications
 
@@ -36,7 +36,19 @@ Certified LLM Security Expert (CLLMSE)
 
 — Red Team Leaders, 16 October 2026.
 
-These credentials complement application-level LLM integration and AI-assisted development. Myo Taw News provides implementation evidence: Gemini / DeepSeek translation, output checks, usage accounting and editorial controls.
+Coursework covers LLM fundamentals, inference and tokenization, RAG versus fine-tuning, secure agent architecture, ReAct and multi-agent concepts, MCP, tool permissions and human-in-the-loop controls. Security topics include OWASP LLM risks, prompt-injection defense, threat modeling, governance and monitoring. These are areas of study; practical project experience is described separately.
+
+Applied AI & agent-assisted engineering
+
+Myo Taw News
+
+: implemented Gemini / DeepSeek translation and retrieval-augmented generation (RAG) for reply drafting. The workflow retrieves active knowledge entries by keywords or uses related article context, then supplies that context to the LLM. It includes output checks, usage accounting and review controls; production retrieval quality has not been benchmarked.
+
+Engineering notes
+
+: context-rich, agent-assisted codebase analysis, task decomposition, migration and native porting, guided by API contracts and regression review.
+
+Complete project index: thomasdlynn.dev/#projects
 
 Ongoing client delivery & release coordination
 
@@ -56,7 +68,7 @@ Translate business needs into web/mobile products, shared APIs, databases and ad
 
 Independent client engagements through Backbenchers Studio, with continued implementation and support.
 
-My working toolkit
+Technical skills
 
 Web and backend: JavaScript, TypeScript, PHP; React / Next.js, Vue / Nuxt, Node.js / Express, Laravel / Filament; REST APIs, shared business rules and administration.
 
@@ -64,9 +76,9 @@ Mobile and games: Flutter / Dart; Android / Java; AI-assisted Swift / UIKit port
 
 Data and reliability: SQL, MySQL, PostgreSQL, SQLite; relational modeling, transactions, row locks, idempotency, role-based access, scoped caching, retry workers and regression checks.
 
-AI and LLM applications: Gemini / DeepSeek integration, prompt and glossary design, parallel translation requests, output checks, usage accounting and editorial review; context-rich AI-assisted coding and migration.
+AI and LLM applications: LLM API integration, retrieval-augmented generation (RAG) with keyword knowledge retrieval and article context, prompt engineering, multilingual output checks, token-usage accounting and human review; agent-assisted software development.
 
-LLM security learning: Prompt-injection and OWASP LLM risk awareness, agent / MCP security, identity and access management, threat modeling and AI governance, supported by CLLMSP and CLLMSE certification.
+LLM security learning: Secure RAG and agent architecture, Model Context Protocol (MCP), tool authorization, human-in-the-loop controls, prompt-injection defense, OWASP LLM risks, threat modeling and AI governance; CLLMSP / CLLMSE coursework.
 
 Platforms and delivery: Git / GitHub, Linux / Nginx, AWS deployment context, release documentation, developer-account administration, D-U-N-S-related organization onboarding and app-store review coordination.
 
@@ -140,9 +152,9 @@ Myo Taw News
 
 Platforms / Live publication
 
-Backend and implementation for the news platform, content-management workflows, and public reading experience.
+Backend and implementation for the news platform, editorial workflows and public reading experience, including Gemini / DeepSeek integration and keyword-based RAG reply drafting.
 
-Laravel · Filament · PHP · Gemini / DeepSeek APIs · Media workflows
+Laravel · Filament · PHP · Gemini / DeepSeek APIs · Media workflows · RAG / knowledge retrieval · Prompt engineering
 
 DK Gaming Shop
 
@@ -368,7 +380,7 @@ GitHub
 
 , or reach me at
 
-hello@thomasdlynn.dev
+6631503092@lamduan.mfu.ac.th
 
 to discuss a build.
 

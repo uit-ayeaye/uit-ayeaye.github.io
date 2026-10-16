@@ -63,8 +63,11 @@ assert som['preview_kind'] == 'synthetic-interface'
 for image in [som['image'], *[item['image'] for item in som['gallery']]]:
     assert 'SAMPLE DATA' in (ROOT / image.lstrip('/')).with_suffix('.svg').read_text(), 'Label all recreated SOM screens'
 combined='\n'.join(f.read_text() for f in files)
+# The applicant explicitly selected this university email for public contact.
+# Continue rejecting standalone student IDs and all other private details.
+privacy_text=combined.replace('6631503092@lamduan.mfu.ac.th','PUBLIC_CONTACT_EMAIL')
 for private in ['som.mlbbshop.app','staff_code','6631503092','6631503097','6631503088','/Users/thomas','api_key','DATABASE_URL']:
-    assert private not in combined, f'Unexpected private detail: {private}'
+    assert private not in privacy_text, f'Unexpected private detail: {private}'
 assert 'Madric A' in (ROOT/'projects/hledan/index.html').read_text()
 assert 'Meghamittal0920' in (ROOT/'projects/grand-line-fizz/index.html').read_text()
 assert 'currently unavailable' in (ROOT/'projects/epst/index.html').read_text().lower()

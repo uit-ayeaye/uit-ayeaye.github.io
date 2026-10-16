@@ -73,7 +73,7 @@ def build(artful=False):
       'meta':ParagraphStyle('Meta',fontName=body,fontSize=10 if artful else 9,leading=13.5,spaceAfter=5,textColor=ink),
       'note':ParagraphStyle('Note',fontName=body,fontSize=10 if artful else 9,leading=13.5,spaceAfter=5,keepWithNext=True,textColor=ink),
       'accent':ParagraphStyle('Accent',fontName='Kalam',fontSize=13,leading=18,spaceAfter=8,textColor=ink),
-      'body':ParagraphStyle('Body',fontName=body,fontSize=11 if artful else 10,leading=16.5 if artful else 14,spaceAfter=7,textColor=ink),
+      'body':ParagraphStyle('Body',fontName=body,fontSize=10.5 if artful else 10,leading=15 if artful else 14,spaceAfter=7,textColor=ink),
       'section':ParagraphStyle('Section',fontName='Pirata' if artful else bold,fontSize=23 if artful else 13,leading=27 if artful else 17,spaceBefore=17,spaceAfter=9,keepWithNext=True,textColor=colors.HexColor('#713b27') if artful else ink),
       'entry':ParagraphStyle('Entry',fontName=bold,fontSize=14 if artful else 11,leading=18 if artful else 15,spaceAfter=4,keepWithNext=True,textColor=ink),
       'stack':ParagraphStyle('Stack',fontName=body,fontSize=8,leading=11,spaceAfter=10,textColor=colors.HexColor('#624b30') if artful else colors.HexColor('#444444')),
@@ -83,6 +83,7 @@ def build(artful=False):
     for a in paper.select('.resume-contact a'):story.append(paragraph(a,'meta'))
     if artful:story.append(Spacer(1,9))
     for section in paper.select('.resume-section'):
+        if artful and section.h2.get_text(strip=True)=='The next chapter':story.append(CondPageBreak(160))
         if section.get('id')=='resume-ledger':story.append(CondPageBreak(185))
         if artful and section.get('id')=='resume-practice':story.append(CondPageBreak(440))
         story.append(Paragraph(text(section.h2),styles['section']))
