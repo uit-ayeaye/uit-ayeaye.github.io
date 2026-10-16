@@ -65,20 +65,22 @@
     "title": "BurmaMart",
     "category": "Commerce",
     "eyebrow": "MSCT PTE LTD · Singapore",
-    "status": "Android available · iOS pending",
+    "status": "Ongoing client delivery",
     "summary": "A cross-border marketplace for buyers, merchants, and everyday essentials.",
-    "story": "Buying across borders involves more than a product card. BurmaMart brings local currencies, delivery routes, merchants, and the people handling parcels into one system. It gives shoppers a familiar buying experience while giving sellers their own mobile workspace.",
-    "role": "Implementation across the storefront, shared backend, administration, buyer app, and merchant app for MSCT PTE LTD.",
+    "story": "Buying across borders involves more than a product card. BurmaMart brings local currencies, delivery routes, merchants, and the people handling parcels into one system. It gives shoppers a familiar buying experience while giving sellers their own mobile workspace. The ongoing engagement is for Singapore-based MSCT PTE. LTD., connecting business requirements to usable software and release support.",
+    "role": "Implementation across the storefront, shared backend, administration, buyer app, and merchant app for MSCT PTE LTD. Ongoing client support from business requirements and solution design through implementation, developer-account administration, release coordination and maintenance.",
     "features": [
       "Buyer and merchant Flutter apps share a Laravel API, MySQL data model, and Filament administration.",
       "Localized product discovery, carts, orders, seller catalog management, and buyer–merchant conversations.",
       "Multi-currency commerce and country-aware fulfillment, including office handover workflows.",
-      "Android availability and pending iOS release are recorded as supplied by the project owner; both app codebases are present."
+      "Buyer and merchant app codebases are maintained alongside the web platform; store release status is tracked separately.",
+      "Supported company-verification and D-U-N-S-related onboarding, Apple / Google Play developer-account setup, release preparation and ongoing client coordination."
     ],
     "stack": [
-      "Laravel",
+      "Laravel / PHP",
       "Filament",
-      "Flutter",
+      "Sanctum",
+      "Flutter / Dart",
       "MySQL"
     ],
     "url": "https://burmamart.com",
@@ -99,37 +101,38 @@
   },
   {
     "id": "golden-gates",
-    "title": "Golden Gates GGT",
+    "title": "Golden Gate GGT",
     "category": "Commerce",
-    "eyebrow": "Delivery & shipping · Chiang Mai",
+    "eyebrow": "Logistics · Thailand",
     "status": "Operational pilot",
     "summary": "Parcel booking, branch handovers, and delivery tracking in one connected platform.",
     "story": "A logistics platform for Golden Gate GGT Co., Ltd., rooted in Chiang Mai. The public website connects to staff, customer, and courier workspaces, following each parcel from booking through dispatch and delivery. The system is in an operational pilot; native app distribution and wider carrier rollout remain in progress.",
-    "role": "Full-stack logistics platform implementation: the public website, shared shipment API, Laravel web workspaces, and Flutter staff, customer, and courier applications.",
+    "role": "Full-stack logistics platform implementation: the public website, shared shipment API, Laravel web workspaces, and Flutter staff, customer, and courier applications. Ongoing client support from business requirements and solution design through implementation, developer-account administration, release coordination and maintenance.",
     "features": [
       "Individually identified parcels, printable QR labels, vehicle manifests, and recorded branch handovers.",
       "Parcel trace history, partial receipts, delivery evidence, and exception handling.",
       "Separate staff, customer, and courier workflows with role-based access.",
-      "Manual collection and cash-settlement records, with auditable updates and retry-safe operations."
+      "Manual collection and cash-settlement records, with auditable updates and retry-safe operations.",
+      "Supported company-verification and D-U-N-S-related onboarding, Apple / Google Play developer-account setup, release preparation and ongoing client coordination."
     ],
     "stack": [
-      "Next.js",
-      "React",
+      "Next.js / React",
+      "Node.js",
       "Laravel",
-      "Flutter",
+      "Flutter / Dart",
       "SQLite",
       "AWS"
     ],
-    "url": "https://ggt.3-0-126-159.nip.io/",
+    "url": "https://goldengateggt.com",
     "image": "/images/projects/golden-gates.jpg",
     "links": [
       [
-        "Visit the public pilot",
-        "https://ggt.3-0-126-159.nip.io/"
+        "Public platform",
+        "https://goldengateggt.com"
       ]
     ],
     "credit": null,
-    "notes": "Operational pilot. Native app signing, distribution, and physical-device acceptance remain in progress.",
+    "notes": "Ongoing client support and operational pilot. Store submissions, review responses and physical-device acceptance are tracked separately from the public web platform.",
     "preview_caption": "Project interface preview"
   },
   {
@@ -259,12 +262,13 @@
       "Article and video publishing with categories and a dedicated editorial management surface.",
       "Local Laravel/Filament implementation with media import and publishing services.",
       "Burmese, English, and Chinese navigation is available on the public site.",
-      "Tools for video ingestion, translation, and social content organization are present in the source."
+      "Implemented Gemini / DeepSeek translation integration with parallel language requests, glossary prompts, output checks, token-usage accounting and editor controls."
     ],
     "stack": [
       "Laravel",
       "Filament",
       "PHP",
+      "Gemini / DeepSeek APIs",
       "Media workflows"
     ],
     "url": "https://myotaw.com",
@@ -318,21 +322,26 @@
     "title": "Welmal",
     "category": "Commerce",
     "eyebrow": "WEL MAL COMPANY LIMITED · Myanmar",
-    "status": "Ongoing client project",
+    "status": "Ongoing support · Android listed on Google Play",
     "summary": "Storefront, admin tools, and mobile shopping for a Myanmar commerce business.",
     "story": "Welmal is an ongoing ecommerce engagement for WEL MAL COMPANY LIMITED. Its focus is a coherent shopping journey: discovery on the web or phone, clear product information, and operational tools that keep the catalog and orders manageable.",
-    "role": "Commerce implementation across the web experience, backend and admin tools, plus customer mobile applications.",
+    "role": "Commerce implementation across the web experience, backend and admin tools, plus customer mobile applications. Ongoing client support from business requirements and solution design through implementation, developer-account administration, release coordination and maintenance.",
     "features": [
       "Laravel-based backend shared by the storefront and mobile clients.",
       "Web storefront and administration, with an additional React/TypeScript admin surface in the project.",
-      "Native Android and iOS implementations, alongside earlier Flutter work.",
-      "Product, catalog, ordering, and ongoing delivery work within one client ecosystem."
+      "Native Java Android and AI-assisted Swift / UIKit iOS implementation; earlier Flutter work is historical.",
+      "Product, catalog, ordering, and ongoing delivery work within one client ecosystem.",
+      "Supported company-verification and D-U-N-S-related onboarding, Apple / Google Play developer-account setup, release preparation and ongoing client coordination.",
+      "Shared API contracts, Sanctum authentication and English / Burmese / Chinese localization connect storefront and native shopping flows."
     ],
     "stack": [
-      "Laravel",
+      "Laravel / PHP",
+      "Blade / Vue",
       "React / TypeScript",
-      "Java",
-      "Swift"
+      "Java / Android",
+      "Swift / UIKit",
+      "MySQL",
+      "Redis"
     ],
     "url": "https://welmal.com",
     "image": "/images/projects/welmal.jpg",
@@ -340,6 +349,10 @@
       [
         "Welmal",
         "https://welmal.com"
+      ],
+      [
+        "Android app on Google Play",
+        "https://play.google.com/store/apps/details?id=com.welmal.customer"
       ]
     ],
     "credit": null,
@@ -624,7 +637,7 @@
     "status": "Company website",
     "summary": "A corporate home for the import and distribution business behind BurmaMart.",
     "story": "MSCT’s website tells a different part of the commerce story: the company behind the products and the marketplace. It introduces the Singapore-based import and distribution business, its food and everyday-goods categories, and how sourcing connects to delivery.",
-    "role": "Corporate website implementation and the public connection between MSCT’s business and the BurmaMart app ecosystem.",
+    "role": "Corporate website implementation and ongoing support for MSCT PTE. LTD., Singapore; connects its import and distribution business to the BurmaMart commerce platform.",
     "features": [
       "Service and sourcing information for retail and business partners.",
       "A clear source-to-shelf explanation of the company’s work.",

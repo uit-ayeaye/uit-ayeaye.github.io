@@ -69,7 +69,7 @@ def build(artful=False):
     body='ResumeSans';bold='ResumeSans-Bold';ink=colors.HexColor('#29251e') if artful else colors.black
     styles={
       'name':ParagraphStyle('Name',fontName='Pirata' if artful else bold,fontSize=35 if artful else 25,leading=40 if artful else 29,spaceAfter=10,textColor=ink),
-      'role':ParagraphStyle('Role',fontName=bold,fontSize=12 if artful else 11,leading=17,spaceAfter=4,textColor=ink),
+      'role':ParagraphStyle('Role',fontName=bold,fontSize=12 if artful else 11,leading=17,spaceAfter=4,textColor=ink,rightIndent=105 if artful else 0),
       'meta':ParagraphStyle('Meta',fontName=body,fontSize=10 if artful else 9,leading=13.5,spaceAfter=5,textColor=ink),
       'note':ParagraphStyle('Note',fontName=body,fontSize=10 if artful else 9,leading=13.5,spaceAfter=5,keepWithNext=True,textColor=ink),
       'accent':ParagraphStyle('Accent',fontName='Kalam',fontSize=13,leading=18,spaceAfter=8,textColor=ink),
@@ -98,7 +98,7 @@ def build(artful=False):
             elif child.name=='h3':story.append(paragraph(child,'entry'))
             elif child.name=='p':
                 if 'resume-signature' in child.get('class',[]) and not artful:continue
-                story.append(paragraph(child,'accent' if artful and 'resume-signature' in child.get('class',[]) else 'stack' if 'resume-stack' in child.get('class',[]) else 'note' if 'resume-section-note' in child.get('class',[]) else 'body'))
+                story.append(KeepTogether([paragraph(child,'accent' if artful and 'resume-signature' in child.get('class',[]) else 'stack' if 'resume-stack' in child.get('class',[]) else 'note' if 'resume-section-note' in child.get('class',[]) else 'body')]))
     dest=ROOT/'resume'/('thomas-d-lynn-logbook.pdf' if artful else 'thomas-d-lynn-resume.pdf')
     doc=SimpleDocTemplate(str(dest),pagesize=A4,leftMargin=20*mm if artful else 16*mm,rightMargin=20*mm if artful else 16*mm,topMargin=25*mm if artful else 17*mm,bottomMargin=23*mm if artful else 18*mm,title='Thomas D. Lynn - '+('Complete Illustrated Logbook' if artful else 'Software Engineer Resume'),author='Thomas D. Lynn',subject='Software engineering, creative development, and 33 documented projects',pageCompression=1)
     callback=background if artful else plain_footer

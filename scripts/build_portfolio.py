@@ -41,7 +41,7 @@ def version_assets(markup):
 
 def head(title, description, canonical, image='/images/social/thomas-captains-studio-v4.jpg'):
     full_image = image if image.startswith('https://') else 'https://thomasdlynn.dev' + image
-    schema = {'@context': 'https://schema.org', '@type': 'Person', 'name': 'Thomas D. Lynn', 'alternateName': 'Thiha Lynn', 'url': 'https://thomasdlynn.dev', 'jobTitle': 'Software Engineer', 'sameAs': ['https://github.com/Thiha-Lynn'], 'worksFor': {'@type': 'Organization', 'name': 'Backbenchers Studio'}}
+    schema = {'@context': 'https://schema.org', '@type': 'Person', 'name': 'Thomas D. Lynn', 'alternateName': 'Thiha Lin', 'url': 'https://thomasdlynn.dev', 'jobTitle': 'Software Engineer', 'sameAs': ['https://github.com/Thiha-Lynn', 'https://www.linkedin.com/in/thiha-lin-0152b6345/'], 'worksFor': {'@type': 'Organization', 'name': 'Backbenchers Studio'}}
     schema.update({'@id': 'https://thomasdlynn.dev/#person', 'image': 'https://thomasdlynn.dev/images/captain/thomas-captain-v2.webp', 'email': 'mailto:hello@thomasdlynn.dev', 'knowsAbout': ['Software engineering', 'Game development', 'Web development', 'Mobile applications', 'Logistics software']})
     schema = {'@context': 'https://schema.org', '@graph': [schema, {'@type': 'ProfilePage' if canonical == '/resume/' else 'WebPage', '@id': 'https://thomasdlynn.dev' + canonical, 'url': 'https://thomasdlynn.dev' + canonical, 'name': title, 'description': description, 'inLanguage': 'en', 'mainEntity': {'@id': 'https://thomasdlynn.dev/#person'}}]}
     if canonical.startswith('/projects/'):
@@ -201,7 +201,7 @@ def build_home():
         filters += f'<button class="filter" data-filter="{esc(cat)}" aria-pressed="false">{esc(cat)} <sup>{sum(p["category"] == cat for p in PROJECTS)}</sup></button>'
     skills = skill_cards()
     content = template.replace('{{COUNT}}', str(len(PROJECTS))).replace('{{FILTERS}}', filters).replace('{{CARDS}}', '\n'.join(card(p, i) for i, p in enumerate(PROJECTS, 1))).replace('{{SKILLS}}', skills).replace('{{PLAYGROUND}}', playground()).replace('{{PERSONAL_COLLECTION}}', personal_collection())
-    home_head = head('Thomas D. Lynn — Software Engineer & Creative Builder', 'Independent software engineering, games, commerce, and creative web development. Explore the projects and stories of Thomas D. Lynn, aka Thiha Lynn.', '/').replace('href="/#', 'href="#')
+    home_head = head('Thomas D. Lynn — Software Engineer & Creative Builder', 'Independent software engineering, games, commerce, and creative web development. Explore the projects and stories of Thomas D. Lynn, aka Thiha Lin.', '/').replace('href="/#', 'href="#')
     (ROOT / 'index.html').write_text(home_head + content + FOOTER)
 
 
@@ -234,7 +234,7 @@ def build_resume():
     paper = (ROOT / 'templates/resume.html').read_text().replace('{{COUNT}}', str(len(PROJECTS))).replace('{{PROJECT_LEDGER}}', ledger)
     content = f'''<main id="main" class="resume-page"><div class="resume-page-toolbar"><a class="back-link" href="/">← BACK TO PORTFOLIO</a><div><a class="button logbook-button" href="/resume/thomas-d-lynn-logbook.pdf" download>Logbook PDF ↓</a><a href="/resume/thomas-d-lynn-resume.pdf" download>Plain PDF ↓</a><a href="/resume/thomas-d-lynn-resume.txt" download>Text résumé ↓</a><button class="button" id="print-resume" hidden>Print ↗</button></div></div><p class="resume-print-hint">A detailed captain’s log. Download the illustrated edition, or choose a clean PDF for applications.</p><div class="resume-stage">{paper}</div></main>'''
     (ROOT / 'resume').mkdir(exist_ok=True)
-    (ROOT / 'resume/index.html').write_text(head('Thomas D. Lynn — Software Engineer Résumé & CV', 'Thomas D. Lynn (Thiha Lynn): software engineering project experience in games, logistics, commerce, web and mobile. Read, print, or download a text résumé.', '/resume/') + content + FOOTER)
+    (ROOT / 'resume/index.html').write_text(head('Thomas D. Lynn — Software Engineer Résumé & CV', 'Thomas D. Lynn (Thiha Lin): software engineering project experience in games, logistics, commerce, web and mobile. Read, print, or download a text résumé.', '/resume/') + content + FOOTER)
     from html.parser import HTMLParser
     class ResumeText(HTMLParser):
         def __init__(self):

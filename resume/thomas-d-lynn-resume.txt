@@ -1,8 +1,8 @@
 Thomas D. Lynn
 
-Software Engineer & Creative Builder
+Full-Stack Software Engineer · AI-Assisted Product Development
 
-Thiha Lynn · Backbenchers Studio
+Thiha Lin · Backbenchers Studio
 
 hello@thomasdlynn.dev
 
@@ -10,27 +10,67 @@ thomasdlynn.dev
 
 github.com/Thiha-Lynn
 
-The person behind the work
+LinkedIn / Thiha Lin
 
-I’m Thomas D. Lynn, also known as Thiha Lynn: an independent software engineer, creative builder, and founder of Backbenchers Studio. With roots in Myanmar, my work connects practical software with games, culture, learning, and the web.
+Full-stack engineering, grounded in client needs
 
-I build across the whole product: the screen a visitor sees, the app a customer carries, the dashboard a team operates, and the services that connect them. My portfolio spans multiplayer games, logistics, commerce, publishing, education, creative tools, and browser worlds.
+I’m Thiha Lin, also known as Thomas D. Lynn, a Software Engineering student at Mae Fah Luang University and founder of Backbenchers Studio. I build complete digital products across web, backend, mobile and operational tools, using AI-assisted development alongside practical software engineering.
 
-A little pirate spirit runs through this logbook. For me, that means curiosity, an independent approach, and making room for people’s stories alongside the engineering. The playful presentation comes with real project notes, clear contributions, and credit for the people whose work helped shape each build.
+I currently support WEL MAL COMPANY LIMITED in Myanmar, MSCT PTE. LTD. in Singapore, and GOLDEN GATE GGT COMPANY LIMITED in Thailand. My work starts with listening to business problems, then connects requirements, architecture, implementation, release coordination and ongoing support.
+
+My 33 documented projects span commerce, logistics, institutional analytics, media, education, games and creative tooling. Project stories identify my contributions, collaborators, release status and original creator credits.
+
+Education & cooperative placement
+
+Mae Fah Luang University · B.Eng. Software Engineering · 2023–present. Recorded GPAX: 3.53 through semester 2, academic year 2025.
+
+Available for cooperative education January–May 2027, anywhere in Thailand, including Chiang Mai. Exact placement dates and expected graduation date to be confirmed.
+
+LLM security certifications
+
+Certified LLM Security Professional (CLLMSP)
+
+— Red Team Leaders, 16 October 2026.
+
+Certified LLM Security Expert (CLLMSE)
+
+— Red Team Leaders, 16 October 2026.
+
+These credentials complement application-level LLM integration and AI-assisted development. Myo Taw News provides implementation evidence: Gemini / DeepSeek translation, output checks, usage accounting and editorial controls.
+
+Ongoing client delivery & release coordination
+
+WEL MAL COMPANY LIMITED · Myanmar
+
+— commerce platform and native shopping clients.
+
+MSCT PTE. LTD. · Singapore
+
+— BurmaMart’s commerce ecosystem and company website.
+
+GOLDEN GATE GGT COMPANY LIMITED · Thailand
+
+— parcel and logistics workflows.
+
+Translate business needs into web/mobile products, shared APIs, databases and administration. Support organization verification and D-U-N-S-related onboarding, developer-account setup and administration, signing / distribution preparation, app-store review coordination, handover and ongoing improvements.
+
+Independent client engagements through Backbenchers Studio, with continued implementation and support.
 
 My working toolkit
 
-Web & backend: React, Next.js, Vue / Nuxt, Laravel, PHP, Express, JavaScript, TypeScript.
+Web and backend: JavaScript, TypeScript, PHP; React / Next.js, Vue / Nuxt, Node.js / Express, Laravel / Filament; REST APIs, shared business rules and administration.
 
-Mobile & games: Flutter / Dart, Android / Java, iOS / Swift, Unity, C#, Photon.
+Mobile and games: Flutter / Dart; Android / Java; AI-assisted Swift / UIKit porting and integration; Unity / C# / Photon.
 
-Data & creative systems: MySQL, PostgreSQL, SQLite, Python, Three.js, React Three Fiber, GSAP, FFmpeg / HLS.
+Data and reliability: SQL, MySQL, PostgreSQL, SQLite; relational modeling, transactions, row locks, idempotency, role-based access, scoped caching, retry workers and regression checks.
 
-Interfaces & motion: responsive layouts, accessible navigation, progressive enhancement, browser animation, real-time scenes, and touch interaction.
+AI and LLM applications: Gemini / DeepSeek integration, prompt and glossary design, parallel translation requests, output checks, usage accounting and editorial review; context-rich AI-assisted coding and migration.
 
-Delivery & operations: Git / GitHub, static hosting, Nginx, PWA packaging, offline-first workflows, provider integrations, and Telegram / Messenger automation.
+LLM security learning: Prompt-injection and OWASP LLM risk awareness, agent / MCP security, identity and access management, threat modeling and AI governance, supported by CLLMSP and CLLMSE certification.
 
-Creative production: media processing, adaptive video delivery, Myanmar glyph drawing, font generation, and content-led portfolio design.
+Platforms and delivery: Git / GitHub, Linux / Nginx, AWS deployment context, release documentation, developer-account administration, D-U-N-S-related organization onboarding and app-store review coordination.
+
+Creative and accessible interfaces: Python tooling, OpenType / fontmake, FFmpeg / HLS, Three.js / React Three Fiber / GSAP, responsive and multilingual UI, PWA and offline workflows.
 
 Selected project experience
 
@@ -44,21 +84,21 @@ Developed the multiplayer game and wider ecosystem with Backbenchers Studio and 
 
 Unity · C# · Photon · Android / iOS
 
-Golden Gates GGT
+Golden Gate GGT
 
 Delivery & shipping
 
-Implemented a logistics platform connecting booking, parcel tracing, QR labels, dispatch, branch handovers, and delivery evidence. Built web workspaces and separate Flutter staff, customer, and courier apps for an operational pilot.
+Full-stack logistics platform implementation: the public website, shared shipment API, Laravel web workspaces, and Flutter staff, customer, and courier applications. Ongoing client support from business requirements and solution design through implementation, developer-account administration, release coordination and maintenance. QR parcel identities, handovers, audit records and retry-safe operations support the logistics workflow.
 
-Next.js · Laravel · Flutter · SQLite · AWS
+Next.js / React · Node.js · Laravel · Flutter / Dart · SQLite · AWS
 
 BurmaMart
 
 Commerce · MSCT PTE LTD
 
-Implemented the storefront, shared backend, administration, and buyer and merchant applications for a cross-border commerce ecosystem.
+Implementation across the storefront, shared backend, administration, buyer app, and merchant app for MSCT PTE LTD. Ongoing client support from business requirements and solution design through implementation, developer-account administration, release coordination and maintenance. Shared checkout rules and currency consistency connect preview and order creation.
 
-Laravel · Filament · Flutter · MySQL
+Laravel / PHP · Filament · Sanctum · Flutter / Dart · MySQL
 
 Actually We ARe MAd
 
@@ -102,7 +142,7 @@ Platforms / Live publication
 
 Backend and implementation for the news platform, content-management workflows, and public reading experience.
 
-Laravel · Filament · PHP · Media workflows
+Laravel · Filament · PHP · Gemini / DeepSeek APIs · Media workflows
 
 DK Gaming Shop
 
@@ -114,11 +154,11 @@ Next.js · Provider APIs · Python · Telegram · Mobile
 
 Welmal
 
-Commerce / Ongoing client project
+Commerce / Ongoing support · Android listed on Google Play
 
-Commerce implementation across the web experience, backend and admin tools, plus customer mobile applications.
+Commerce implementation across the web experience, backend and admin tools, plus customer mobile applications. Ongoing client support from business requirements and solution design through implementation, developer-account administration, release coordination and maintenance.
 
-Laravel · React / TypeScript · Java · Swift
+Laravel / PHP · Blade / Vue · React / TypeScript · Java / Android · Swift / UIKit · MySQL · Redis
 
 Hledan Junction
 
@@ -180,7 +220,7 @@ MSCT PTE LTD
 
 Commerce / Company website
 
-Corporate website implementation and the public connection between MSCT’s business and the BurmaMart app ecosystem.
+Corporate website implementation and ongoing support for MSCT PTE. LTD., Singapore; connects its import and distribution business to the BurmaMart commerce platform.
 
 HTML / CSS · JavaScript · Corporate web
 
@@ -306,15 +346,17 @@ HTML / CSS · JavaScript · Python · GitHub Pages
 
 How I approach a build
 
-Start with the people using it. A merchant’s order flow, a courier’s handover, a teacher’s portfolio, and a player’s first session all need different decisions.
+Requirements discovery and business translation. Ongoing client work starts with business problems and maps them to merchant, buyer, courier and staff workflows.
 
-Connect the whole experience. I work across public interfaces, mobile clients, APIs, administrative tools, and the workflows behind them.
+Client communication and follow-through. Ongoing support for three companies across Thailand, Myanmar and Singapore; coordination through onboarding, implementation and release preparation.
 
-Make character useful. Typography, motion, and visual storytelling should help people understand what they can do next.
+Ownership and prioritization. Connects interfaces, APIs, data and operations; tracks dependencies, pending approvals and release readiness.
 
-Design for the device in hand. Responsive layouts, touch controls, reduced-motion settings, offline features, and lower-powered-device modes appear throughout the work.
+Technical communication. Requirements, architecture notes, handover documentation and QA guides in reviewed projects.
 
-Keep the story honest. I distinguish original work from adaptations, label demonstrations, protect internal data, and preserve creator credits.
+Team collaboration. Vanguard contribution to SOM BI and End Game Union work with fellow developers; original creator credits retained.
+
+Problem solving and adaptability. Cross-platform migrations, checkout consistency, role-boundary regressions and multilingual / offline experience across domains.
 
 Hledan is especially personal: my friend Madric A made the original map of this little piece of Yangon. My contribution brings it to the browser through lighting, weather, navigation, and performance work. His authorship remains part of the experience.
 
@@ -332,6 +374,6 @@ to discuss a build.
 
 Thomas D. Lynn
 
-PROJECT-BASED RÉSUMÉ · SEPTEMBER 2026
+PROJECT-BASED RÉSUMÉ · OCTOBER 2026
 
 Explore all 33 project stories

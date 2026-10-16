@@ -687,6 +687,9 @@ html { scroll-padding-top: 90px; }
 }
 @media print { .resume-dialog:not([open]),.preview-dialog { display: none!important; } }
 
+/* Professional profile: client scope and independently linked credentials. */
+.career-proof-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}.career-proof-grid article{padding:24px;border:1px solid currentColor;border-radius:14px}.career-proof-grid h3{font-size:1.3rem;line-height:1.25;margin:0 0 18px}.career-proof-grid p,.career-proof-grid li{font:400 1rem/1.65 var(--font-sans,system-ui);overflow-wrap:anywhere}.career-proof-grid ul{padding-left:20px}.career-proof-grid li+li{margin-top:12px}.career-proof-grid a{text-decoration:underline;text-underline-offset:3px}@media(max-width:900px){.career-proof-grid{grid-template-columns:1fr}}
+
 /* A sea chart on screen; a standard, single-column document in print. */
 .resume-open { overflow: hidden; }
 .resume-dialog { --resume-ink: #34291d; --resume-muted: #6a5339; width: min(1080px,96vw); max-width: 96vw; height: min(940px,94dvh); max-height: 94dvh; padding: 0; margin: auto; border: 1px solid #8e7445; border-radius: 12px; background: #111d23; color: #f3e5c7; overflow: hidden; box-shadow: 0 40px 140px #000c; }
