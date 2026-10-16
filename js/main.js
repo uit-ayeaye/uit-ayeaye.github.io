@@ -4,7 +4,7 @@
    =================================== */
 document.addEventListener('DOMContentLoaded', () => {
     // ===== THEME TOGGLE =====
-    const savedTheme = localStorage.getItem('bb-theme-v2') || 'dark';
+    const savedTheme = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
 
     // Create toggle button
@@ -18,7 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const current = document.documentElement.getAttribute('data-theme');
         const next = current === 'dark' ? 'light' : 'dark';
         document.documentElement.setAttribute('data-theme', next);
-        localStorage.setItem('bb-theme-v2', next);
+        document.documentElement.style.colorScheme = next;
+        try { localStorage.setItem('bb-theme-v2', next); } catch (_) { /* Optional storage. */ }
     });
 
     // ===== PRELOADER — "Hoist the Colors" =====

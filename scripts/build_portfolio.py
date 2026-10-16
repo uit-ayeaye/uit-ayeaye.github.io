@@ -54,7 +54,8 @@ def head(title, description, canonical, image='/images/social/thomas-captains-st
         schema['@graph'].append({'@type': 'WebSite', '@id': 'https://thomasdlynn.dev/#website', 'name': 'Thomas D. Lynn — Backbenchers Studio', 'url': 'https://thomasdlynn.dev/'})
     return version_assets(f'''<!doctype html>
 <html lang="en" data-theme="dark" class="immersive-mode"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<script>try{{document.documentElement.dataset.theme=localStorage.getItem('bb-theme-v2')==='light'?'light':'dark';document.documentElement.classList.toggle('gear-five',localStorage.getItem('bb-gear')==='on');document.documentElement.classList.toggle('immersive-mode',localStorage.getItem('bb-immersive')!=='off')}}catch(e){{}}</script>
+<script src="/js/theme-init.js"></script>
+<script>try{{document.documentElement.classList.toggle('gear-five',localStorage.getItem('bb-gear')==='on');document.documentElement.classList.toggle('immersive-mode',localStorage.getItem('bb-immersive')!=='off')}}catch(e){{}}</script>
 <title>{esc(title)}</title><meta name="description" content="{esc(description)}"><meta name="theme-color" content="#0b1522">
 <link rel="canonical" href="https://thomasdlynn.dev{canonical}"><meta property="og:type" content="website"><meta property="og:title" content="{esc(title)}"><meta property="og:description" content="{esc(description)}"><meta property="og:url" content="https://thomasdlynn.dev{canonical}"><meta property="og:image" content="{esc(full_image)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="{esc(title)}"><meta name="twitter:description" content="{esc(description)}"><meta name="twitter:image" content="{esc(full_image)}"><meta property="og:site_name" content="Thomas D. Lynn · Backbenchers Studio"><meta property="og:locale" content="en_US"><meta property="og:image:alt" content="{esc(title)}"><meta name="author" content="Thomas D. Lynn"><meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="icon" href="/images/jolly-roger-cyber-nobg.png"><link rel="stylesheet" href="/css/portfolio.css"><script src="/js/tactile-voyage.js" defer></script><script src="/js/captains-log.js" defer></script><script src="/js/character-select.js" defer></script><script src="/js/resume-logbook.js" defer></script><script src="/js/preview-loops.js" defer></script><script type="application/ld+json">{json.dumps(schema)}</script></head><body class="portfolio-site">
@@ -211,7 +212,7 @@ def build_project(p, i):
     if p['url'] and p['url'] not in [s[1] for s in sources]:
         sources.insert(0, ['Visit the project', p['url']])
     source_html = '<ul class="source-list">' + ''.join(f'<li>{link(label + " ↗", url)}</li>' for label, url in sources) + '</ul>' if sources else '<p>This is an internal university project. A public case study is shared here; the deployment and university data remain private.</p>'
-    call_to_action = link('Visit the project ↗', p['url'], 'button red-button') if p['url'] else '<span class="private-label">INTERNAL CASE STUDY · NO PUBLIC DEPLOYMENT</span>' if p['id'] == 'som-bi' else '<span class="private-label">PROJECT ADDRESS CURRENTLY UNAVAILABLE</span>'
+    call_to_action = link('Visit the 3D studio tour ↗' if p['id']=='backbenchers' else 'Visit the project ↗', p['url'], 'button red-button') if p['url'] else '<span class="private-label">INTERNAL CASE STUDY · NO PUBLIC DEPLOYMENT</span>' if p['id'] == 'som-bi' else '<span class="private-label">PROJECT ADDRESS CURRENTLY UNAVAILABLE</span>'
     next_p = PROJECTS[(i + 1) % len(PROJECTS)]
     gallery = ''
     if p.get('gallery'):
@@ -231,6 +232,8 @@ def build_project(p, i):
 def build_resume():
     selected = {'endgame','golden-gates','burmamart','awam','strikers','glyph-studio','som-bi'}
     ledger = ''.join(f'<article class="resume-entry"><div class="resume-entry-heading"><h3><a href="/projects/{p["id"]}/">{esc(p["title"])}</a></h3><span>{esc(p["category"])} / {esc(p["status"])}</span></div><p>{esc(p["role"])}</p><p class="resume-stack">{" · ".join(esc(t) for t in p["stack"])}</p></article>' for p in PROJECTS if p['id'] not in selected)
+    tour = next(p for p in PROJECTS if p['id']=='backbenchers')
+    ledger = ledger.replace(esc(tour['role']) + '</p>', esc(tour['role']) + '</p><p>' + link('Visit the 3D studio tour', tour['url']) + '</p>')
     paper = (ROOT / 'templates/resume.html').read_text().replace('{{COUNT}}', str(len(PROJECTS))).replace('{{PROJECT_LEDGER}}', ledger)
     content = f'''<main id="main" class="resume-page"><div class="resume-page-toolbar"><a class="back-link" href="/">← BACK TO PORTFOLIO</a><div><a class="button logbook-button" href="/resume/thomas-d-lynn-logbook.pdf" download>Logbook PDF ↓</a><a href="/resume/thomas-d-lynn-resume.pdf" download>Plain PDF ↓</a><a href="/resume/thomas-d-lynn-resume.txt" download>Text résumé ↓</a><button class="button" id="print-resume" hidden>Print ↗</button></div></div><p class="resume-print-hint">A detailed captain’s log. Download the illustrated edition, or choose a clean PDF for applications.</p><div class="resume-stage">{paper}</div></main>'''
     (ROOT / 'resume').mkdir(exist_ok=True)

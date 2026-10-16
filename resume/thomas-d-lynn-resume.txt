@@ -350,11 +350,13 @@ React · TypeScript · Node.js · PostgreSQL · PGlite · Flutter
 
 Backbenchers Studio
 
-Tools / This portfolio
+Tools / Live · visitable 3D studio tour and Unity WebGL
 
-Studio founder and software developer. The original logo identity was created by our logo designer.
+Studio founder and software developer building an interactive 3D studio tour and Unity WebGL showcase. The original logo identity was created by our logo designer.
 
-HTML / CSS · JavaScript · Python · GitHub Pages
+Visit the 3D studio tour
+
+Unity · C# · WebGL · HTML / CSS · JavaScript · GitHub Pages
 
 How I approach a build
 

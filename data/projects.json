@@ -1154,24 +1154,35 @@
     "title": "Backbenchers Studio",
     "category": "Tools",
     "eyebrow": "Thomas D. Lynn · the captain’s log",
-    "status": "This portfolio",
-    "summary": "An indie tech studio building games, apps, and experiments in connected technology.",
-    "story": "Backbenchers Studio is the home for our games, applications, and experiments in IoT and aerial technology. The original designer’s identity combines programming symbols, game-controller buttons, and a quadcopter motif. The cyber-skull Jolly Roger is our pirate-crew variation for this portfolio; it does not replace the original studio mark.",
-    "role": "Studio founder and software developer. The original logo identity was created by our logo designer.",
+    "status": "Live · visitable 3D studio tour and Unity WebGL",
+    "summary": "A visitable 3D studio tour showcasing games, software and creative work, with a Unity WebGL experience.",
+    "story": "Backbenchers Studio brings together our games, applications and experiments in connected technology. Its public studio experience includes an interactive room, virtual workspaces and a Unity WebGL showcase. The original designer’s identity combines programming symbols, game-controller buttons and a quadcopter motif. The cyber-skull Jolly Roger is our pirate-crew variation for this portfolio; it does not replace the original studio mark.",
+    "role": "Studio founder and software developer building an interactive 3D studio tour and Unity WebGL showcase. The original logo identity was created by our logo designer.",
     "features": [
-      "Original designer identity with a connected coding, gaming, and quadcopter symbol",
-      "Games, applications, creative tools, and experiments in connected hardware",
-      "A separate cyber-skull Jolly Roger for the studio’s One Piece-inspired pirate crew"
+      "Interactive studio room with inspectable objects and virtual workspaces",
+      "Unity WebGL showcase alongside browser-based desktop and mobile interactions",
+      "Games, applications, creative tools and experiments in connected hardware",
+      "Original designer identity with coding, gaming and quadcopter symbols"
     ],
     "stack": [
+      "Unity",
+      "C#",
+      "WebGL",
       "HTML / CSS",
       "JavaScript",
-      "Python",
       "GitHub Pages"
     ],
-    "url": "https://thomasdlynn.dev",
+    "url": "https://thiha-lynn.github.io/backbenchers-studio/",
     "image": "/images/projects/backbenchers-identity.webp",
     "links": [
+      [
+        "Visit the 3D studio tour",
+        "https://thiha-lynn.github.io/backbenchers-studio/"
+      ],
+      [
+        "Source repository",
+        "https://github.com/Thiha-Lynn/backbenchers-studio"
+      ],
       [
         "Original designer assets",
         "https://drive.google.com/drive/folders/1iYx5K78QqnHxXc0FmvhJ04f8Ai8cpwa-"
@@ -1179,6 +1190,14 @@
     ],
     "credit": "Original logo supplied by the studio’s designer in the BB Logo final collection. Cyber-skull artwork is the pirate-crew variation.",
     "notes": null,
-    "preview_caption": "Original designer logo · studio identity presentation"
+    "preview_caption": "Original designer logo · studio identity presentation",
+    "gallery": [
+      {
+        "image": "/images/projects/backbenchers-tour.png",
+        "title": "Walk inside the 3D studio",
+        "description": "Live studio tour captured 16 October 2026. Explore the room, workbench, crew gallery, drone lab and reading room."
+      }
+    ],
+    "gallery_note": "Live browser capture of the interactive Backbenchers Studio tour."
   }
 ]

@@ -17,12 +17,16 @@ for p in paths:
         title = {'hledan':'Hledan Junction — Real-Time 3D Yangon','naruto':'Naruto — Sage Mode Awakening'}.get(p.parent.name)
         if title: s=re.sub(r'(<body[^>]*>)', r'\1<h1 class="expedition-heading">'+title+'</h1>',s,count=1)
     if p.parent.name=='blog':
+        s=s.replace("<script>document.documentElement.setAttribute('data-theme',localStorage.getItem('bb-theme-v2')||'dark')</script>", "")
+        s=re.sub(r'<script src="/js/theme-init.js(?:\?v=[a-f0-9]+)?"></script>', '', s)
+        s=re.sub(r'<html lang="en"(?: data-theme="dark")?>', '<html lang="en" data-theme="dark">', s)
+        s=s.replace('<head>', '<head><script src="/js/theme-init.js"></script>')
         s=s.replace("localStorage.getItem('pirate-theme')","localStorage.getItem('bb-theme-v2')")
         s=s.replace('/images/captain/thomas-captain.webp','/images/captain/thomas-captain-v2.webp')
         s=s.replace('<body>','<body class="logbook-article">').replace('../images/my-profile.png','/images/captain/thomas-captain-v2.webp')
         # Portrait asset is an original illustration, never a real headshot.
         s=s.replace('alt="Thomas D. Lynn"','alt="Illustrated captain portrait of Thomas D. Lynn"')
-    for asset in ['css/studio-fonts.css', 'css/scroll-logbook.css', 'css/expedition-shell.css', 'js/expedition-shell.js', 'js/tactile-voyage.js']:
+    for asset in ['js/theme-init.js', 'css/studio-fonts.css', 'css/scroll-logbook.css', 'css/expedition-shell.css', 'js/expedition-shell.js', 'js/tactile-voyage.js']:
         digest=sha256((ROOT / asset).read_bytes()).hexdigest()[:12]
         s=s.replace('"/'+asset+'"','"/'+asset+'?v='+digest+'"')
     p.write_text(s)

@@ -8,6 +8,7 @@
   const themeButton = document.querySelector('.day-toggle');
   function syncTheme() {
     const light = root.dataset.theme === 'light';
+    root.style.colorScheme = light ? 'light' : 'dark';
     if (themeButton) {
       themeButton.hidden = false;
       themeButton.setAttribute('aria-pressed', String(light));
