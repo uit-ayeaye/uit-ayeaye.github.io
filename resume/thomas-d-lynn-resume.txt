@@ -26,7 +26,11 @@ Mae Fah Luang University · B.Eng. Software Engineering · 2023–present. Recor
 
 Available for cooperative education January–May 2027, anywhere in Thailand, including Chiang Mai. Expected graduation: approximately June 2027. Exact placement dates to be agreed.
 
-LLM security certifications
+Mobile & LLM security certifications
+
+Certified Mobile Android PenTest Junior (CMAPJ)
+
+— Red Team Leaders, 20 October 2026.
 
 Certified LLM Security Professional (CLLMSP)
 
@@ -35,6 +39,8 @@ Certified LLM Security Professional (CLLMSP)
 Certified LLM Security Expert (CLLMSE)
 
 — Red Team Leaders, 16 October 2026.
+
+CMAPJ assessment: APK reverse engineering and static analysis, Android component security, deep links and WebViews, local storage and cryptography, runtime instrumentation and network security configuration. Assessment methodology references OWASP MSTG / MASVS; completed in a deliberately vulnerable application environment.
 
 Coursework covers LLM fundamentals, inference and tokenization, RAG versus fine-tuning, secure agent architecture, ReAct and multi-agent concepts, MCP, tool permissions and human-in-the-loop controls. Security topics include OWASP LLM risks, prompt-injection defense, threat modeling, governance and monitoring. These are areas of study; practical project experience is described separately.
 
