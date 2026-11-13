@@ -105,5 +105,7 @@ def build(artful=False):
     callback=background if artful else plain_footer
     doc.build(story,onFirstPage=callback,onLaterPages=callback)
     print('Built',dest.relative_to(ROOT))
-build(False);build(True)
+build(True)
+import runpy
+runpy.run_path(str(ROOT/'scripts/build_application_resume.py'),run_name='__main__')
 (ROOT/'resume/pdf-source.sha256').write_text(sha256((ROOT/'templates/resume.html').read_bytes()).hexdigest()+'\n')
